@@ -1,0 +1,274 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model article_commandes {
+  id          BigInt   @id @default(autoincrement())
+  article_id  BigInt
+  commande_id BigInt
+  quantite    Int
+  prix        Int
+  reduction   Int
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  // Relations
+  articles  articles  @relation(fields: [article_id], references: [id])
+  commandes commandes @relation(fields: [commande_id], references: [id])
+
+  @@index([article_id])
+  @@index([commande_id])
+}
+
+model articles {
+  id                   BigInt    @id @default(autoincrement())
+  nom                  String    @db.VarChar(255)
+  description          String?   @db.VarChar(255)
+  prix                 Int
+  prixPromotion        Int?
+  isPromotion          Boolean   @default(false)
+  pourcentageReduction Int       @default(0)
+  madeInGabon          Boolean   @default(false)
+  user_id              BigInt
+  categorie            String    @db.VarChar(255)
+  image_principale     String?   @db.VarChar(255)
+  created_at           DateTime? @default(now())
+  updated_at           DateTime? @updatedAt
+
+  // Relations
+  article_commandes article_commandes[]
+  users             users               @relation(fields: [user_id], references: [id])
+  commande_articles commande_articles[]
+  image_articles    image_articles[]
+  variations        variations[]
+
+  @@index([user_id])
+}
+
+model commande_articles {
+  id            BigInt   @id @default(autoincrement())
+  commande_id   BigInt
+  article_id    BigInt
+  variation_id  BigInt?
+  quantite      Int
+  prix_unitaire Int
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  articles   articles    @relation(fields: [article_id], references: [id])
+  commandes  commandes   @relation(fields: [commande_id], references: [id])
+  variations variations? @relation(fields: [variation_id], references: [id])
+
+  @@index([article_id])
+  @@index([commande_id])
+  @@index([variation_id])
+}
+
+model commandes {
+  id                BigInt           @id @default(autoincrement())
+  numero            String           @db.VarChar(255)
+  statut            commandes_statut @default(En_attente)
+  prix              Int
+  commentaire       String           @db.VarChar(255)
+  isLivrable        Boolean
+  user_id           BigInt
+  created_at        DateTime         @default(now())
+  updated_at        DateTime         @updatedAt
+  adresse_livraison String           @db.VarChar(255)
+
+  // Relations
+  article_commandes article_commandes[]
+  commande_articles commande_articles[]
+  users             users               @relation(fields: [user_id], references: [id])
+  livraisons        livraisons[]
+  reclamations      reclamations[]
+
+  @@index([user_id])
+}
+
+model image_articles {
+  id           BigInt   @id @default(autoincrement())
+  url_photo    String   @db.VarChar(255)
+  variation_id BigInt?
+  article_id   BigInt
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  articles   articles    @relation(fields: [article_id], references: [id])
+  variations variations? @relation(fields: [variation_id], references: [id])
+
+  @@index([article_id])
+  @@index([variation_id])
+}
+
+model livraisons {
+  id             BigInt   @id @default(autoincrement())
+  adresse        String   @db.VarChar(255)
+  details        String   @db.VarChar(255)
+  statut         String   @db.VarChar(255)
+  date_livraison DateTime
+  ville          String   @db.VarChar(255)
+  phone          String   @db.VarChar(255)
+  commande_id    BigInt
+  user_id        BigInt?
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  commandes commandes @relation(fields: [commande_id], references: [id])
+  users     users?    @relation(fields: [user_id], references: [id])
+
+  @@index([commande_id])
+  @@index([user_id])
+}
+
+model publicites {
+  id          BigInt   @id @default(autoincrement())
+  date_start  DateTime
+  date_end    DateTime
+  titre       String   @db.VarChar(255)
+  url_image   String   @db.VarChar(255)
+  lien        String   @db.VarChar(255)
+  description String
+  isActif     Boolean
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+}
+
+model reclamations {
+  id          BigInt              @id @default(autoincrement())
+  description String              @db.VarChar(255)
+  phone       String              @db.VarChar(255)
+  statut      reclamations_statut @default(En_attente_de_traitement)
+  commande_id BigInt
+  user_id     BigInt
+  created_at  DateTime            @default(now())
+  updated_at  DateTime            @updatedAt
+
+  commandes commandes @relation(fields: [commande_id], references: [id])
+  users     users     @relation(fields: [user_id], references: [id])
+
+  @@index([commande_id])
+  @@index([user_id])
+}
+
+model stocks {
+  id           BigInt   @id @default(autoincrement())
+  variation_id BigInt
+  quantite     Int      @default(0)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  variations variations @relation(fields: [variation_id], references: [id])
+
+  @@index([variation_id])
+}
+
+model users {
+  id                BigInt    @id @default(autoincrement())
+  auth_id           String?   @unique @db.Uuid
+  name              String    @db.VarChar(255)
+  role              String    @db.VarChar(255)
+  email             String    @unique @db.VarChar(255)
+  url_logo          String?   @db.VarChar(255)
+  phone             String?   @db.VarChar(255)
+  heure_ouverture   String?
+  heure_fermeture   String?
+  description       String?
+  solde             Int       @default(0)
+  email_verified_at DateTime?
+  password          String?   @db.VarChar(255)
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  articles     articles[]
+  commandes    commandes[]
+  livraisons   livraisons[]
+  reclamations reclamations[]
+
+  // Relations pour BetterAuth
+  accounts accounts[]
+  sessions sessions[]
+}
+
+// Modèle pour les comptes OAuth (Google, Facebook, etc.)
+model accounts {
+  id                  BigInt   @id @default(autoincrement())
+  user_id             BigInt
+  type                String // 'oauth' ou 'credentials'
+  provider            String // 'google', 'facebook', 'email', etc.
+  provider_account_id String // id du compte côté provider
+  refresh_token       String?
+  access_token        String?
+  expires_at          Int?
+  token_type          String?
+  scope               String?
+  id_token            String?
+  session_state       String?
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+
+  users users @relation(fields: [user_id], references: [id])
+
+  @@index([user_id])
+  @@index([provider, provider_account_id])
+}
+
+// Modèle pour la gestion des sessions persistantes
+model sessions {
+  id            BigInt   @id @default(autoincrement())
+  session_token String   @unique
+  user_id       BigInt
+  expires       DateTime
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  users users @relation(fields: [user_id], references: [id])
+
+  @@index([user_id])
+}
+
+model variations {
+  id         BigInt    @id @default(autoincrement())
+  article_id BigInt
+  couleur    String?   @db.VarChar(255)
+  taille     String?   @db.VarChar(255)
+  stock      Int       @default(0)
+  prix       Int?
+  image      String?   @db.VarChar(255)
+  created_at DateTime? @default(now())
+  updated_at DateTime? @updatedAt
+
+  commande_articles commande_articles[]
+  image_articles    image_articles[]
+  stocks            stocks[]
+  articles          articles            @relation(fields: [article_id], references: [id])
+
+  @@index([article_id])
+}
+
+enum commandes_statut {
+  En_attente            @map("En attente")
+  En_preparation        @map("En préparation")
+  Prete_pour_livraison  @map("Prête pour livraison")
+  En_cours_de_livraison @map("En cours de livraison")
+  Livree                @map("Livrée")
+  Annule                @map("Annulée")
+  Rembourse             @map("Remboursée")
+}
+
+enum reclamations_statut {
+  En_attente_de_traitement @map("En attente de traitement")
+  En_cours                 @map("En cours")
+  Rejete                   @map("Rejetée")
+  Rembourse                @map("Remboursée")
+}
