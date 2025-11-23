@@ -8,7 +8,7 @@ const signupSchema = z.object({
     email: z.string().email(),
     password: z.string().min(6),
     name: z.string().min(3).optional(),
-    role: z.string().min(1).optional(),
+    role: z.enum(["Client", "Boutique", "Livreur"]).optional(),
 });
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
