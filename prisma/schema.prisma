@@ -14,7 +14,7 @@ model article_commandes {
   prix        Int
   reduction   Int
   created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
+  updated_at  DateTime @default(now())
 
   // Relations
   articles  articles  @relation(fields: [article_id], references: [id])
@@ -57,7 +57,7 @@ model commande_articles {
   quantite      Int
   prix_unitaire Int
   created_at    DateTime @default(now())
-  updated_at    DateTime @updatedAt
+  updated_at    DateTime @default(now())
 
   articles   articles    @relation(fields: [article_id], references: [id])
   commandes  commandes   @relation(fields: [commande_id], references: [id])
@@ -96,7 +96,7 @@ model image_articles {
   variation_id String?  @db.Uuid
   article_id   String   @db.Uuid
   created_at   DateTime @default(now())
-  updated_at   DateTime @updatedAt
+  updated_at   DateTime @default(now())
 
   articles   articles    @relation(fields: [article_id], references: [id])
   variations variations? @relation(fields: [variation_id], references: [id])
@@ -116,7 +116,7 @@ model livraisons {
   commande_id    String   @db.Uuid
   user_id        String?  @db.Uuid
   created_at     DateTime @default(now())
-  updated_at     DateTime @updatedAt
+  updated_at     DateTime @default(now())
 
   commandes commandes @relation(fields: [commande_id], references: [id])
   users     users?    @relation(fields: [user_id], references: [id])
@@ -135,7 +135,7 @@ model publicites {
   description String
   isActif     Boolean
   created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
+  updated_at  DateTime @default(now())
 }
 
 model reclamations {
@@ -160,7 +160,7 @@ model stocks {
   variation_id String   @db.Uuid
   quantite     Int      @default(0)
   created_at   DateTime @default(now())
-  updated_at   DateTime @updatedAt
+  updated_at   DateTime @default(now())
 
   variations variations @relation(fields: [variation_id], references: [id])
 
@@ -178,9 +178,10 @@ model users {
   heure_ouverture String?
   heure_fermeture String?
   description     String?
+  address         String?
   solde           Int      @default(0)
   created_at      DateTime @default(now())
-  updated_at      DateTime @updatedAt
+  updated_at      DateTime @default(now())
 
   articles     articles[]
   commandes    commandes[]
@@ -206,7 +207,7 @@ model accounts {
   id_token            String?
   session_state       String?
   created_at          DateTime @default(now())
-  updated_at          DateTime @updatedAt
+  updated_at          DateTime @default(now())
 
   users users @relation(fields: [user_id], references: [id])
 
@@ -220,7 +221,7 @@ model sessions {
   user_id       String   @db.Uuid
   expires       DateTime
   created_at    DateTime @default(now())
-  updated_at    DateTime @updatedAt
+  updated_at    DateTime @default(now())
 
   users users @relation(fields: [user_id], references: [id])
 

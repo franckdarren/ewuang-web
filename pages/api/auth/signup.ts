@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "../../../app/lib/supabaseAdmin";
 import { supabase } from "../../../app/lib/supabaseClient";
 import { z, ZodError } from "zod";
+import { v4 as uuidv4 } from "uuid";
 
 // Schéma Zod
 const signupSchema = z.object({
@@ -30,6 +31,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const { data: userData, error: dbError } = await supabaseAdmin
             .from("users")
             .insert({
+                id: uuidv4(),
                 auth_id: authData.user?.id,
                 email: authData.user?.email,
                 name: name || null,
@@ -39,6 +41,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             })
             .select()
             .single();
+
+        console.log("Auth ID:", authData.user?.id);
+        console.log("Inserted user:", userData);
+
 
         if (dbError) {
             console.log("DB ERROR:", dbError);
