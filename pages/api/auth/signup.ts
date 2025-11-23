@@ -42,10 +42,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             .select()
             .single();
 
-        console.log("Auth ID:", authData.user?.id);
-        console.log("Inserted user:", userData);
-
-
         if (dbError) {
             console.log("DB ERROR:", dbError);
             // Supprime l'utilisateur Auth si l'insertion échoue
