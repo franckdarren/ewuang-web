@@ -4,7 +4,7 @@ import { createSwaggerSpec } from 'next-swagger-doc';
 export const getApiDocs = async () => {
   const spec = createSwaggerSpec({
     // Utilisez un tableau pour spécifier les deux dossiers
-    apiFolder: 'src',
+    apiFolder: 'pages/api',
     definition: {
       openapi: '3.0.0',
       info: {

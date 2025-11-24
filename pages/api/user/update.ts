@@ -1,7 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { supabaseAdmin } from "../../../app/lib/supabaseAdmin";
 import { z, ZodError } from "zod";
 import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
+import { getSupabaseAdmin } from "../../../app/lib/supabaseSafeAdmin";
+import { getSupabaseClient } from "../../../app/lib/supabaseSafeClient";
 
 // Schema de modification
 const updateSchema = z.object({
@@ -13,6 +14,62 @@ const updateSchema = z.object({
     heure_fermeture: z.string().optional(),
     description: z.string().optional(),
 });
+
+/**
+ * @swagger
+ * /api/users/update:
+ *   patch:
+ *     summary: "Met à jour le profil de l'utilisateur connecté"
+ *     tags: ["Users"]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: "Yaya Nills"
+ *               address:
+ *                 type: string
+ *                 example: "Libreville, Gabon"
+ *               url_logo:
+ *                 type: string
+ *                 example: "https://example.com/logo.png"
+ *               phone:
+ *                 type: string
+ *                 example: "+24100000000"
+ *               heure_ouverture:
+ *                 type: string
+ *                 example: "08:00"
+ *               heure_fermeture:
+ *                 type: string
+ *                 example: "18:00"
+ *               description:
+ *                 type: string
+ *                 example: "Ma boutique de produits"
+ *     responses:
+ *       200:
+ *         description: "Profil mis à jour avec succès"
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 user:
+ *                   type: object
+ *       400:
+ *         description: "Données invalides"
+ *       401:
+ *         description: "Non autorisé, token manquant ou invalide"
+ *       403:
+ *         description: "Accès interdit : utilisateur non trouvé"
+ *       500:
+ *         description: "Erreur serveur"
+ */
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== "PATCH") {
@@ -30,6 +87,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const body = updateSchema.parse(req.body);
 
         // 2️⃣ Mettre à jour uniquement le profil de l'utilisateur connecté
+        const supabaseAdmin = getSupabaseAdmin();
         const { data, error } = await supabaseAdmin
             .from("users")
             .update({
