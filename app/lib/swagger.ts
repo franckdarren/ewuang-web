@@ -15,7 +15,7 @@ export const getApiDocs = async () => {
       // security: [{ BearerAuth: [] }],
     },
     // Si vous utilisez l'authentification Bearer, décommentez et complétez :
-    /*
+
     components: {
       securitySchemes: {
         BearerAuth: {
@@ -25,7 +25,7 @@ export const getApiDocs = async () => {
         },
       },
     },
-    */
+
   });
   return spec;
 };

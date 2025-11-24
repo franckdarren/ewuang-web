@@ -20,6 +20,8 @@ const updateSchema = z.object({
  * /api/users/update:
  *   patch:
  *     summary: "Met à jour le profil de l'utilisateur connecté"
+ *     description: >
+ *       Met à jour les informations du profil de l'utilisateur connecté dans la table `public.users`. La route est sécurisée et nécessite un token Bearer valide.
  *     tags: ["Users"]
  *     security:
  *       - bearerAuth: []
