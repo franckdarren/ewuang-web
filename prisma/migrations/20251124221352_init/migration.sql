@@ -6,21 +6,21 @@ CREATE TYPE "reclamations_statut" AS ENUM ('En attente de traitement', 'En cours
 
 -- CreateTable
 CREATE TABLE "article_commandes" (
-    "id" BIGSERIAL NOT NULL,
-    "article_id" BIGINT NOT NULL,
-    "commande_id" BIGINT NOT NULL,
+    "id" UUID NOT NULL,
+    "article_id" UUID NOT NULL,
+    "commande_id" UUID NOT NULL,
     "quantite" INTEGER NOT NULL,
     "prix" INTEGER NOT NULL,
     "reduction" INTEGER NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
+    "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "article_commandes_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "articles" (
-    "id" BIGSERIAL NOT NULL,
+    "id" UUID NOT NULL,
     "nom" VARCHAR(255) NOT NULL,
     "description" VARCHAR(255),
     "prix" INTEGER NOT NULL,
@@ -28,7 +28,7 @@ CREATE TABLE "articles" (
     "isPromotion" BOOLEAN NOT NULL DEFAULT false,
     "pourcentageReduction" INTEGER NOT NULL DEFAULT 0,
     "madeInGabon" BOOLEAN NOT NULL DEFAULT false,
-    "user_id" BIGINT NOT NULL,
+    "user_id" UUID NOT NULL,
     "categorie" VARCHAR(255) NOT NULL,
     "image_principale" VARCHAR(255),
     "created_at" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
@@ -39,27 +39,27 @@ CREATE TABLE "articles" (
 
 -- CreateTable
 CREATE TABLE "commande_articles" (
-    "id" BIGSERIAL NOT NULL,
-    "commande_id" BIGINT NOT NULL,
-    "article_id" BIGINT NOT NULL,
-    "variation_id" BIGINT,
+    "id" UUID NOT NULL,
+    "commande_id" UUID NOT NULL,
+    "article_id" UUID NOT NULL,
+    "variation_id" UUID,
     "quantite" INTEGER NOT NULL,
     "prix_unitaire" INTEGER NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
+    "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "commande_articles_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "commandes" (
-    "id" BIGSERIAL NOT NULL,
+    "id" UUID NOT NULL,
     "numero" VARCHAR(255) NOT NULL,
     "statut" "commandes_statut" NOT NULL DEFAULT 'En attente',
     "prix" INTEGER NOT NULL,
     "commentaire" VARCHAR(255) NOT NULL,
     "isLivrable" BOOLEAN NOT NULL,
-    "user_id" BIGINT NOT NULL,
+    "user_id" UUID NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
     "adresse_livraison" VARCHAR(255) NOT NULL,
@@ -69,36 +69,36 @@ CREATE TABLE "commandes" (
 
 -- CreateTable
 CREATE TABLE "image_articles" (
-    "id" BIGSERIAL NOT NULL,
+    "id" UUID NOT NULL,
     "url_photo" VARCHAR(255) NOT NULL,
-    "variation_id" BIGINT,
-    "article_id" BIGINT NOT NULL,
+    "variation_id" UUID,
+    "article_id" UUID NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
+    "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "image_articles_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "livraisons" (
-    "id" BIGSERIAL NOT NULL,
+    "id" UUID NOT NULL,
     "adresse" VARCHAR(255) NOT NULL,
     "details" VARCHAR(255) NOT NULL,
     "statut" VARCHAR(255) NOT NULL,
     "date_livraison" TIMESTAMP(3) NOT NULL,
     "ville" VARCHAR(255) NOT NULL,
     "phone" VARCHAR(255) NOT NULL,
-    "commande_id" BIGINT NOT NULL,
-    "user_id" BIGINT,
+    "commande_id" UUID NOT NULL,
+    "user_id" UUID,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
+    "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "livraisons_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "publicites" (
-    "id" BIGSERIAL NOT NULL,
+    "id" UUID NOT NULL,
     "date_start" TIMESTAMP(3) NOT NULL,
     "date_end" TIMESTAMP(3) NOT NULL,
     "titre" VARCHAR(255) NOT NULL,
@@ -107,19 +107,19 @@ CREATE TABLE "publicites" (
     "description" TEXT NOT NULL,
     "isActif" BOOLEAN NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
+    "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "publicites_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "reclamations" (
-    "id" BIGSERIAL NOT NULL,
+    "id" UUID NOT NULL,
     "description" VARCHAR(255) NOT NULL,
     "phone" VARCHAR(255) NOT NULL,
     "statut" "reclamations_statut" NOT NULL DEFAULT 'En attente de traitement',
-    "commande_id" BIGINT NOT NULL,
-    "user_id" BIGINT NOT NULL,
+    "commande_id" UUID NOT NULL,
+    "user_id" UUID NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
@@ -128,18 +128,18 @@ CREATE TABLE "reclamations" (
 
 -- CreateTable
 CREATE TABLE "stocks" (
-    "id" BIGSERIAL NOT NULL,
-    "variation_id" BIGINT NOT NULL,
+    "id" UUID NOT NULL,
+    "variation_id" UUID NOT NULL,
     "quantite" INTEGER NOT NULL DEFAULT 0,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
+    "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "stocks_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "users" (
-    "id" BIGSERIAL NOT NULL,
+    "id" UUID NOT NULL,
     "auth_id" UUID,
     "name" VARCHAR(255) NOT NULL,
     "role" VARCHAR(255) NOT NULL,
@@ -149,51 +149,18 @@ CREATE TABLE "users" (
     "heure_ouverture" TEXT,
     "heure_fermeture" TEXT,
     "description" TEXT,
+    "address" TEXT,
     "solde" INTEGER NOT NULL DEFAULT 0,
-    "email_verified_at" TIMESTAMP(3),
-    "password" VARCHAR(255),
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
+    "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "accounts" (
-    "id" BIGSERIAL NOT NULL,
-    "user_id" BIGINT NOT NULL,
-    "type" TEXT NOT NULL,
-    "provider" TEXT NOT NULL,
-    "provider_account_id" TEXT NOT NULL,
-    "refresh_token" TEXT,
-    "access_token" TEXT,
-    "expires_at" INTEGER,
-    "token_type" TEXT,
-    "scope" TEXT,
-    "id_token" TEXT,
-    "session_state" TEXT,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "accounts_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "sessions" (
-    "id" BIGSERIAL NOT NULL,
-    "session_token" TEXT NOT NULL,
-    "user_id" BIGINT NOT NULL,
-    "expires" TIMESTAMP(3) NOT NULL,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "sessions_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "variations" (
-    "id" BIGSERIAL NOT NULL,
-    "article_id" BIGINT NOT NULL,
+    "id" UUID NOT NULL,
+    "article_id" UUID NOT NULL,
     "couleur" VARCHAR(255),
     "taille" VARCHAR(255),
     "stock" INTEGER NOT NULL DEFAULT 0,
@@ -254,18 +221,6 @@ CREATE UNIQUE INDEX "users_auth_id_key" ON "users"("auth_id");
 CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
 
 -- CreateIndex
-CREATE INDEX "accounts_user_id_idx" ON "accounts"("user_id");
-
--- CreateIndex
-CREATE INDEX "accounts_provider_provider_account_id_idx" ON "accounts"("provider", "provider_account_id");
-
--- CreateIndex
-CREATE UNIQUE INDEX "sessions_session_token_key" ON "sessions"("session_token");
-
--- CreateIndex
-CREATE INDEX "sessions_user_id_idx" ON "sessions"("user_id");
-
--- CreateIndex
 CREATE INDEX "variations_article_id_idx" ON "variations"("article_id");
 
 -- AddForeignKey
@@ -309,12 +264,6 @@ ALTER TABLE "reclamations" ADD CONSTRAINT "reclamations_user_id_fkey" FOREIGN KE
 
 -- AddForeignKey
 ALTER TABLE "stocks" ADD CONSTRAINT "stocks_variation_id_fkey" FOREIGN KEY ("variation_id") REFERENCES "variations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "accounts" ADD CONSTRAINT "accounts_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "sessions" ADD CONSTRAINT "sessions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "variations" ADD CONSTRAINT "variations_article_id_fkey" FOREIGN KEY ("article_id") REFERENCES "articles"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
