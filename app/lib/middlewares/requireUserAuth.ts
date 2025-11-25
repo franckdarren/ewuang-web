@@ -12,7 +12,10 @@ export async function requireUserAuth(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Récupère l'utilisateur lié au token
-    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: userError } = await supabaseAdmin
+        .auth
+        .getUser(token);
+
     if (userError || !user) {
         res.status(401).json({ error: "Non autorisé : token invalide" });
         return null;
@@ -32,5 +35,8 @@ export async function requireUserAuth(req: NextApiRequest, res: NextApiResponse)
         return null;
     }
 
-    return { auth_id, user: userRecord };
+    return {
+        authUser: user,
+        profile: userRecord
+    };
 }

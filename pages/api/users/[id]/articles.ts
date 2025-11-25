@@ -29,33 +29,64 @@ import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth
  *         description: Erreur serveur
  */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    if (req.method !== "GET") return res.status(405).json({ error: "Méthode non autorisée" });
-
-    const auth = await requireUserAuth(req, res);
-    if (!auth) return;
-
-    const { id } = req.query;
+    if (req.method !== "GET") {
+        return res.status(405).json({ error: "Méthode non autorisée" });
+    }
 
     try {
-        const { data, error } = await supabaseAdmin
+        // Vérification de l'authentification
+        const auth = await requireUserAuth(req, res);
+        if (!auth) return;
+
+        const { id } = req.query;
+        const authenticatedUserId = auth.profile.auth_id;
+
+        console.log("param.id:", id);
+        console.log("authenticatedUserId:", authenticatedUserId);
+
+        // Vérifie que user.id existe (sécurité)
+        if (!auth.profile?.id) {
+            return res.status(400).json({ error: "Utilisateur invalide : ID introuvable" });
+        }
+
+        // Récupération des articles de l'utilisateur
+        const { data: articles, error } = await supabaseAdmin
             .from("articles")
             .select(`
                 *,
-                variations:article_variations (*),
-                commandes:articles_commandes (
-                    commande_id,
-                    quantite,
-                    variation_id,
-                    variation:variation_id (*)
-                )
+                commande_articles(*),
+                variations(*)
             `)
-            .eq("user_id", id);
+            .eq("user_id", authenticatedUserId);
 
-        if (error) return res.status(500).json({ error: error.message });
+        if (error) {
+            console.error("Erreur Supabase :", error);
+            return res.status(500).json({ error: "Impossible de récupérer les articles" });
+        }
 
-        res.status(200).json(data);
+        // Si aucun article trouvé
+        if (!articles || articles.length === 0) {
+            return res.status(404).json({ error: "Aucun article trouvé pour cet utilisateur" });
+        }
+
+        // Succès
+        return res.status(200).json(articles);
+
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Erreur serveur" });
+        console.error("Erreur route /articles :", err);
+        return res.status(500).json({ error: "Erreur serveur interne" });
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

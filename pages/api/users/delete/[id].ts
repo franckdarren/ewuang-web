@@ -40,6 +40,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { id } = req.query;
     if (!id || typeof id !== "string") return res.status(400).json({ error: "ID utilisateur manquant ou invalide" });
 
+    const authenticatedUserId = auth.profile.id;
+
     try {
         const supabaseAdmin = getSupabaseAdmin();
 
@@ -47,13 +49,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const { data: user, error: userError } = await supabaseAdmin
             .from("users")
             .select("*")
-            .eq("id", auth.user.id)
+            .eq("id", authenticatedUserId)
             .single();
+
+        console.log("param.id:", id);
+        console.log("authenticatedUserId:", authenticatedUserId);
 
         if (userError || !user) return res.status(404).json({ error: "Utilisateur introuvable" });
 
         // 2️⃣ Supprimer dans auth.users si auth_id existe
-        if (user.auth_id) {
+        if (user.authenticatedUserId) {
             const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(user.auth_id);
             if (authError) console.warn("Impossible de supprimer auth_user:", authError.message);
         }
@@ -62,7 +67,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const { error: deleteError } = await supabaseAdmin
             .from("users")
             .delete()
-            .eq("id", auth.user.id);
+            .eq("id", authenticatedUserId);
 
         if (deleteError) return res.status(500).json({ error: "Impossible de supprimer l'utilisateur dans public.users" });
 

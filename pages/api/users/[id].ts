@@ -30,18 +30,24 @@ import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
  *         description: Erreur serveur
  */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    if (req.method !== "GET") return res.status(405).json({ error: "Méthode non autorisée" });
-
-    const auth = await requireUserAuth(req, res);
-    if (!auth) return;
-
-    const { id } = req.query;
+    if (req.method !== "GET") {
+        return res.status(405).json({ error: "Méthode non autorisée" });
+    }
 
     try {
+        // Vérification authentification
+        const auth = await requireUserAuth(req, res);
+        if (!auth) return;
+
+        const { id } = req.query;
+        const authenticatedUserId = auth.profile.id;
+
+        //console.log("param.id:", id);
+        //console.log("authenticatedUserId:", authenticatedUserId);
         const { data: user, error: userError } = await supabaseAdmin
             .from("users")
             .select("*")
-            .eq("id", auth.user.id)
+            .eq("id", authenticatedUserId)
             .single();
 
         if (userError || !user) {

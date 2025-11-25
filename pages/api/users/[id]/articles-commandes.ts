@@ -29,42 +29,54 @@ import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth
  *         description: Erreur serveur
  */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    if (req.method !== "GET") return res.status(405).json({ error: "Méthode non autorisée" });
-
-    const auth = await requireUserAuth(req, res);
-    if (!auth) return;
-
-    const { id } = req.query;
+    if (req.method !== "GET") {
+        return res.status(405).json({ error: "Méthode non autorisée" });
+    }
 
     try {
-        const { data, error } = await supabaseAdmin
-            .from("commandes")
+        // Vérification authentification
+        const auth = await requireUserAuth(req, res);
+        if (!auth) return;
+
+        const { id } = req.query;
+        const authenticatedUserId = auth.profile.auth_id;
+
+        //console.log("param.id:", id);
+        //console.log("authenticatedUserId:", authenticatedUserId);
+
+        // Vérifie que user.id existe (sécurité)
+        if (!auth.profile?.id) {
+            return res.status(400).json({ error: "Utilisateur invalide : ID introuvable" });
+        }
+
+        // Récupère les articles commandés appartenant au user
+        const { data: articles, error } = await supabaseAdmin
+            .from("commande_articles")
             .select(`
-                id,
-                created_at,
-                status,
-                items:articles_commandes (
-                    article_id,
-                    quantite,
-                    variation_id,
-                    variation:variation_id (
-                        nom,
-                        valeur
-                    ),
-                    article:article_id (
-                        nom,
-                        prix,
-                        images
-                    )
-                )
+                *,
+                articles(*),
+                variations(*),
+                commandes(user_id)
             `)
-            .eq("user_id", id);
+            .eq("commandes.user_id", authenticatedUserId);
 
-        if (error) return res.status(500).json({ error: error.message });
 
-        res.status(200).json(data);
+        if (error) {
+            console.error("Erreur Supabase :", error);
+            return res.status(500).json({ error: "Impossible de récupérer les articles commandés" });
+        }
+
+        // Si aucun article trouvé
+        if (!articles || articles.length === 0) {
+            return res.status(404).json({ error: "Aucun article trouvé pour cet utilisateur" });
+        }
+
+        // Succès
+        return res.status(200).json(articles);
+
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Erreur serveur" });
+        console.error("Erreur route /commande_articles :", err);
+        return res.status(500).json({ error: "Erreur serveur interne" });
     }
 }
+

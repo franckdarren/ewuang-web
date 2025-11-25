@@ -83,7 +83,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const auth = await requireUserAuth(req, res);
         if (!auth) return; // réponse déjà envoyée si non autorisé
 
-        const { auth_id } = auth;
+        const { id } = req.query;
+        const authenticatedUserId = auth.profile.auth_id;
+
+        //console.log("param.id:", id);
+        //console.log("authenticatedUserId:", authenticatedUserId);
 
         // 1️⃣ Valider les champs envoyés
         const body = updateSchema.parse(req.body);
@@ -96,7 +100,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 ...body,
                 updated_at: new Date().toISOString(),
             })
-            .eq("auth_id", auth_id)
+            .eq("auth_id", authenticatedUserId)
             .select()
             .single();
 
