@@ -35,18 +35,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const auth = await requireUserAuth(req, res);
     if (!auth) return;
 
-    const { id } = req.query;
-    try {
-        const { data, error } = await supabaseAdmin
-            .from("livraisons")
-            .select("*")
-            .eq("user_id", id);
-
-        if (error) return res.status(500).json({ error: error.message });
-
-        res.status(200).json(data);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Erreur serveur" });
-    }
+    const { data: livraisons } = await supabaseAdmin
+        .from("livraisons")
+        .select("*")
+        .eq("user_id", auth.user.id);
+    res.status(200).json(livraisons);
 }
