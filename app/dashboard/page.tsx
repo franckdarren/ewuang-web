@@ -1,47 +1,40 @@
-import { createClient } from "../utils/supabase/serveur";
+import { AppSidebar } from "@/components/app-sidebar"
+import { ChartAreaInteractive } from "@/components/chart-area-interactive"
+import { DataTable } from "@/components/data-table"
+import { SectionCards } from "@/components/section-cards"
+import { SiteHeader } from "@/components/site-header"
+import {
+    SidebarInset,
+    SidebarProvider,
+} from "@/components/ui/sidebar"
 
-export default async function DashboardPage() {
-    const supabase = await createClient();
+import data from "./data.json"
 
-    // Récupérer l'utilisateur connecté
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-        // Redirection si pas connecté
-        return (
-            <div className="p-8 text-center">
-                <p>Vous n'êtes pas connecté.</p>
-                <a href="/login" className="text-blue-500 underline">
-                    Connectez-vous
-                </a>
-            </div>
-        );
-    }
-
+export default function Page() {
     return (
-        <div className="p-8">
-            <h1 className="text-2xl font-bold mb-4">Bienvenue sur votre Dashboard</h1>
-            <p>
-                <strong>Email :</strong> {user.email}
-            </p>
-            <p>
-                <strong>Id utilisateur :</strong> {user.id}
-            </p>
-
-            {/* Bouton logout */}
-
-            <form method="POST" action="/api/logout">
-                <button
-                    type="submit"
-                    className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition"
-                >
-                    Se déconnecter
-                </button>
-            </form>
-
-
-        </div>
-    );
+        <SidebarProvider
+            style={
+                {
+                    "--sidebar-width": "calc(var(--spacing) * 72)",
+                    "--header-height": "calc(var(--spacing) * 12)",
+                } as React.CSSProperties
+            }
+        >
+            <AppSidebar variant="inset" />
+            <SidebarInset>
+                <SiteHeader />
+                <div className="flex flex-1 flex-col">
+                    <div className="@container/main flex flex-1 flex-col gap-2">
+                        <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+                            <SectionCards />
+                            <div className="px-4 lg:px-6">
+                                <ChartAreaInteractive />
+                            </div>
+                            <DataTable data={data} />
+                        </div>
+                    </div>
+                </div>
+            </SidebarInset>
+        </SidebarProvider>
+    )
 }
