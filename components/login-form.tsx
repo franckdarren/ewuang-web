@@ -1,25 +1,38 @@
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
+"use client";
+
+import { useState } from "react";
+import { loginAction } from "@/app/login/actions";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from "@/components/ui/card";
 import {
   Field,
   FieldDescription,
   FieldGroup,
   FieldLabel,
-  FieldSeparator,
-} from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 
-export function LoginForm({
-  className,
-  ...props
-}: React.ComponentProps<"div">) {
+export function LoginForm({ className, ...props }: React.ComponentProps<"div">) {
+  const [error, setError] = useState("");
+
+  async function handleSubmit(formData: FormData) {
+    setError("");
+
+    // Appelle la server action
+    const result = await loginAction(formData);
+
+    if (result?.error) {
+      setError(result.error);
+    }
+  }
+
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
@@ -30,17 +43,19 @@ export function LoginForm({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form>
+          <form action={handleSubmit}>
             <FieldGroup>
               <Field>
                 <FieldLabel htmlFor="email">Email</FieldLabel>
                 <Input
                   id="email"
+                  name="email"
                   type="email"
-                  placeholder="m@example.com"
+                  placeholder="user@example.com"
                   required
                 />
               </Field>
+
               <Field>
                 <div className="flex items-center">
                   <FieldLabel htmlFor="password">Mot de passe</FieldLabel>
@@ -51,10 +66,20 @@ export function LoginForm({
                     Mot de passe oublié?
                   </a>
                 </div>
-                <Input id="password" type="password" required />
+                <Input id="password" name="password" type="password" required />
               </Field>
+
+              {/* ❗ Affichage des erreurs */}
+              {error && (
+                <p className="text-sm text-red-600 bg-red-50 p-2 rounded-md border border-red-200">
+                  {error}
+                </p>
+              )}
+
               <Field>
-                <Button type="submit">Se connecter</Button>
+                <Button type="submit" className="w-full">
+                  Se connecter
+                </Button>
                 <FieldDescription className="text-center">
                   Vous n'avez pas de compte? <a href="#">Inscrivez-vous</a>
                 </FieldDescription>
@@ -63,10 +88,6 @@ export function LoginForm({
           </form>
         </CardContent>
       </Card>
-      {/* <FieldDescription className="px-6 text-center">
-        By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
-        and <a href="#">Privacy Policy</a>.
-      </FieldDescription> */}
     </div>
-  )
+  );
 }
