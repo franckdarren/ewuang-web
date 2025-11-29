@@ -80,9 +80,6 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
                 <Button type="submit" className="w-full">
                   Se connecter
                 </Button>
-                <FieldDescription className="text-center">
-                  Vous n'avez pas de compte? <a href="#">Inscrivez-vous</a>
-                </FieldDescription>
               </Field>
             </FieldGroup>
           </form>
