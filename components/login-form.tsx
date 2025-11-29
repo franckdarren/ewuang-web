@@ -37,9 +37,9 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
         <CardHeader className="text-center">
-          <CardTitle className="text-xl">Content de te revoir!</CardTitle>
+          <CardTitle className="text-xl">Content de vous revoir!</CardTitle>
           <CardDescription>
-            Connectez-vous avec votre compte Apple ou Google.
+            Connectez-vous avec votre compte administrateur.
           </CardDescription>
         </CardHeader>
         <CardContent>

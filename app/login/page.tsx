@@ -10,8 +10,8 @@ export default function LoginPage() {
                     <Image
                         src="/images/logo1.png"
                         alt="Logo"
-                        width={150}
-                        height={150}
+                        width={200}
+                        height={200}
                     />
                 </a>
                 <LoginForm />
