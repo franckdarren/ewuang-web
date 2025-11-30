@@ -16,7 +16,6 @@ export async function middleware(req: NextRequest) {
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseKey) {
-        console.error("Variables d'environnement Supabase manquantes dans le middleware");
         return NextResponse.redirect(new URL("/erreur", req.url));
     }
 
@@ -36,10 +35,8 @@ export async function middleware(req: NextRequest) {
     );
 
     const { data: { user } } = await supabase.auth.getUser();
-    console.log("🔍 USER:", user?.id, user?.email);
 
     if (!user) {
-        console.log("❌ Pas d'utilisateur, redirection vers /login");
         return NextResponse.redirect(new URL("/login", req.url));
     }
 
@@ -49,16 +46,11 @@ export async function middleware(req: NextRequest) {
         .eq("auth_id", user.id)
         .single();
 
-    console.log("🔍 PROFILE:", profile);
-    console.log("🔍 ERROR:", error);
-
     if (error || !profile) {
-        console.log("❌ Erreur profil, redirection vers /erreur");
         return NextResponse.redirect(new URL("/erreur", req.url));
     }
 
     const role = profile.role;
-    console.log("✅ Role:", profile.role);
 
     const rules = [
         { role: "Boutique", prefix: "/boutique" },
