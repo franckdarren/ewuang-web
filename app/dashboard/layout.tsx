@@ -1,8 +1,5 @@
-// app/dashboard/page.tsx
+// app/dashboard/layout.tsx
 import { AppSidebar } from "@/components/app-sidebar"
-import { ChartAreaInteractive } from "@/components/chart-area-interactive"
-import { DataTable } from "@/components/data-table"
-import { SectionCards } from "@/components/section-cards"
 import { SiteHeader } from "@/components/site-header"
 import {
     SidebarInset,
@@ -14,10 +11,12 @@ import { UserProvider } from "@/components/providers/user-provider"
 import { UserData } from "../../lib/stores/user-store"
 import { supabaseAdmin } from "../lib/supabaseAdmin"
 
-import data from "./data.json"
-
-export default async function Page() {
-    // Récupération des infos utilisateur
+export default async function DashboardLayout({
+    children,
+}: {
+    children: React.ReactNode
+}) {
+    // Récupération des infos utilisateur (une seule fois pour tout le dashboard)
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -25,7 +24,7 @@ export default async function Page() {
         redirect("/login");
     }
 
-    // Récupération du profil complet depuis la table users
+    // Récupération du profil complet
     const { data: profile } = await supabaseAdmin
         .from("users")
         .select("*")
@@ -55,17 +54,13 @@ export default async function Page() {
                     } as React.CSSProperties
                 }
             >
-                {/* <AppSidebar variant="inset" /> */}
-                <SidebarInset>
+                <AppSidebar variant="inset" />
+                <SidebarInset >
+                    <SiteHeader />
                     <div className="flex flex-1 flex-col">
                         <div className="@container/main flex flex-1 flex-col gap-2">
-                            <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-                                <SectionCards />
-                                <div className="px-4 lg:px-6">
-                                    <ChartAreaInteractive />
-                                </div>
-                                <DataTable data={data} />
-                            </div>
+                            {/* Le contenu des pages enfants s'affiche ici */}
+                            {children}
                         </div>
                     </div>
                 </SidebarInset>

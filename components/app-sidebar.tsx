@@ -38,27 +38,27 @@ const data = {
   navMain: [
     {
       title: "Dashboard",
-      url: "#",
+      url: "/dashboard",
       icon: IconDashboard,
     },
     {
       title: "Articles",
-      url: "#",
+      url: "/dashboard/articles",
       icon: IconListDetails,
     },
     {
       title: "Utilisateurs",
-      url: "#",
+      url: "/dashboard/users",
       icon: IconChartBar,
     },
     {
       title: "Commandes",
-      url: "#",
+      url: "/dashboard/commandes",
       icon: IconFolder,
     },
     {
       title: "Publicités",
-      url: "#",
+      url: "/dashboard/publicites",
       icon: IconUsers,
     },
   ],
