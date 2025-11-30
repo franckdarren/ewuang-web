@@ -10,9 +10,11 @@ import {
 } from "@/components/ui/sidebar"
 import { createClient } from "@/app/utils/supabase/serveur"
 import { redirect } from "next/navigation"
+import { UserProvider } from "@/components/providers/user-provider"
+import { UserData } from "../../lib/stores/user-store"
+import { supabaseAdmin } from "../lib/supabaseAdmin"
 
 import data from "./data.json"
-import { supabaseAdmin } from "../lib/supabaseAdmin"
 
 export default async function Page() {
     // Récupération des infos utilisateur
@@ -30,38 +32,45 @@ export default async function Page() {
         .eq("auth_id", user.id)
         .single();
 
-    // Données utilisateur à passer aux composants
-    const userData = {
+    if (!profile) {
+        redirect("/erreur");
+    }
+
+    // Données utilisateur pour Zustand
+    const userData: UserData = {
+        id: user.id,
         email: user.email || "",
-        role: profile?.role || "Utilisateur",
-        name: profile?.name || user.email?.split("@")[0] || "Utilisateur",
-        avatar: profile?.avatar_url || null,
+        role: profile.role || "Utilisateur",
+        name: profile.name || user.email?.split("@")[0] || "Utilisateur",
+        avatar: profile.avatar_url || null,
     };
 
     return (
-        <SidebarProvider
-            style={
-                {
-                    "--sidebar-width": "calc(var(--spacing) * 72)",
-                    "--header-height": "calc(var(--spacing) * 12)",
-                } as React.CSSProperties
-            }
-        >
-            <AppSidebar variant="inset" user={userData} />
-            <SidebarInset>
-                <SiteHeader user={userData} />
-                <div className="flex flex-1 flex-col">
-                    <div className="@container/main flex flex-1 flex-col gap-2">
-                        <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-                            <SectionCards />
-                            <div className="px-4 lg:px-6">
-                                <ChartAreaInteractive />
+        <UserProvider initialUser={userData}>
+            <SidebarProvider
+                style={
+                    {
+                        "--sidebar-width": "calc(var(--spacing) * 72)",
+                        "--header-height": "calc(var(--spacing) * 12)",
+                    } as React.CSSProperties
+                }
+            >
+                <AppSidebar variant="inset" />
+                <SidebarInset>
+                    <SiteHeader />
+                    <div className="flex flex-1 flex-col">
+                        <div className="@container/main flex flex-1 flex-col gap-2">
+                            <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+                                <SectionCards />
+                                <div className="px-4 lg:px-6">
+                                    <ChartAreaInteractive />
+                                </div>
+                                <DataTable data={data} />
                             </div>
-                            <DataTable data={data} />
                         </div>
                     </div>
-                </div>
-            </SidebarInset>
-        </SidebarProvider>
+                </SidebarInset>
+            </SidebarProvider>
+        </UserProvider>
     )
 }
