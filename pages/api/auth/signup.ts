@@ -11,7 +11,7 @@ const signupSchema = z.object({
     email: z.string().email(),
     password: z.string().min(6),
     name: z.string().min(3).optional(),
-    role: z.enum(["Client", "Boutique", "Livreur"]).optional(),
+    role: z.enum(["Client", "Boutique", "Livreur", "Administrateur"]).optional(),
 });
 
 // Swagger Documentation

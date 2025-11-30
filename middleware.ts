@@ -1,63 +1,78 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { createMiddlewareSupabaseClient } from "@supabase/auth-helpers-nextjs";
+import { createServerClient } from "@supabase/ssr";
+import { supabaseAdmin } from "./app/lib/supabaseAdmin";
+
+const PUBLIC = ["/login", "/auth/callback", "/403", "/erreur"];
 
 export async function middleware(req: NextRequest) {
     const res = NextResponse.next();
+    const pathname = req.nextUrl.pathname;
 
-    // 1️⃣ Créer le client Supabase Middleware (lecture session)
-    const supabase = createMiddlewareSupabaseClient({ req, res });
+    if (PUBLIC.some((p) => pathname.startsWith(p))) return res;
 
-    // 2️⃣ Récupérer la session (user + token)
-    const { data: { session } } = await supabase.auth.getSession();
+    // Vérification explicite des variables d'environnement
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-    const url = req.nextUrl.pathname;
-
-    // Si pas connecté → redirection
-    if (!session) {
-        return NextResponse.redirect(new URL("/auth/login", req.url));
+    if (!supabaseUrl || !supabaseKey) {
+        console.error("Variables d'environnement Supabase manquantes dans le middleware");
+        return NextResponse.redirect(new URL("/erreur", req.url));
     }
 
-    const authUserId = session.user.id;
+    const supabase = createServerClient(
+        supabaseUrl,
+        supabaseKey,
+        {
+            cookies: {
+                getAll: () => req.cookies.getAll(),
+                setAll: (cookiesToSet) => {
+                    cookiesToSet.forEach(({ name, value, options }) => {
+                        res.cookies.set(name, value, options);
+                    });
+                },
+            },
+        }
+    );
 
-    // 3️⃣ Récupérer le rôle dans ta table public.users
-    const { data: profile, error } = await supabase
+    const { data: { user } } = await supabase.auth.getUser();
+    console.log("🔍 USER:", user?.id, user?.email);
+
+    if (!user) {
+        console.log("❌ Pas d'utilisateur, redirection vers /login");
+        return NextResponse.redirect(new URL("/login", req.url));
+    }
+
+    const { data: profile, error } = await supabaseAdmin
         .from("users")
         .select("role")
-        .eq("auth_id", authUserId)
+        .eq("auth_id", user.id)
         .single();
 
+    console.log("🔍 PROFILE:", profile);
+    console.log("🔍 ERROR:", error);
+
     if (error || !profile) {
+        console.log("❌ Erreur profil, redirection vers /erreur");
         return NextResponse.redirect(new URL("/erreur", req.url));
     }
 
     const role = profile.role;
+    console.log("✅ Role:", profile.role);
 
-    // 4️⃣ Définir les règles de protection par rôles
-    const roleRules = [
-        {
-            role: "Boutique",
-            prefix: "/boutique",
-        },
-        {
-            role: "Livreur",
-            prefix: "/livreur",
-        },
-        {
-            role: "Client",
-            prefix: "/client",
-        },
+    const rules = [
+        { role: "Boutique", prefix: "/boutique" },
+        { role: "Livreur", prefix: "/livreur" },
+        { role: "Client", prefix: "/client" },
+        { role: "Administrateur", prefix: "/dashboard" },
     ];
 
-    // 5️⃣ Vérifier chaque règle
-    for (const rule of roleRules) {
-        if (url.startsWith(rule.prefix) && role !== rule.role) {
-            // Accès interdit → redirection
+    for (const rule of rules) {
+        if (pathname.startsWith(rule.prefix) && role !== rule.role) {
             return NextResponse.redirect(new URL("/403", req.url));
         }
     }
 
-    // Autorisé → continuer
     return res;
 }
 
@@ -66,5 +81,6 @@ export const config = {
         "/boutique/:path*",
         "/livreur/:path*",
         "/client/:path*",
+        "/dashboard/:path*",
     ],
 };
