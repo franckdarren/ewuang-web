@@ -1,26 +1,19 @@
 "use client"
 
-import {
-  IconCreditCard,
-  IconDotsVertical,
-  IconLogout,
-  IconNotification,
-  IconUserCircle,
-} from "@tabler/icons-react"
+import { useState } from "react"
+import { IconLogout, IconNotification, IconUserCircle, IconDotsVertical } from "@tabler/icons-react"
+import { Loader2, UserCircle } from "lucide-react"
+import Link from "next/link"
 
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar"
+import { Avatar, AvatarImage } from "@/components/ui/avatar"
 import {
   DropdownMenu,
+  DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
   SidebarMenu,
@@ -28,12 +21,8 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { UserCircle } from "lucide-react"
-import { logoutAction } from "@/app/login/actions"
 import { useUserStore } from "../lib/stores/user-store"
-import { useState } from "react"
-import { Loader2 } from "lucide-react"
-import Link from "next/link"
+import { logoutAction } from "@/app/login/actions"
 
 export function NavUser({
   user,
@@ -50,11 +39,12 @@ export function NavUser({
 
   const handleLogout = async () => {
     setIsLoggingOut(true)
+
     try {
-      // Nettoyer le store Zustand
-      clearUser()
-      // Appeler l'action de déconnexion
       await logoutAction()
+      clearUser()
+      // Redirection instantanée vers login
+      window.location.href = "/login"
     } catch (error) {
       console.error("Erreur lors de la déconnexion:", error)
       setIsLoggingOut(false)
@@ -68,8 +58,8 @@ export function NavUser({
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
               disabled={isLoggingOut}
+              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground flex items-center gap-2"
             >
               <Avatar className="h-8 w-8 rounded-lg grayscale flex items-center justify-center">
                 <AvatarImage src={user.avatar || undefined} alt={user.name} />
@@ -77,13 +67,14 @@ export function NavUser({
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{user.name}</span>
-                <span className="text-muted-foreground truncate text-xs">
-                  {user.email}
-                </span>
+                <span className="text-muted-foreground truncate text-xs">{user.email}</span>
               </div>
-              <IconDotsVertical className="ml-auto size-4" />
+              <div className="ml-auto">
+                {isLoggingOut ? <Loader2 className="h-4 w-4 animate-spin" /> : <IconDotsVertical className="ml-auto size-4" />}
+              </div>
             </SidebarMenuButton>
           </DropdownMenuTrigger>
+
           <DropdownMenuContent
             className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
             side={isMobile ? "bottom" : "right"}
@@ -98,43 +89,41 @@ export function NavUser({
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">{user.name}</span>
-                  <span className="text-muted-foreground truncate text-xs">
-                    {user.email}
-                  </span>
+                  <span className="text-muted-foreground truncate text-xs">{user.email}</span>
                 </div>
               </div>
             </DropdownMenuLabel>
+
             <DropdownMenuSeparator />
+
             <DropdownMenuGroup>
               <DropdownMenuItem>
-                <Link href="/dashboard/profil" className="flex gap-2 items-center justify-center">
-                  <IconUserCircle />
-                  Mon compte
+                <Link href="/dashboard/profil" className="flex gap-2 items-center">
+                  <IconUserCircle /> Mon compte
                 </Link>
-
               </DropdownMenuItem>
+
               <DropdownMenuItem>
-                <Link href="/dashboard/notifications" className="flex gap-2 items-center justify-center">
-                  <IconNotification />
-                  Notifications
+                <Link href="/dashboard/notifications" className="flex gap-2 items-center">
+                  <IconNotification /> Notifications
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
+
             <DropdownMenuSeparator />
+
             <DropdownMenuItem
               onClick={handleLogout}
               disabled={isLoggingOut}
-              className="cursor-pointer"
+              className="cursor-pointer flex items-center gap-2"
             >
               {isLoggingOut ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Déconnexion...
+                  <Loader2 className="h-4 w-4 animate-spin" /> Déconnexion...
                 </>
               ) : (
                 <>
-                  <IconLogout />
-                  Se déconnecter
+                  <IconLogout /> Se déconnecter
                 </>
               )}
             </DropdownMenuItem>
