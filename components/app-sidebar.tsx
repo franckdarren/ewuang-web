@@ -17,6 +17,14 @@ import {
   IconUsers,
   IconFileWord,
   IconCamera,
+  IconShoppingCart,
+  IconBrandPushbullet,
+  IconMenuOrder,
+  IconMessage,
+  IconSocial,
+  IconLogs,
+  IconTag,
+  IconDeviceTv,
 } from "@tabler/icons-react"
 
 import { NavDocuments } from "@/components/nav-documents"
@@ -44,22 +52,27 @@ const data = {
     {
       title: "Articles",
       url: "/dashboard/articles",
-      icon: IconListDetails,
+      icon: IconShoppingCart,
     },
     {
       title: "Utilisateurs",
       url: "/dashboard/users",
-      icon: IconChartBar,
+      icon: IconUsers,
     },
     {
       title: "Commandes",
       url: "/dashboard/commandes",
-      icon: IconFolder,
+      icon: IconLogs,
     },
     {
       title: "Publicités",
       url: "/dashboard/publicites",
-      icon: IconUsers,
+      icon: IconDeviceTv,
+    },
+    {
+      title: "Réclamations",
+      url: "/dashboard/reclamations",
+      icon: IconMessage,
     },
   ],
   navSecondary: [

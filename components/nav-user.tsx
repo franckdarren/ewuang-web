@@ -33,6 +33,7 @@ import { logoutAction } from "@/app/login/actions"
 import { useUserStore } from "../lib/stores/user-store"
 import { useState } from "react"
 import { Loader2 } from "lucide-react"
+import Link from "next/link"
 
 export function NavUser({
   user,
@@ -106,12 +107,17 @@ export function NavUser({
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem>
-                <IconUserCircle />
-                Mon compte
+                <Link href="/dashboard/profil" className="flex gap-2 items-center justify-center">
+                  <IconUserCircle />
+                  Mon compte
+                </Link>
+
               </DropdownMenuItem>
               <DropdownMenuItem>
-                <IconNotification />
-                Notifications
+                <Link href="/dashboard/notifications" className="flex gap-2 items-center justify-center">
+                  <IconNotification />
+                  Notifications
+                </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
