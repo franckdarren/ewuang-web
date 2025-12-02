@@ -4,7 +4,7 @@ import { supabaseAdmin } from "../../../app/lib/supabaseAdmin";
 
 /**
  * @swagger
- * /api/publicites:
+ * /api/publicites/list:
  *   get:
  *     summary: Liste toutes les publicités
  *     description: Récupère toutes les publicités disponibles.

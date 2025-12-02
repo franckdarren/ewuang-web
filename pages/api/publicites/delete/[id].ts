@@ -5,7 +5,7 @@ import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth
 
 /**
  * @swagger
- * /api/publicites/{id}:
+ * /api/publicites/delete/{id}:
  *   delete:
  *     summary: Supprime une publicité
  *     description: Supprime une publicité par son ID.
