@@ -126,8 +126,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             options: { emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback` },
         });
 
-        console.log("AUTH DATA:", authData);
-        console.log("AUTH ERROR:", authError);
+        // console.log("AUTH DATA:", authData);
+        // console.log("AUTH ERROR:", authError);
 
         if (authError) return res.status(400).json({ error: authError.message });
 
@@ -146,8 +146,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             .select()
             .single();
 
-        console.log("DB DATA:", userData);
-        console.log("DB ERROR:", dbError);
+        // console.log("DB DATA:", userData);
+        // console.log("DB ERROR:", dbError);
 
 
         if (dbError) {

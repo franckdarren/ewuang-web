@@ -25,19 +25,19 @@ model article_commandes {
 }
 
 model articles {
-  id                   String    @id @default(uuid()) @db.Uuid
-  nom                  String    @db.VarChar(255)
-  description          String?   @db.VarChar(255)
-  prix                 Int
-  prixPromotion        Int?
-  isPromotion          Boolean   @default(false)
-  pourcentageReduction Int       @default(0)
-  madeInGabon          Boolean   @default(false)
-  user_id              String    @db.Uuid
-  categorie            String    @db.VarChar(255)
-  image_principale     String?   @db.VarChar(255)
-  created_at           DateTime? @default(now())
-  updated_at           DateTime? @updatedAt
+  id                    String    @id @default(uuid()) @db.Uuid
+  nom                   String    @db.VarChar(255)
+  description           String?   @db.VarChar(255)
+  prix                  Int
+  prix_promotion        Int?
+  is_promotion          Boolean   @default(false)
+  pourcentage_reduction Int       @default(0)
+  made_in_gabon         Boolean   @default(false)
+  user_id               String    @db.Uuid
+  categorie             String    @db.VarChar(255)
+  image_principale      String?   @db.VarChar(255)
+  created_at            DateTime? @default(now())
+  updated_at            DateTime? @updatedAt
 
   // Relations
   article_commandes article_commandes[]
@@ -71,7 +71,7 @@ model commande_articles {
 model commandes {
   id                String           @id @default(uuid()) @db.Uuid
   numero            String           @db.VarChar(255)
-  statut            commandes_statut @default(En_attente)
+  statut            commandes_statut @default(en_attente)
   prix              Int
   commentaire       String           @db.VarChar(255)
   isLivrable        Boolean
@@ -133,7 +133,7 @@ model publicites {
   url_image   String   @db.VarChar(255)
   lien        String   @db.VarChar(255)
   description String
-  isActif     Boolean
+  is_actif    Boolean
   created_at  DateTime @default(now())
   updated_at  DateTime @default(now())
 }
@@ -142,7 +142,7 @@ model reclamations {
   id          String              @id @default(uuid()) @db.Uuid
   description String              @db.VarChar(255)
   phone       String              @db.VarChar(255)
-  statut      reclamations_statut @default(En_attente_de_traitement)
+  statut      reclamations_statut @default(en_attente_de_traitement)
   commande_id String              @db.Uuid
   user_id     String              @db.Uuid
   created_at  DateTime            @default(now())
@@ -209,18 +209,18 @@ model variations {
 }
 
 enum commandes_statut {
-  En_attente            @map("En attente")
-  En_preparation        @map("En préparation")
-  Prete_pour_livraison  @map("Prête pour livraison")
-  En_cours_de_livraison @map("En cours de livraison")
-  Livree                @map("Livrée")
-  Annule                @map("Annulée")
-  Rembourse             @map("Remboursée")
+  en_attente            @map("En attente")
+  en_preparation        @map("En préparation")
+  prete_pour_livraison  @map("Prête pour livraison")
+  en_cours_de_livraison @map("En cours de livraison")
+  livree                @map("Livrée")
+  annule                @map("Annulée")
+  rembourse             @map("Remboursée")
 }
 
 enum reclamations_statut {
-  En_attente_de_traitement @map("En attente de traitement")
-  En_cours                 @map("En cours")
-  Rejete                   @map("Rejetée")
-  Rembourse                @map("Remboursée")
+  en_attente_de_traitement @map("En attente de traitement")
+  en_cours                 @map("En cours")
+  rejete                   @map("Rejetée")
+  rembourse                @map("Remboursée")
 }
