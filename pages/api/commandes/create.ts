@@ -79,6 +79,34 @@ const createCommandeSchema = z.object({
         .min(1),
 });
 
+/**
+ * Génère un numéro de commande séquentiel au format CMD-YY-XXXXX
+ * Exemple: CMD-24-00001, CMD-24-00002, etc.
+ * Capacité: 99,999 commandes par an
+ */
+async function generateOrderNumber(): Promise<string> {
+    const currentYear = new Date().getFullYear();
+    const yearShort = currentYear.toString().slice(-2); // 24 pour 2024
+
+    // Récupérer le nombre de commandes pour l'année en cours
+    const { count, error } = await supabaseAdmin
+        .from("commandes")
+        .select("*", { count: "exact", head: true })
+        .gte("created_at", `${currentYear}-01-01T00:00:00.000Z`)
+        .lte("created_at", `${currentYear}-12-31T23:59:59.999Z`);
+
+    if (error) {
+        console.error("Erreur lors du comptage des commandes:", error);
+        // En cas d'erreur, utiliser un timestamp pour éviter les doublons
+        return `CMD-${yearShort}-${Date.now().toString().slice(-5)}`;
+    }
+
+    const nextNumber = (count || 0) + 1;
+    const paddedNumber = String(nextNumber).padStart(5, "0");
+
+    return `CMD-${yearShort}-${paddedNumber}`;
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== "POST") {
         return res.status(405).json({ error: "Méthode non autorisée" });
@@ -91,8 +119,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const body = createCommandeSchema.parse(req.body);
 
-        // Générer un numéro de commande unique
-        const numeroCommande = `CMD-${Date.now()}-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
+        // Générer un numéro de commande séquentiel
+        const numeroCommande = await generateOrderNumber();
 
         let total = 0;
         let adminFrais = 0;
@@ -115,12 +143,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             const { data: article, error: articleError } = await supabaseAdmin
                 .from("articles")
                 .select(`
-            id,
-            prix,
-            prix_promotion,
-            is_promotion,
-            user_id,
-            variations (id, prix, stock)
+          id,
+          prix,
+          prix_promotion,
+          is_promotion,
+          user_id,
+          variations (id, prix, stock)
         `)
                 .eq("id", item.article_id)
                 .single();
@@ -301,11 +329,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 .from("commandes")
                 .select(`
           *,
-            commande_articles (
+          commande_articles (
             *,
             articles (*),
             variations (*)
-            )
+          )
         `)
                 .eq("id", commande.id)
                 .single();
