@@ -34,13 +34,13 @@ import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
  *                 type: string
  *               prix:
  *                 type: integer
- *               prixPromotion:
+ *               prix_promotion:
  *                 type: integer
- *               isPromotion:
+ *               is_promotion:
  *                 type: boolean
- *               pourcentageReduction:
+ *               pourcentage_reduction:
  *                 type: integer
- *               madeInGabon:
+ *               made_in_gabon:
  *                 type: boolean
  *               categorie:
  *                 type: string
@@ -81,10 +81,10 @@ const createSchema = z.object({
     nom: z.string().min(1),
     description: z.string().optional(),
     prix: z.number().int().nonnegative(),
-    prixPromotion: z.number().int().nonnegative().optional(),
-    isPromotion: z.boolean().optional(),
-    pourcentageReduction: z.number().int().min(0).max(100).optional(),
-    madeInGabon: z.boolean().optional(),
+    prix_promotion: z.number().int().nonnegative().optional(),
+    is_promotion: z.boolean().optional(),
+    pourcentage_reduction: z.number().int().min(0).max(100).optional(),
+    made_in_gabon: z.boolean().optional(),
     categorie: z.string().min(1),
     image_principale: z.string().url().optional(),
     variations: z.array(
@@ -120,10 +120,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 nom: body.nom,
                 description: body.description ?? null,
                 prix: body.prix,
-                prixPromotion: body.prixPromotion ?? null,
-                isPromotion: body.isPromotion ?? false,
-                pourcentageReduction: body.pourcentageReduction ?? 0,
-                madeInGabon: body.madeInGabon ?? false,
+                prix_promotion: body.prix_promotion ?? null,
+                is_promotion: body.is_promotion ?? false,
+                pourcentage_reduction: body.pourcentage_reduction ?? 0,
+                made_in_gabon: body.made_in_gabon ?? false,
                 user_id: profile.id,
                 categorie: body.categorie,
                 image_principale: body.image_principale ?? null,

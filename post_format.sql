@@ -79,6 +79,15 @@ ALTER COLUMN id
 SET DEFAULT uuid_generate_v4();
 
 
+-- Utilisation d’UUID pour la table commandes
+ALTER TABLE public.commandes
+ALTER COLUMN id SET DEFAULT gen_random_uuid();
+
+-- Utilisation d’UUID pour la table commandes-articles
+ALTER TABLE public.commande_articles
+ALTER COLUMN id SET DEFAULT gen_random_uuid();
+
+
 -- ========================================
 -- 6️⃣ Droits spécifiques sur certaines tables  (!!!!!!!!! A TESTER !!!!!!!!)
 -- ========================================

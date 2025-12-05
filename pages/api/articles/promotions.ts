@@ -7,7 +7,7 @@ import { supabaseAdmin } from "../../../app/lib/supabaseAdmin";
  * /api/articles/promotions:
  *   get:
  *     summary: Récupère les articles en promotion
- *     description: Retourne les articles où isPromotion = true (ou prixPromotion non null).
+ *     description: Retourne les articles où is_promotion = true (ou prix_promotion non null).
  *     tags: [Articles]
  */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -16,8 +16,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const { data, error } = await supabaseAdmin
             .from("articles")
             .select("*, variations(*), image_articles(*)")
-            .eq("isPromotion", true)
-            .not("prixPromotion", "is", null)
+            .eq("is_promotion", true)
+            .not("prix_promotion", "is", null)
             .order("created_at", { ascending: false });
 
         if (error) {

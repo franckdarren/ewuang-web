@@ -26,7 +26,7 @@ export async function requireUserAuth(req: NextApiRequest, res: NextApiResponse)
     // Vérifie que l'utilisateur existe dans public.users
     const { data: userRecord, error: dbError } = await supabaseAdmin
         .from("users")
-        .select("id, auth_id")
+        .select("id, auth_id, role, email, name, phone, solde")
         .eq("auth_id", auth_id)
         .single();
 
