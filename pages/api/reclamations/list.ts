@@ -9,7 +9,7 @@ import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
  *     summary: Liste les réclamations de l'utilisateur
  *     description: Récupère toutes les réclamations associées à l'utilisateur authentifié.
  *     tags:
- *       - Reclamations
+ *       - Réclamations
  *     security:
  *       - bearerAuth: []
  *     responses:

@@ -10,7 +10,7 @@ import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
  *     summary: Crée une réclamation
  *     description: Crée une nouvelle réclamation pour une commande donnée.
  *     tags:
- *       - Reclamations
+ *       - Réclamations
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -74,7 +74,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(500).json({ error: "Impossible de créer la réclamation" });
         }
 
-        return res.status(201).json({ reclamation: data });
+        return res.status(201).json({
+            message: "Réclamation créée avec succès",
+            reclamation: data
+        });
     } catch (err) {
         console.log(err);
         if (err instanceof ZodError) {

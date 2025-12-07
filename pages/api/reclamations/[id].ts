@@ -9,7 +9,7 @@ import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
  *     summary: Récupère une réclamation par ID
  *     description: Récupère les détails d'une réclamation spécifique en fonction de son ID.
  *     tags:
- *       - Reclamations
+ *       - Réclamations
  *     parameters:
  *       - in: path
  *         name: id
