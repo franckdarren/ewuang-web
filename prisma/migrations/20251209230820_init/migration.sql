@@ -172,6 +172,31 @@ CREATE TABLE "variations" (
     CONSTRAINT "variations_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "favoris" (
+    "id" UUID NOT NULL,
+    "user_id" UUID NOT NULL,
+    "article_id" UUID NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "favoris_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "avis" (
+    "id" UUID NOT NULL,
+    "user_id" UUID NOT NULL,
+    "article_id" UUID NOT NULL,
+    "note" INTEGER NOT NULL,
+    "commentaire" TEXT,
+    "is_moderated" BOOLEAN NOT NULL DEFAULT false,
+    "is_visible" BOOLEAN NOT NULL DEFAULT true,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "avis_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE INDEX "article_commandes_article_id_idx" ON "article_commandes"("article_id");
 
@@ -223,6 +248,27 @@ CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
 -- CreateIndex
 CREATE INDEX "variations_article_id_idx" ON "variations"("article_id");
 
+-- CreateIndex
+CREATE INDEX "favoris_user_id_idx" ON "favoris"("user_id");
+
+-- CreateIndex
+CREATE INDEX "favoris_article_id_idx" ON "favoris"("article_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "favoris_user_id_article_id_key" ON "favoris"("user_id", "article_id");
+
+-- CreateIndex
+CREATE INDEX "avis_user_id_idx" ON "avis"("user_id");
+
+-- CreateIndex
+CREATE INDEX "avis_article_id_idx" ON "avis"("article_id");
+
+-- CreateIndex
+CREATE INDEX "avis_note_idx" ON "avis"("note");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "avis_user_id_article_id_key" ON "avis"("user_id", "article_id");
+
 -- AddForeignKey
 ALTER TABLE "article_commandes" ADD CONSTRAINT "article_commandes_article_id_fkey" FOREIGN KEY ("article_id") REFERENCES "articles"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
@@ -267,3 +313,15 @@ ALTER TABLE "stocks" ADD CONSTRAINT "stocks_variation_id_fkey" FOREIGN KEY ("var
 
 -- AddForeignKey
 ALTER TABLE "variations" ADD CONSTRAINT "variations_article_id_fkey" FOREIGN KEY ("article_id") REFERENCES "articles"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "favoris" ADD CONSTRAINT "favoris_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "favoris" ADD CONSTRAINT "favoris_article_id_fkey" FOREIGN KEY ("article_id") REFERENCES "articles"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "avis" ADD CONSTRAINT "avis_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "avis" ADD CONSTRAINT "avis_article_id_fkey" FOREIGN KEY ("article_id") REFERENCES "articles"("id") ON DELETE CASCADE ON UPDATE CASCADE;
