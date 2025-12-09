@@ -47,6 +47,10 @@ model articles {
   users             users               @relation(fields: [user_id], references: [id])
 
   @@index([user_id])
+
+  // Nouvelles relations
+  favoris favoris[]
+  avis    avis[]
 }
 
 model commande_articles {
@@ -187,6 +191,10 @@ model users {
   commandes    commandes[]
   livraisons   livraisons[]
   reclamations reclamations[]
+
+  // Nouvelles relations
+  favoris  favoris[]
+  avis     avis[]
 }
 
 model variations {
@@ -206,6 +214,46 @@ model variations {
   articles          articles            @relation(fields: [article_id], references: [id])
 
   @@index([article_id])
+}
+
+// 1. Table des favoris (wishlist)
+model favoris {
+  id         String   @id @default(uuid()) @db.Uuid
+  user_id    String   @db.Uuid
+  article_id String   @db.Uuid
+  created_at DateTime @default(now())
+
+  // Relations
+  users    users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  articles articles @relation(fields: [article_id], references: [id], onDelete: Cascade)
+
+  // Index pour optimiser les requêtes
+  @@unique([user_id, article_id]) // Un utilisateur ne peut favoriser qu'une fois le même article
+  @@index([user_id])
+  @@index([article_id])
+}
+
+// 2. Table des avis et notations
+model avis {
+  id         String   @id @default(uuid()) @db.Uuid
+  user_id    String   @db.Uuid
+  article_id String   @db.Uuid
+  note       Int      // Note sur 5
+  commentaire String? @db.Text
+  is_moderated Boolean @default(false) // Pour modération admin
+  is_visible   Boolean @default(true)  // Visibilité publique
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // Relations
+  users    users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  articles articles @relation(fields: [article_id], references: [id], onDelete: Cascade)
+
+  // Index pour optimiser les requêtes
+  @@unique([user_id, article_id]) // Un utilisateur ne peut noter qu'une fois le même article
+  @@index([user_id])
+  @@index([article_id])
+  @@index([note]) // Pour filtrer par note
 }
 
 enum commandes_statut {
