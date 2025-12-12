@@ -87,6 +87,13 @@ ALTER COLUMN id SET DEFAULT gen_random_uuid();
 ALTER TABLE public.commande_articles
 ALTER COLUMN id SET DEFAULT gen_random_uuid();
 
+-- Utilisation d’UUID pour la table variations
+ALTER TABLE public.variations
+ALTER COLUMN id SET DEFAULT gen_random_uuid();
+
+-- Utilisation d’UUID pour la table stocks
+ALTER TABLE public.stocks
+ALTER COLUMN id SET DEFAULT gen_random_uuid();
 
 -- ========================================
 -- 6️⃣ Droits spécifiques sur certaines tables  (!!!!!!!!! A TESTER !!!!!!!!)
