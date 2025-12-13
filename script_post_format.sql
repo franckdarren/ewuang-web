@@ -95,6 +95,10 @@ ALTER COLUMN id SET DEFAULT gen_random_uuid();
 ALTER TABLE public.stocks
 ALTER COLUMN id SET DEFAULT gen_random_uuid();
 
+-- Utilisation d’UUID pour la table avis
+ALTER TABLE public.avis
+ALTER COLUMN id SET DEFAULT gen_random_uuid();
+
 -- ========================================
 -- 6️⃣ Droits spécifiques sur certaines tables  (!!!!!!!!! A TESTER !!!!!!!!)
 -- ========================================
