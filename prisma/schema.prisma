@@ -34,8 +34,10 @@ model articles {
   pourcentage_reduction Int       @default(0)
   made_in_gabon         Boolean   @default(false)
   user_id               String    @db.Uuid
-  categorie             String    @db.VarChar(255)
+  categorie_id          String?   @db.Uuid
+  // categorie             String    @db.VarChar(255)
   image_principale      String?   @db.VarChar(255)
+  is_active             Boolean   @default(true)
   created_at            DateTime? @default(now())
   updated_at            DateTime? @updatedAt
 
@@ -45,12 +47,15 @@ model articles {
   image_articles    image_articles[]
   variations        variations[]
   users             users               @relation(fields: [user_id], references: [id])
+  favoris           favoris[]
+  avis              avis[]
+  categories        categories?         @relation(fields: [categorie_id], references: [id])
+  panier_items      panier_items[]
 
   @@index([user_id])
-
-  // Nouvelles relations
-  favoris favoris[]
-  avis    avis[]
+  @@index([categorie_id])
+  @@index([is_promotion])
+  @@index([is_active])
 }
 
 model commande_articles {
@@ -63,6 +68,7 @@ model commande_articles {
   created_at    DateTime @default(now())
   updated_at    DateTime @default(now())
 
+  // Relations
   articles   articles    @relation(fields: [article_id], references: [id])
   commandes  commandes   @relation(fields: [commande_id], references: [id])
   variations variations? @relation(fields: [variation_id], references: [id])
@@ -80,6 +86,8 @@ model commandes {
   commentaire       String           @db.VarChar(255)
   isLivrable        Boolean
   user_id           String           @db.Uuid
+  vendeur_id        String?          @db.Uuid
+  paiement_id       String?          @unique @db.Uuid
   created_at        DateTime         @default(now())
   updated_at        DateTime         @updatedAt
   adresse_livraison String           @db.VarChar(255)
@@ -88,10 +96,14 @@ model commandes {
   article_commandes article_commandes[]
   commande_articles commande_articles[]
   users             users               @relation(fields: [user_id], references: [id])
+  paiements         paiements?          @relation(fields: [paiement_id], references: [id])
   livraisons        livraisons[]
   reclamations      reclamations[]
 
   @@index([user_id])
+  @@index([vendeur_id])
+  @@index([statut])
+  @@index([created_at])
 }
 
 model image_articles {
@@ -102,6 +114,7 @@ model image_articles {
   created_at   DateTime @default(now())
   updated_at   DateTime @default(now())
 
+  // Relations
   articles   articles    @relation(fields: [article_id], references: [id])
   variations variations? @relation(fields: [variation_id], references: [id])
 
@@ -119,14 +132,18 @@ model livraisons {
   phone          String   @db.VarChar(255)
   commande_id    String   @db.Uuid
   user_id        String?  @db.Uuid
+  livreur_id     String?
   created_at     DateTime @default(now())
   updated_at     DateTime @default(now())
 
+  // Relations
   commandes commandes @relation(fields: [commande_id], references: [id])
   users     users?    @relation(fields: [user_id], references: [id])
 
   @@index([commande_id])
   @@index([user_id])
+  @@index([livreur_id])
+  @@index([statut])
 }
 
 model publicites {
@@ -149,26 +166,32 @@ model reclamations {
   statut      reclamations_statut @default(en_attente_de_traitement)
   commande_id String              @db.Uuid
   user_id     String              @db.Uuid
+  reponse     String?             @db.Text // Nouveau : réponse de l'admin
   created_at  DateTime            @default(now())
   updated_at  DateTime            @updatedAt
 
+  // Relations
   commandes commandes @relation(fields: [commande_id], references: [id])
   users     users     @relation(fields: [user_id], references: [id])
 
   @@index([commande_id])
   @@index([user_id])
+  @@index([statut])
 }
 
 model stocks {
   id           String   @id @default(uuid()) @db.Uuid
   variation_id String   @db.Uuid
   quantite     Int      @default(0)
+  seuil_alerte Int      @default(5)
   created_at   DateTime @default(now())
   updated_at   DateTime @default(now())
 
+  // Relations
   variations variations @relation(fields: [variation_id], references: [id])
 
   @@index([variation_id])
+  @@index([quantite])
 }
 
 model users {
@@ -184,17 +207,27 @@ model users {
   description     String?
   address         String?
   solde           Int      @default(0)
+  is_verified     Boolean  @default(false) // Nouveau : compte vérifié
+  is_active       Boolean  @default(true) // Nouveau : compte actif
   created_at      DateTime @default(now())
   updated_at      DateTime @default(now())
 
-  articles     articles[]
-  commandes    commandes[]
-  livraisons   livraisons[]
-  reclamations reclamations[]
+  // Relations
+  articles               articles[]
+  commandes              commandes[]
+  livraisons             livraisons[]
+  reclamations           reclamations[]
+  favoris                favoris[]
+  avis                   avis[]
+  notifications          notifications[]
+  conversations_sent     conversations[] @relation("sender")
+  conversations_received conversations[] @relation("receiver")
+  paniers                paniers[]
+  paiements              paiements[]
 
-  // Nouvelles relations
-  favoris  favoris[]
-  avis     avis[]
+  @@index([email])
+  @@index([role])
+  @@index([is_active])
 }
 
 model variations {
@@ -208,15 +241,16 @@ model variations {
   created_at DateTime? @default(now())
   updated_at DateTime? @updatedAt
 
+  // Relations
   commande_articles commande_articles[]
   image_articles    image_articles[]
   stocks            stocks[]
   articles          articles            @relation(fields: [article_id], references: [id])
+  panier_items      panier_items[]
 
   @@index([article_id])
 }
 
-// 1. Table des favoris (wishlist)
 model favoris {
   id         String   @id @default(uuid()) @db.Uuid
   user_id    String   @db.Uuid
@@ -227,33 +261,142 @@ model favoris {
   users    users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
   articles articles @relation(fields: [article_id], references: [id], onDelete: Cascade)
 
-  // Index pour optimiser les requêtes
   @@unique([user_id, article_id]) // Un utilisateur ne peut favoriser qu'une fois le même article
   @@index([user_id])
   @@index([article_id])
 }
 
-// 2. Table des avis et notations
 model avis {
-  id         String   @id @default(uuid()) @db.Uuid
-  user_id    String   @db.Uuid
-  article_id String   @db.Uuid
-  note       Int      // Note sur 5
-  commentaire String? @db.Text
-  is_moderated Boolean @default(false) // Pour modération admin
-  is_visible   Boolean @default(true)  // Visibilité publique
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  id           String   @id @default(uuid()) @db.Uuid
+  user_id      String   @db.Uuid
+  article_id   String   @db.Uuid
+  note         Int // Note sur 5
+  commentaire  String?  @db.Text
+  is_moderated Boolean  @default(false) // Pour modération admin
+  is_visible   Boolean  @default(true) // Visibilité publique
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
 
   // Relations
   users    users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
   articles articles @relation(fields: [article_id], references: [id], onDelete: Cascade)
 
-  // Index pour optimiser les requêtes
   @@unique([user_id, article_id]) // Un utilisateur ne peut noter qu'une fois le même article
   @@index([user_id])
   @@index([article_id])
   @@index([note]) // Pour filtrer par note
+}
+
+model categories {
+  id          String   @id @default(uuid()) @db.Uuid
+  nom         String   @unique @db.VarChar(255)
+  slug        String   @unique @db.VarChar(255)
+  description String?  @db.Text
+  image       String?  @db.VarChar(255)
+  parent_id   String?  @db.Uuid
+  is_active   Boolean  @default(true)
+  ordre       Int      @default(0)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  // Relations
+  parent   categories?  @relation("CategoryHierarchy", fields: [parent_id], references: [id])
+  children categories[] @relation("CategoryHierarchy")
+  articles articles[]
+
+  @@index([parent_id])
+  @@index([slug])
+  @@index([is_active])
+}
+
+model paiements {
+  id             String          @id @default(uuid()) @db.Uuid
+  user_id        String          @db.Uuid
+  montant        Int
+  methode        String          @db.VarChar(50) // carte, mobile_money, especes
+  statut         paiement_statut @default(en_attente)
+  reference      String          @unique @db.VarChar(255)
+  transaction_id String?         @db.VarChar(255)
+  details        Json? // Infos supplémentaires du provider
+  created_at     DateTime        @default(now())
+  updated_at     DateTime        @updatedAt
+
+  // Relations
+  users     users       @relation(fields: [user_id], references: [id])
+  commandes commandes[]
+
+  @@index([user_id])
+  @@index([reference])
+  @@index([statut])
+}
+
+model notifications {
+  id         String            @id @default(uuid()) @db.Uuid
+  user_id    String            @db.Uuid
+  type       notification_type
+  titre      String            @db.VarChar(255)
+  message    String            @db.Text
+  lien       String?           @db.VarChar(255)
+  is_read    Boolean           @default(false)
+  created_at DateTime          @default(now())
+
+  // Relations
+  users users @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([is_read])
+  @@index([created_at])
+}
+
+model conversations {
+  id          String   @id @default(uuid()) @db.Uuid
+  sender_id   String   @db.Uuid
+  receiver_id String   @db.Uuid
+  message     String   @db.Text
+  is_read     Boolean  @default(false)
+  created_at  DateTime @default(now())
+
+  // Relations
+  sender   users @relation("sender", fields: [sender_id], references: [id], onDelete: Cascade)
+  receiver users @relation("receiver", fields: [receiver_id], references: [id], onDelete: Cascade)
+
+  @@index([sender_id])
+  @@index([receiver_id])
+  @@index([is_read])
+  @@index([created_at])
+}
+
+model paniers {
+  id         String   @id @default(uuid()) @db.Uuid
+  user_id    String   @unique @db.Uuid
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // Relations
+  users        users          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  panier_items panier_items[]
+
+  @@index([user_id])
+}
+
+model panier_items {
+  id           String   @id @default(uuid()) @db.Uuid
+  panier_id    String   @db.Uuid
+  article_id   String   @db.Uuid
+  variation_id String?  @db.Uuid
+  quantite     Int      @default(1)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  // Relations
+  paniers    paniers     @relation(fields: [panier_id], references: [id], onDelete: Cascade)
+  articles   articles    @relation(fields: [article_id], references: [id], onDelete: Cascade)
+  variations variations? @relation(fields: [variation_id], references: [id])
+
+  @@unique([panier_id, article_id, variation_id])
+  @@index([panier_id])
+  @@index([article_id])
+  @@index([variation_id])
 }
 
 enum commandes_statut {
@@ -271,4 +414,21 @@ enum reclamations_statut {
   en_cours                 @map("En cours")
   rejete                   @map("Rejetée")
   rembourse                @map("Remboursée")
+}
+
+enum paiement_statut {
+  en_attente @map("En attente")
+  valide     @map("Validé")
+  echoue     @map("Echoué")
+  rembourse  @map("Remboursée")
+}
+
+enum notification_type {
+  commande     @map("Commande")
+  livraison    @map("Livraison")
+  message      @map("Message")
+  promotion    @map("Promotion")
+  alerte_stock @map("Alerte stock")
+  avis         @map("Avis")
+  systeme      @map("Système")
 }
