@@ -4,6 +4,12 @@ CREATE TYPE "commandes_statut" AS ENUM ('En attente', 'En préparation', 'Prête
 -- CreateEnum
 CREATE TYPE "reclamations_statut" AS ENUM ('En attente de traitement', 'En cours', 'Rejetée', 'Remboursée');
 
+-- CreateEnum
+CREATE TYPE "paiement_statut" AS ENUM ('En attente', 'Validé', 'Echoué', 'Remboursée');
+
+-- CreateEnum
+CREATE TYPE "notification_type" AS ENUM ('Commande', 'Livraison', 'Message', 'Promotion', 'Alerte stock', 'Avis', 'Système');
+
 -- CreateTable
 CREATE TABLE "article_commandes" (
     "id" UUID NOT NULL,
@@ -29,8 +35,9 @@ CREATE TABLE "articles" (
     "pourcentage_reduction" INTEGER NOT NULL DEFAULT 0,
     "made_in_gabon" BOOLEAN NOT NULL DEFAULT false,
     "user_id" UUID NOT NULL,
-    "categorie" VARCHAR(255) NOT NULL,
+    "categorie_id" UUID,
     "image_principale" VARCHAR(255),
+    "is_active" BOOLEAN NOT NULL DEFAULT true,
     "created_at" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3),
 
@@ -60,6 +67,8 @@ CREATE TABLE "commandes" (
     "commentaire" VARCHAR(255) NOT NULL,
     "isLivrable" BOOLEAN NOT NULL,
     "user_id" UUID NOT NULL,
+    "vendeur_id" UUID,
+    "paiement_id" UUID,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
     "adresse_livraison" VARCHAR(255) NOT NULL,
@@ -90,6 +99,7 @@ CREATE TABLE "livraisons" (
     "phone" VARCHAR(255) NOT NULL,
     "commande_id" UUID NOT NULL,
     "user_id" UUID,
+    "livreur_id" TEXT,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -120,6 +130,7 @@ CREATE TABLE "reclamations" (
     "statut" "reclamations_statut" NOT NULL DEFAULT 'En attente de traitement',
     "commande_id" UUID NOT NULL,
     "user_id" UUID NOT NULL,
+    "reponse" TEXT,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
@@ -131,6 +142,7 @@ CREATE TABLE "stocks" (
     "id" UUID NOT NULL,
     "variation_id" UUID NOT NULL,
     "quantite" INTEGER NOT NULL DEFAULT 0,
+    "seuil_alerte" INTEGER NOT NULL DEFAULT 5,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -151,6 +163,8 @@ CREATE TABLE "users" (
     "description" TEXT,
     "address" TEXT,
     "solde" INTEGER NOT NULL DEFAULT 0,
+    "is_verified" BOOLEAN NOT NULL DEFAULT false,
+    "is_active" BOOLEAN NOT NULL DEFAULT true,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -197,6 +211,87 @@ CREATE TABLE "avis" (
     CONSTRAINT "avis_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "categories" (
+    "id" UUID NOT NULL,
+    "nom" VARCHAR(255) NOT NULL,
+    "slug" VARCHAR(255) NOT NULL,
+    "description" TEXT,
+    "image" VARCHAR(255),
+    "parent_id" UUID,
+    "is_active" BOOLEAN NOT NULL DEFAULT true,
+    "ordre" INTEGER NOT NULL DEFAULT 0,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "categories_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "paiements" (
+    "id" UUID NOT NULL,
+    "user_id" UUID NOT NULL,
+    "montant" INTEGER NOT NULL,
+    "methode" VARCHAR(50) NOT NULL,
+    "statut" "paiement_statut" NOT NULL DEFAULT 'En attente',
+    "reference" VARCHAR(255) NOT NULL,
+    "transaction_id" VARCHAR(255),
+    "details" JSONB,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "paiements_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "notifications" (
+    "id" UUID NOT NULL,
+    "user_id" UUID NOT NULL,
+    "type" "notification_type" NOT NULL,
+    "titre" VARCHAR(255) NOT NULL,
+    "message" TEXT NOT NULL,
+    "lien" VARCHAR(255),
+    "is_read" BOOLEAN NOT NULL DEFAULT false,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "notifications_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "conversations" (
+    "id" UUID NOT NULL,
+    "sender_id" UUID NOT NULL,
+    "receiver_id" UUID NOT NULL,
+    "message" TEXT NOT NULL,
+    "is_read" BOOLEAN NOT NULL DEFAULT false,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "conversations_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "paniers" (
+    "id" UUID NOT NULL,
+    "user_id" UUID NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "paniers_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "panier_items" (
+    "id" UUID NOT NULL,
+    "panier_id" UUID NOT NULL,
+    "article_id" UUID NOT NULL,
+    "variation_id" UUID,
+    "quantite" INTEGER NOT NULL DEFAULT 1,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "panier_items_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE INDEX "article_commandes_article_id_idx" ON "article_commandes"("article_id");
 
@@ -205,6 +300,15 @@ CREATE INDEX "article_commandes_commande_id_idx" ON "article_commandes"("command
 
 -- CreateIndex
 CREATE INDEX "articles_user_id_idx" ON "articles"("user_id");
+
+-- CreateIndex
+CREATE INDEX "articles_categorie_id_idx" ON "articles"("categorie_id");
+
+-- CreateIndex
+CREATE INDEX "articles_is_promotion_idx" ON "articles"("is_promotion");
+
+-- CreateIndex
+CREATE INDEX "articles_is_active_idx" ON "articles"("is_active");
 
 -- CreateIndex
 CREATE INDEX "commande_articles_article_id_idx" ON "commande_articles"("article_id");
@@ -216,7 +320,19 @@ CREATE INDEX "commande_articles_commande_id_idx" ON "commande_articles"("command
 CREATE INDEX "commande_articles_variation_id_idx" ON "commande_articles"("variation_id");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "commandes_paiement_id_key" ON "commandes"("paiement_id");
+
+-- CreateIndex
 CREATE INDEX "commandes_user_id_idx" ON "commandes"("user_id");
+
+-- CreateIndex
+CREATE INDEX "commandes_vendeur_id_idx" ON "commandes"("vendeur_id");
+
+-- CreateIndex
+CREATE INDEX "commandes_statut_idx" ON "commandes"("statut");
+
+-- CreateIndex
+CREATE INDEX "commandes_created_at_idx" ON "commandes"("created_at");
 
 -- CreateIndex
 CREATE INDEX "image_articles_article_id_idx" ON "image_articles"("article_id");
@@ -231,19 +347,40 @@ CREATE INDEX "livraisons_commande_id_idx" ON "livraisons"("commande_id");
 CREATE INDEX "livraisons_user_id_idx" ON "livraisons"("user_id");
 
 -- CreateIndex
+CREATE INDEX "livraisons_livreur_id_idx" ON "livraisons"("livreur_id");
+
+-- CreateIndex
+CREATE INDEX "livraisons_statut_idx" ON "livraisons"("statut");
+
+-- CreateIndex
 CREATE INDEX "reclamations_commande_id_idx" ON "reclamations"("commande_id");
 
 -- CreateIndex
 CREATE INDEX "reclamations_user_id_idx" ON "reclamations"("user_id");
 
 -- CreateIndex
+CREATE INDEX "reclamations_statut_idx" ON "reclamations"("statut");
+
+-- CreateIndex
 CREATE INDEX "stocks_variation_id_idx" ON "stocks"("variation_id");
+
+-- CreateIndex
+CREATE INDEX "stocks_quantite_idx" ON "stocks"("quantite");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "users_auth_id_key" ON "users"("auth_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
+
+-- CreateIndex
+CREATE INDEX "users_email_idx" ON "users"("email");
+
+-- CreateIndex
+CREATE INDEX "users_role_idx" ON "users"("role");
+
+-- CreateIndex
+CREATE INDEX "users_is_active_idx" ON "users"("is_active");
 
 -- CreateIndex
 CREATE INDEX "variations_article_id_idx" ON "variations"("article_id");
@@ -269,6 +406,72 @@ CREATE INDEX "avis_note_idx" ON "avis"("note");
 -- CreateIndex
 CREATE UNIQUE INDEX "avis_user_id_article_id_key" ON "avis"("user_id", "article_id");
 
+-- CreateIndex
+CREATE UNIQUE INDEX "categories_nom_key" ON "categories"("nom");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "categories_slug_key" ON "categories"("slug");
+
+-- CreateIndex
+CREATE INDEX "categories_parent_id_idx" ON "categories"("parent_id");
+
+-- CreateIndex
+CREATE INDEX "categories_slug_idx" ON "categories"("slug");
+
+-- CreateIndex
+CREATE INDEX "categories_is_active_idx" ON "categories"("is_active");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "paiements_reference_key" ON "paiements"("reference");
+
+-- CreateIndex
+CREATE INDEX "paiements_user_id_idx" ON "paiements"("user_id");
+
+-- CreateIndex
+CREATE INDEX "paiements_reference_idx" ON "paiements"("reference");
+
+-- CreateIndex
+CREATE INDEX "paiements_statut_idx" ON "paiements"("statut");
+
+-- CreateIndex
+CREATE INDEX "notifications_user_id_idx" ON "notifications"("user_id");
+
+-- CreateIndex
+CREATE INDEX "notifications_is_read_idx" ON "notifications"("is_read");
+
+-- CreateIndex
+CREATE INDEX "notifications_created_at_idx" ON "notifications"("created_at");
+
+-- CreateIndex
+CREATE INDEX "conversations_sender_id_idx" ON "conversations"("sender_id");
+
+-- CreateIndex
+CREATE INDEX "conversations_receiver_id_idx" ON "conversations"("receiver_id");
+
+-- CreateIndex
+CREATE INDEX "conversations_is_read_idx" ON "conversations"("is_read");
+
+-- CreateIndex
+CREATE INDEX "conversations_created_at_idx" ON "conversations"("created_at");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "paniers_user_id_key" ON "paniers"("user_id");
+
+-- CreateIndex
+CREATE INDEX "paniers_user_id_idx" ON "paniers"("user_id");
+
+-- CreateIndex
+CREATE INDEX "panier_items_panier_id_idx" ON "panier_items"("panier_id");
+
+-- CreateIndex
+CREATE INDEX "panier_items_article_id_idx" ON "panier_items"("article_id");
+
+-- CreateIndex
+CREATE INDEX "panier_items_variation_id_idx" ON "panier_items"("variation_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "panier_items_panier_id_article_id_variation_id_key" ON "panier_items"("panier_id", "article_id", "variation_id");
+
 -- AddForeignKey
 ALTER TABLE "article_commandes" ADD CONSTRAINT "article_commandes_article_id_fkey" FOREIGN KEY ("article_id") REFERENCES "articles"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
@@ -277,6 +480,9 @@ ALTER TABLE "article_commandes" ADD CONSTRAINT "article_commandes_commande_id_fk
 
 -- AddForeignKey
 ALTER TABLE "articles" ADD CONSTRAINT "articles_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "articles" ADD CONSTRAINT "articles_categorie_id_fkey" FOREIGN KEY ("categorie_id") REFERENCES "categories"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "commande_articles" ADD CONSTRAINT "commande_articles_article_id_fkey" FOREIGN KEY ("article_id") REFERENCES "articles"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -289,6 +495,9 @@ ALTER TABLE "commande_articles" ADD CONSTRAINT "commande_articles_variation_id_f
 
 -- AddForeignKey
 ALTER TABLE "commandes" ADD CONSTRAINT "commandes_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "commandes" ADD CONSTRAINT "commandes_paiement_id_fkey" FOREIGN KEY ("paiement_id") REFERENCES "paiements"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "image_articles" ADD CONSTRAINT "image_articles_article_id_fkey" FOREIGN KEY ("article_id") REFERENCES "articles"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -325,3 +534,30 @@ ALTER TABLE "avis" ADD CONSTRAINT "avis_user_id_fkey" FOREIGN KEY ("user_id") RE
 
 -- AddForeignKey
 ALTER TABLE "avis" ADD CONSTRAINT "avis_article_id_fkey" FOREIGN KEY ("article_id") REFERENCES "articles"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "categories" ADD CONSTRAINT "categories_parent_id_fkey" FOREIGN KEY ("parent_id") REFERENCES "categories"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "paiements" ADD CONSTRAINT "paiements_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "notifications" ADD CONSTRAINT "notifications_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "conversations" ADD CONSTRAINT "conversations_sender_id_fkey" FOREIGN KEY ("sender_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "conversations" ADD CONSTRAINT "conversations_receiver_id_fkey" FOREIGN KEY ("receiver_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "paniers" ADD CONSTRAINT "paniers_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "panier_items" ADD CONSTRAINT "panier_items_panier_id_fkey" FOREIGN KEY ("panier_id") REFERENCES "paniers"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "panier_items" ADD CONSTRAINT "panier_items_article_id_fkey" FOREIGN KEY ("article_id") REFERENCES "articles"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "panier_items" ADD CONSTRAINT "panier_items_variation_id_fkey" FOREIGN KEY ("variation_id") REFERENCES "variations"("id") ON DELETE SET NULL ON UPDATE CASCADE;

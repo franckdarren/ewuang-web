@@ -99,6 +99,30 @@ ALTER COLUMN id SET DEFAULT gen_random_uuid();
 ALTER TABLE public.avis
 ALTER COLUMN id SET DEFAULT gen_random_uuid();
 
+-- Utilisation d’UUID pour la table categories
+ALTER TABLE public.categories
+ALTER COLUMN id SET DEFAULT gen_random_uuid();
+
+-- Utilisation d’UUID pour la table notifications
+ALTER TABLE public.notifications
+ALTER COLUMN id SET DEFAULT gen_random_uuid();
+
+-- Utilisation d’UUID pour la table paiements
+ALTER TABLE public.paiements
+ALTER COLUMN id SET DEFAULT gen_random_uuid();
+
+-- Utilisation d’UUID pour la table conversations
+ALTER TABLE public.conversations
+ALTER COLUMN id SET DEFAULT gen_random_uuid();
+
+-- Utilisation d’UUID pour la table paniers
+ALTER TABLE public.paniers
+ALTER COLUMN id SET DEFAULT gen_random_uuid();
+
+-- Utilisation d’UUID pour la table paniers_items
+ALTER TABLE public.panier_items
+ALTER COLUMN id SET DEFAULT gen_random_uuid();
+
 -- ========================================
 -- 6️⃣ Droits spécifiques sur certaines tables  (!!!!!!!!! A TESTER !!!!!!!!)
 -- ========================================
