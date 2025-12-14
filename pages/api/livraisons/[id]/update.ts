@@ -153,9 +153,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             let commandeStatut = null;
 
             if (body.statut.toLowerCase().includes("livr")) {
-                commandeStatut = "livree";
+                commandeStatut = "Livrée";
             } else if (body.statut.toLowerCase().includes("cours")) {
-                commandeStatut = "en_cours_de_livraison";
+                commandeStatut = "En cours de livraison";
             }
 
             if (commandeStatut) {

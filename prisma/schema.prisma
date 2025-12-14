@@ -92,13 +92,17 @@ model commandes {
   updated_at        DateTime         @updatedAt
   adresse_livraison String           @db.VarChar(255)
 
-  // Relations
+  // 🔗 Relations
+  acheteur users  @relation("CommandeAcheteur", fields: [user_id], references: [id])
+  vendeur  users? @relation("CommandeVendeur", fields: [vendeur_id], references: [id])
+
   article_commandes article_commandes[]
   commande_articles commande_articles[]
-  users             users               @relation(fields: [user_id], references: [id])
   paiements         paiements?          @relation(fields: [paiement_id], references: [id])
   livraisons        livraisons[]
   reclamations      reclamations[]
+  users             users?              @relation(fields: [usersId], references: [id])
+  usersId           String?             @db.Uuid
 
   @@index([user_id])
   @@index([vendeur_id])
@@ -224,6 +228,9 @@ model users {
   conversations_received conversations[] @relation("receiver")
   paniers                paniers[]
   paiements              paiements[]
+
+  commandes_achetees commandes[] @relation("CommandeAcheteur")
+  commandes_vendues  commandes[] @relation("CommandeVendeur")
 
   @@index([email])
   @@index([role])

@@ -1,7 +1,7 @@
 // pages/api/dashboard/stats.ts
 import type { NextApiRequest, NextApiResponse } from "next";
-import { supabaseAdmin } from "../../../app/lib/supabaseAdmin";
-import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
+import { supabaseAdmin } from "../../../../app/lib/supabaseAdmin";
+import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth";
 
 /**
  * @swagger
@@ -157,7 +157,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const { count: totalCustomers } = await supabaseAdmin
             .from("users")
             .select("*", { count: "exact", head: true })
-            .neq("role", "Administrateur");
+            .neq("role", "Client");
 
         const { count: totalBoutiques } = await supabaseAdmin
             .from("users")
@@ -219,6 +219,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             en_attente: allDeliveries?.filter(d => d.statut === "En attente").length || 0,
             en_cours: allDeliveries?.filter(d => d.statut === "En cours de livraison").length || 0,
             livree: allDeliveries?.filter(d => d.statut === "Livrée").length || 0,
+            annulee: allDeliveries?.filter(d => d.statut === "Annulée").length || 0,
+            reportee: allDeliveries?.filter(d => d.statut === "Reportée").length || 0,
         };
 
         const deliveriesByCity = allDeliveries?.reduce((acc: any, delivery) => {
@@ -401,7 +403,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
             users: {
                 total: totalUsers || 0,
-                customers: totalCustomers || 0,
+                clients: totalCustomers || 0,
                 boutiques: totalBoutiques || 0,
                 newUsers,
             },
@@ -414,14 +416,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 outOfStock: outOfStockProducts || 0,
             },
 
-            deliveries: {
+            livraisons: {
                 total: allDeliveries?.length || 0,
                 byStatus: deliveriesByStatus,
                 byCity: deliveriesByCity,
                 pending: pendingDeliveries,
             },
 
-            claims: {
+            reclamations: {
                 total: totalClaims,
                 new: newClaims,
                 byStatus: claimsByStatus,
