@@ -143,12 +143,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             const { data: article, error: articleError } = await supabaseAdmin
                 .from("articles")
                 .select(`
-          id,
-          prix,
-          prix_promotion,
-          is_promotion,
-          user_id,
-          variations (id, prix, stock)
+            id,
+            prix,
+            prix_promotion,
+            is_promotion,
+            user_id,
+            variations (id, prix, stock)
         `)
                 .eq("id", item.article_id)
                 .single();
@@ -329,11 +329,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 .from("commandes")
                 .select(`
           *,
-          commande_articles (
+            users (id, nom, email),
+            commande_articles (
             *,
             articles (*),
             variations (*)
-          )
+            )
         `)
                 .eq("id", commande.id)
                 .single();
