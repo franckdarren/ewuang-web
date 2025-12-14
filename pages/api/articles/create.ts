@@ -26,7 +26,7 @@ import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
  *             required:
  *               - nom
  *               - prix
- *               - categorie
+ *               - categorie_id
  *             properties:
  *               nom:
  *                 type: string
@@ -42,8 +42,10 @@ import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
  *                 type: integer
  *               made_in_gabon:
  *                 type: boolean
- *               categorie:
+ *               categorie_id:
  *                 type: string
+ *                 format: uuid
+ *                 description: ID de la catégorie (doit exister dans la table categories)
  *               image_principale:
  *                 type: string
  *               variations:
@@ -70,7 +72,7 @@ import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
  *       201:
  *         description: Article créé
  *       400:
- *         description: Données invalides
+ *         description: Données invalides ou catégorie inexistante
  *       401:
  *         description: Non autorisé
  *       500:
@@ -78,14 +80,14 @@ import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
  */
 
 const createSchema = z.object({
-    nom: z.string().min(1),
+    nom: z.string().min(1, "Le nom est requis"),
     description: z.string().optional(),
-    prix: z.number().int().nonnegative(),
+    prix: z.number().int().nonnegative("Le prix doit être positif"),
     prix_promotion: z.number().int().nonnegative().optional(),
     is_promotion: z.boolean().optional(),
     pourcentage_reduction: z.number().int().min(0).max(100).optional(),
     made_in_gabon: z.boolean().optional(),
-    categorie: z.string().min(1),
+    categorie_id: z.string().uuid("L'ID de catégorie doit être un UUID valide"),
     image_principale: z.string().url().optional(),
     variations: z.array(
         z.object({
@@ -113,6 +115,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const body = createSchema.parse(req.body);
 
+        // ✅ NOUVELLE VALIDATION : Vérifier que la catégorie existe
+        const { data: categorie, error: categorieErr } = await supabaseAdmin
+            .from("categories")
+            .select("id, nom, is_active")
+            .eq("id", body.categorie_id)
+            .single();
+
+        if (categorieErr || !categorie) {
+            return res.status(400).json({
+                error: "Catégorie introuvable",
+                details: "L'ID de catégorie fourni n'existe pas dans la base de données"
+            });
+        }
+
+        // ✅ Vérifier que la catégorie est active
+        if (!categorie.is_active) {
+            return res.status(400).json({
+                error: "Catégorie inactive",
+                details: `La catégorie "${categorie.nom}" est actuellement désactivée`
+            });
+        }
+
         // 1) Insert article
         const { data: article, error: insertErr } = await supabaseAdmin
             .from("articles")
@@ -125,8 +149,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 pourcentage_reduction: body.pourcentage_reduction ?? 0,
                 made_in_gabon: body.made_in_gabon ?? false,
                 user_id: profile.id,
-                categorie: body.categorie,
+                categorie_id: body.categorie_id, // ✅ UUID vérifié
                 image_principale: body.image_principale ?? null,
+                is_active: true, // ✅ Par défaut actif
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
             })
@@ -173,7 +198,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             if (imgErr) console.warn("Impossible d'ajouter des images :", imgErr);
         }
 
-        return res.status(201).json({ article });
+        // ✅ Retourner l'article avec les infos de catégorie
+        return res.status(201).json({
+            article: {
+                ...article,
+                categorie: {
+                    id: categorie.id,
+                    nom: categorie.nom
+                }
+            }
+        });
     } catch (err) {
         if (err instanceof ZodError) {
             return res.status(400).json({
