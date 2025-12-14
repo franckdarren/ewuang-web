@@ -6,11 +6,11 @@ import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth
  * @swagger
  * /api/analytics/vendeur/revenus:
  *   get:
- *     summary: Évolution des revenus du vendeur
+ *     summary: Évolution des revenus du vendeur (Boutique)
  *     description: >
  *       Retourne l'évolution des revenus du vendeur sur une période donnée.
  *     tags:
- *       - Analytics Vendeur
+ *       - Analytics
  *     security:
  *       - bearerAuth: []
  *     parameters:

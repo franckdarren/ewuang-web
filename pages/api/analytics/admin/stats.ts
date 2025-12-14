@@ -5,15 +5,15 @@ import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth
 
 /**
  * @swagger
- * /api/dashboard/stats:
+ * /api/analytics/admin/stats:
  *   get:
- *     summary: Récupère les statistiques du dashboard admin
+ *     summary: Récupère les statistiques globales (Admin)
  *     description: >
  *       Retourne toutes les statistiques nécessaires pour le dashboard d'administration :
  *       revenus, commandes, utilisateurs, produits, livraisons, réclamations, etc.
  *       Accessible uniquement aux administrateurs.
  *     tags:
- *       - Dashboard
+ *       - Analytics
  *     security:
  *       - bearerAuth: []
  *     parameters:

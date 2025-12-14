@@ -10,7 +10,7 @@ import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth
  *     description: >
  *       Retourne les produits les plus vendus classés par quantité vendue.
  *     tags:
- *       - Analytics Admin
+ *       - Analytics
  *     security:
  *       - bearerAuth: []
  */

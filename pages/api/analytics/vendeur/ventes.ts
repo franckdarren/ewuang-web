@@ -6,11 +6,11 @@ import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth
  * @swagger
  * /api/analytics/vendeur/ventes:
  *   get:
- *     summary: Statistiques de ventes du vendeur
+ *     summary: Statistiques de ventes du vendeur (Boutique)
  *     description: >
  *       Retourne les informations sur les ventes réalisées par le vendeur sur une période donnée.
  *     tags:
- *       - Analytics Vendeur
+ *       - Analytics
  *     security:
  *       - bearerAuth: []
  *     parameters:

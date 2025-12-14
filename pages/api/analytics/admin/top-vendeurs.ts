@@ -10,7 +10,7 @@ import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth
  *     description: >
  *       Retourne les meilleurs vendeurs classés par chiffre d'affaires. 
  *     tags:
- *       - Analytics Admin
+ *       - Analytics
  *     security:
  *       - bearerAuth: []
  */
