@@ -70,7 +70,14 @@ const updateLivraisonSchema = z.object({
     ville: z.string().max(255).min(1).optional(),
     phone: z.string().max(255).min(1).optional(),
     date_livraison: z.string().datetime().optional(),
-    statut: z.string().max(255).optional(),
+    statut: z.enum([
+        "En attente",
+        "En cours de livraison",
+        "Livrée",
+        "Annulée",
+        "Reportée"
+    ]).optional(),
+    livreur_id: z.string().uuid().optional(),
 });
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -84,24 +91,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const { profile } = auth;
 
         const { id } = req.query;
-
         if (!id || typeof id !== "string") {
             return res.status(400).json({ error: "ID de livraison invalide" });
         }
 
         const body = updateLivraisonSchema.parse(req.body);
 
-        // Vérifier qu'il y a au moins un champ à mettre à jour
         if (Object.keys(body).length === 0) {
             return res.status(400).json({
                 error: "Au moins un champ doit être fourni pour la mise à jour"
             });
         }
 
-        // Vérifier que la livraison existe
+        // 🔎 Récupérer la livraison
         const { data: livraison, error: fetchError } = await supabaseAdmin
             .from("livraisons")
-            .select("*, commandes (statut)")
+            .select(`
+        id,
+        statut,
+        commande_id,
+        livreur_id,
+        commandes (statut)
+        `)
             .eq("id", id)
             .single();
 
@@ -109,17 +120,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(404).json({ error: "Livraison introuvable" });
         }
 
-        // Vérifier les permissions
         const isAdmin = profile.role === "Administrateur";
-        const isLivreur = livraison.user_id === profile.id;
+        const isLivreur = livraison.livreur_id === profile.id;
 
-        if (!isAdmin && !isLivreur) {
+        // 🔐 Permissions
+        if (body.livreur_id && !isAdmin) {
             return res.status(403).json({
-                error: "Seuls les admins ou le livreur assigné peuvent modifier cette livraison"
+                error: "Seul un administrateur peut assigner un livreur"
             });
         }
 
-        // Construire l'objet de mise à jour
+        if (!isAdmin && !isLivreur) {
+            return res.status(403).json({
+                error: "Accès refusé"
+            });
+        }
+
+        // 🛠 Construction de la mise à jour
         const updateData: any = {
             updated_at: new Date().toISOString(),
         };
@@ -129,33 +146,48 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (body.ville) updateData.ville = body.ville;
         if (body.phone) updateData.phone = body.phone;
         if (body.date_livraison) updateData.date_livraison = body.date_livraison;
-        if (body.statut) updateData.statut = body.statut;
 
-        // Mettre à jour la livraison
-        const { data: updatedLivraison, error: updateError } = await supabaseAdmin
-            .from("livraisons")
-            .update(updateData)
-            .eq("id", id)
-            .select(`
-        *,
-        commandes (id, numero, statut, prix),
-        users (id, name, email, phone)
-      `)
-            .single();
-
-        if (updateError) {
-            console.error("Supabase update error:", updateError);
-            return res.status(500).json({ error: "Impossible de mettre à jour la livraison" });
+        // 📦 Assignation livreur
+        if (body.livreur_id) {
+            updateData.livreur_id = body.livreur_id;
+            updateData.statut = "en_cours_de_livraison";
         }
 
-        // Si le statut de la livraison change, mettre à jour le statut de la commande
+        // 🚚 Mise à jour statut
         if (body.statut) {
-            let commandeStatut = null;
+            updateData.statut = body.statut;
+        }
 
-            if (body.statut.toLowerCase().includes("livr")) {
-                commandeStatut = "Livrée";
-            } else if (body.statut.toLowerCase().includes("cours")) {
-                commandeStatut = "En cours de livraison";
+        // 🔄 Mise à jour livraison
+        const { data: updatedLivraison, error: updateError } =
+            await supabaseAdmin
+                .from("livraisons")
+                .update(updateData)
+                .eq("id", id)
+                .select(`
+          *,
+            commandes (id, numero, statut),
+            users (id, name, email, phone)
+        `)
+                .single();
+
+        if (updateError) {
+            console.error("Update livraison error:", updateError);
+            return res.status(500).json({
+                error: "Impossible de mettre à jour la livraison"
+            });
+        }
+
+        // 🔁 Synchronisation statut commande
+        if (body.statut || body.livreur_id) {
+            let commandeStatut: string | null = null;
+
+            if (updateData.statut === "en_cours_de_livraison") {
+                commandeStatut = "en_livraison";
+            } else if (updateData.statut === "livree") {
+                commandeStatut = "livree";
+            } else if (updateData.statut === "annulee") {
+                commandeStatut = "annulee";
             }
 
             if (commandeStatut) {
@@ -170,6 +202,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             message: "Livraison mise à jour avec succès",
             livraison: updatedLivraison,
         });
+
     } catch (err) {
         if (err instanceof ZodError) {
             return res.status(400).json({
@@ -179,7 +212,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 })),
             });
         }
+
         console.error("Error /api/livraisons/[id]/update:", err);
-        return res.status(500).json({ error: "Erreur serveur interne" });
+        return res.status(500).json({
+            error: "Erreur serveur interne"
+        });
     }
 }

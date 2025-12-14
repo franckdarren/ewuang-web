@@ -143,7 +143,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             .from("livraisons")
             .insert({
                 commande_id: body.commande_id,
-                user_id: profile.id,
+                user_id: commande.user_id,   // ✅ acheteur
+                livreur_id: null,
                 adresse: body.adresse,
                 details: body.details,
                 ville: body.ville,
