@@ -3,11 +3,9 @@
 // ========================================
 
 import type { NextApiRequest, NextApiResponse } from "next";
-import formidable from "formidable";
-import type { File as FormidableFile } from "formidable";
+import formidable, { File as FormidableFile } from "formidable";
 import fs from "fs";
 import { createClient } from "@supabase/supabase-js";
-import { PrismaClient } from "@prisma/client";
 import { uploadArticleImage } from "../../../lib/upload";
 
 /**
@@ -53,35 +51,31 @@ import { uploadArticleImage } from "../../../lib/upload";
  *         description: Erreur serveur
  */
 
-const prisma = new PrismaClient();
-
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
 export const config = {
-    api: {
-        bodyParser: false,
-    },
+    api: { bodyParser: false },
 };
 
+// Parse FormData avec formidable
 function parseForm(req: NextApiRequest) {
-    return new Promise<{
-        fields: formidable.Fields;
-        files: formidable.Files;
-    }>((resolve, reject) => {
-        const form = formidable({
-            multiples: true,
-            maxFiles: 10,
-            maxFileSize: 5 * 1024 * 1024,
-        });
+    return new Promise<{ fields: formidable.Fields; files: formidable.Files }>(
+        (resolve, reject) => {
+            const form = formidable({
+                multiples: true,
+                maxFiles: 10,
+                maxFileSize: 5 * 1024 * 1024, // 5MB max
+            });
 
-        form.parse(req, (err, fields, files) => {
-            if (err) reject(err);
-            else resolve({ fields, files });
-        });
-    });
+            form.parse(req, (err, fields, files) => {
+                if (err) reject(err);
+                else resolve({ fields, files });
+            });
+        }
+    );
 }
 
 export default async function handler(
@@ -89,26 +83,18 @@ export default async function handler(
     res: NextApiResponse
 ) {
     if (req.method !== "POST") {
-        return res.status(405).json({ error: "Méthode non autorisée" });
+        return res.status(405).json({ success: false, error: "Méthode non autorisée" });
     }
 
     try {
-        // 🔐 Auth
+        // 🔐 Authentification
         const token = req.headers.authorization?.replace("Bearer ", "");
-        if (!token) return res.status(401).json({ error: "Token manquant" });
+        if (!token) return res.status(401).json({ success: false, error: "Token manquant" });
 
-        const { data: { user } } = await supabase.auth.getUser(token);
-        if (!user) return res.status(401).json({ error: "Token invalide" });
+        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+        if (authError || !user) return res.status(401).json({ success: false, error: "Token invalide" });
 
-        const userData = await prisma.users.findUnique({
-            where: { auth_id: user.id },
-        });
-
-        if (!userData) {
-            return res.status(404).json({ error: "Utilisateur introuvable" });
-        }
-
-        // 📦 Parse form
+        // 📦 Parse FormData
         const { fields, files } = await parseForm(req);
 
         const articleId = Array.isArray(fields.article_id)
@@ -116,38 +102,35 @@ export default async function handler(
             : fields.article_id;
 
         if (!articleId || !files.files) {
-            return res.status(400).json({ error: "Paramètres manquants" });
+            return res.status(400).json({ success: false, error: "Paramètres manquants" });
         }
 
-        // 🔎 Vérifier article
-        const article = await prisma.articles.findFirst({
-            where: { id: articleId, user_id: userData.id },
-        });
+        // Récupérer les fichiers
+        const fileArray = Array.isArray(files.files) ? files.files : [files.files];
 
-        if (!article) {
-            return res.status(404).json({ error: "Article introuvable" });
+        if (fileArray.length > 10) {
+            return res.status(400).json({ success: false, error: "Maximum 10 images autorisées" });
         }
-
-        const fileArray = Array.isArray(files.files)
-            ? files.files
-            : [files.files];
 
         const uploadedUrls: string[] = [];
 
         for (let i = 0; i < fileArray.length; i++) {
             const file = fileArray[i] as FormidableFile;
 
+            // Lire le fichier
             const buffer = fs.readFileSync(file.filepath);
 
-            const image = new File(
+            // Créer un objet File pour la fonction upload
+            const imageFile = new File(
                 [buffer],
                 file.originalFilename || `gallery-${i}.jpg`,
                 { type: file.mimetype || "image/jpeg" }
             );
 
+            // Upload vers Supabase
             const result = await uploadArticleImage(
-                image,
-                userData.id,
+                imageFile,
+                user.id, // userId Supabase
                 articleId,
                 "gallery",
                 i + 1
@@ -155,26 +138,20 @@ export default async function handler(
 
             if (result.success && result.url) {
                 uploadedUrls.push(result.url);
-
-                await prisma.image_articles.create({
-                    data: {
-                        article_id: articleId,
-                        url_photo: result.url,
-                    },
-                });
             }
 
+            // Supprimer le fichier temporaire
             fs.unlinkSync(file.filepath);
         }
 
         return res.status(200).json({
-            success: true,
+            success: uploadedUrls.length > 0,
+            message: `${uploadedUrls.length}/${fileArray.length} images uploadées`,
             uploaded_urls: uploadedUrls,
         });
+
     } catch (error: any) {
-        console.error(error);
-        return res.status(500).json({ error: "Erreur upload" });
-    } finally {
-        await prisma.$disconnect();
+        console.error("Erreur upload multiple:", error);
+        return res.status(500).json({ success: false, error: "Erreur serveur", message: error.message });
     }
 }

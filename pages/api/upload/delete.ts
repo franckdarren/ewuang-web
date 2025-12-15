@@ -1,9 +1,9 @@
 // ========================================
-// Suppression d'images
+// pages/api/upload/delete.ts
+// Suppression d'images (Supabase only)
 // ========================================
 
 import type { NextApiRequest, NextApiResponse } from "next";
-import { PrismaClient } from "@prisma/client";
 import { createClient } from "@supabase/supabase-js";
 import { deleteImage, deleteArticleImages } from "../../../lib/upload";
 
@@ -25,8 +25,10 @@ import { deleteImage, deleteArticleImages } from "../../../lib/upload";
  *             properties:
  *               bucket:
  *                 type: string
+ *                 enum: [articles-images, variations-images]
  *               path:
  *                 type: string
+ *                 description: Chemin complet du fichier dans le bucket
  *               article_id:
  *                 type: string
  *                 format: uuid
@@ -43,8 +45,6 @@ import { deleteImage, deleteArticleImages } from "../../../lib/upload";
  *         description: Erreur serveur
  */
 
-const prisma = new PrismaClient();
-
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -55,67 +55,90 @@ export default async function handler(
     res: NextApiResponse
 ) {
     if (req.method !== "DELETE") {
-        return res.status(405).json({ error: "Méthode non autorisée" });
+        return res.status(405).json({
+            success: false,
+            error: "Méthode non autorisée",
+        });
     }
 
     try {
-        const token = req.headers.authorization?.replace("Bearer ", "");
-        if (!token) return res.status(401).json({ error: "Token manquant" });
+        // 🔐 Authentification
+        const authHeader = req.headers.authorization;
+        if (!authHeader) {
+            return res.status(401).json({
+                success: false,
+                error: "Token manquant",
+            });
+        }
 
-        const { data: { user } } = await supabase.auth.getUser(token);
-        if (!user) return res.status(401).json({ error: "Token invalide" });
+        const token = authHeader.replace("Bearer ", "");
+        const {
+            data: { user },
+            error: authError,
+        } = await supabase.auth.getUser(token);
 
-        const userData = await prisma.users.findUnique({
-            where: { auth_id: user.id },
-        });
-
-        if (!userData) {
-            return res.status(404).json({ error: "Utilisateur introuvable" });
+        if (authError || !user) {
+            return res.status(401).json({
+                success: false,
+                error: "Token invalide",
+            });
         }
 
         const { bucket, path, article_id } = req.body;
 
-        // 🔹 Supprimer une image précise
+        // 🔹 CAS 1 : supprimer une image précise
         if (bucket && path) {
-            if (!path.startsWith(userData.id)) {
-                return res.status(403).json({ error: "Non autorisé" });
+            // Sécurité : le chemin doit commencer par l'id utilisateur
+            if (!path.startsWith(user.id)) {
+                return res.status(403).json({
+                    success: false,
+                    error: "Accès interdit",
+                });
             }
 
-            await deleteImage(bucket, path);
+            const result = await deleteImage(bucket, path);
 
-            await prisma.image_articles.deleteMany({
-                where: { url_photo: { contains: path } },
+            if (!result.success) {
+                return res.status(400).json({
+                    success: false,
+                    error: result.error,
+                });
+            }
+
+            return res.status(200).json({
+                success: true,
+                message: "Image supprimée avec succès",
             });
-
-            return res.status(200).json({ success: true });
         }
 
-        // 🔹 Supprimer toutes les images d’un article
+        // 🔹 CAS 2 : supprimer toutes les images d’un article
         if (article_id) {
-            const article = await prisma.articles.findFirst({
-                where: { id: article_id, user_id: userData.id },
-            });
+            const result = await deleteArticleImages(user.id, article_id);
 
-            if (!article) {
-                return res.status(404).json({ error: "Article introuvable" });
+            if (!result.success) {
+                return res.status(400).json({
+                    success: false,
+                    error: result.error,
+                });
             }
 
-            await deleteArticleImages(userData.id, article_id);
-
-            await prisma.image_articles.deleteMany({
-                where: { article_id },
+            return res.status(200).json({
+                success: true,
+                message: "Toutes les images de l'article ont été supprimées",
             });
-
-            return res.status(200).json({ success: true });
         }
 
+        // ❌ Paramètres invalides
         return res.status(400).json({
+            success: false,
             error: "bucket + path OU article_id requis",
         });
     } catch (error: any) {
-        console.error(error);
-        return res.status(500).json({ error: "Erreur suppression" });
-    } finally {
-        await prisma.$disconnect();
+        console.error("Erreur suppression image:", error);
+        return res.status(500).json({
+            success: false,
+            error: "Erreur serveur lors de la suppression",
+            message: error.message,
+        });
     }
 }
