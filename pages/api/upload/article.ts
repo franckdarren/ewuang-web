@@ -22,7 +22,8 @@ export const config = {
  * /api/upload/article:
  *   post:
  *     summary: Upload une image pour un article
- *     tags: Upload
+ *     tags: 
+ *       - Upload
  *     security:
  *       - bearerAuth: []
  *     requestBody:
