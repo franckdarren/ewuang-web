@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Plus, TrendingUp } from "lucide-react"
 
-export default function PublicitesPage() {
+export default function PublicitePage() {
     return (
         <div className="flex flex-col gap-4 p-4 md:gap-6 md:p-6">
             {/* En-tête de page */}

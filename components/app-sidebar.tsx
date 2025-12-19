@@ -25,6 +25,13 @@ import {
   IconLogs,
   IconTag,
   IconDeviceTv,
+  IconTarget,
+  IconGps,
+  IconGpsFilled,
+  IconLocation,
+  IconTransactionDollar,
+  IconMoneybag,
+  IconBuildingCommunity,
 } from "@tabler/icons-react"
 
 import { NavDocuments } from "@/components/nav-documents"
@@ -74,6 +81,27 @@ const data = {
       url: "/dashboard/reclamations",
       icon: IconMessage,
     },
+    {
+      title: "Livraisons",
+      url: "/dashboard/livraisons",
+      icon: IconLocation,
+    },
+    {
+      title: "Transactions",
+      url: "/dashboard/transactions",
+      icon: IconMoneybag,
+    },
+    {
+      title: "Notifications",
+      url: "/dashboard/notifications",
+      icon: IconSocial,
+    },
+    {
+      title: "Catégories",
+      url: "/dashboard/categories",
+      icon: IconTag,
+    },
+
   ],
   navSecondary: [
     // {
