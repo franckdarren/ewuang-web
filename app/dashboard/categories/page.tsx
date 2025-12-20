@@ -1,4 +1,3 @@
-// app/dashboard/categories/page.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -8,9 +7,6 @@ import {
     Plus,
     Edit,
     Trash2,
-    MoreHorizontal,
-    CheckCircle,
-    XCircle,
     Folder,
     FolderOpen,
 } from "lucide-react";
@@ -29,7 +25,10 @@ import {
 import { CategoriesTable } from '../../../components/categories/categories-table';
 import { CreateCategorieModal } from '../../../components/categories/create-categorie-modal';
 import { EditCategorieModal } from '../../../components/categories/edit-categorie-modal';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardDescription, CardTitle } from "@/components/ui/card";
+import { supabase } from '@/lib/supabaseClient';
+import type { Session } from '@supabase/supabase-js';
+import { useAuthStore } from '@/stores/authStore';
 
 export default function CategoriePage() {
     // ============================================
@@ -41,7 +40,7 @@ export default function CategoriePage() {
     const [categorieToEdit, setCategorieToEdit] = useState<Categorie | null>(null);
 
     // ============================================
-    // STORE
+    // STORE CATEGORIES
     // ============================================
 
     const {
@@ -55,12 +54,9 @@ export default function CategoriePage() {
     const stats = useCategoriesStore(state => state.stats);
 
     // ============================================
-    // EFFETS
+    // CHARGEMENT DES CATEGORIES AU MONTAGE
     // ============================================
 
-    /**
-     * Charger les catégories au montage
-     */
     useEffect(() => {
         fetchCategories();
     }, [fetchCategories]);
@@ -69,17 +65,13 @@ export default function CategoriePage() {
     // HANDLERS
     // ============================================
 
-    /**
-     * Ouvrir la modale d'édition
-     */
+    // Ouvrir la modale d'édition
     const handleEdit = (categorie: Categorie) => {
         setCategorieToEdit(categorie);
         setIsEditModalOpen(true);
     };
 
-    /**
-     * Supprimer une catégorie
-     */
+    // Supprimer une catégorie
     const handleDelete = async (categorie: Categorie) => {
         const confirmed = window.confirm(
             `Êtes-vous sûr de vouloir supprimer la catégorie "${categorie.nom}" ?\n\n` +
@@ -96,9 +88,7 @@ export default function CategoriePage() {
         }
     };
 
-    /**
-     * Activer/Désactiver une catégorie
-     */
+    // Activer/Désactiver une catégorie
     const handleToggleActive = async (categorie: Categorie) => {
         try {
             await toggleCategorieActive(categorie.id, !categorie.is_active);
@@ -106,6 +96,11 @@ export default function CategoriePage() {
             alert('Erreur lors de la modification du statut');
         }
     };
+
+    const { user, isAuthenticated } = useAuthStore();
+
+    // Bouton actif uniquement si connecté
+    const canCreate = isAuthenticated && !isLoading;
 
     // ============================================
     // RENDU
@@ -121,7 +116,13 @@ export default function CategoriePage() {
                         Gérer les catégories de produits de la marketplace
                     </p>
                 </div>
-                <Button onClick={() => setIsCreateModalOpen(true)}>
+
+                {/* Bouton "Ajouter une catégorie" */}
+                {/* Désactivé si l'utilisateur n'est pas connecté */}
+                <Button
+                    onClick={() => setIsCreateModalOpen(true)}
+                    disabled={!canCreate}
+                >
                     <Plus className="mr-2 h-4 w-4" />
                     Ajouter une catégorie
                 </Button>
@@ -132,8 +133,8 @@ export default function CategoriePage() {
                 <Card>
                     <CardHeader className="pb-2">
                         <CardDescription>Total des catégories</CardDescription>
-                        <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                            <div className="text-2xl font-bold">{stats.total}</div>
+                        <CardTitle className="text-2xl font-semibold">
+                            {stats.total}
                         </CardTitle>
                     </CardHeader>
                 </Card>
@@ -141,8 +142,8 @@ export default function CategoriePage() {
                 <Card>
                     <CardHeader className="pb-2">
                         <CardDescription>Catégories actives</CardDescription>
-                        <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                            <div className="text-2xl font-bold">{stats.actives}</div>
+                        <CardTitle className="text-2xl font-semibold">
+                            {stats.actives}
                         </CardTitle>
                     </CardHeader>
                 </Card>
@@ -150,8 +151,8 @@ export default function CategoriePage() {
                 <Card>
                     <CardHeader className="pb-2">
                         <CardDescription>Catégories inactives</CardDescription>
-                        <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                            <div className="text-2xl font-bold">{stats.inactives}</div>
+                        <CardTitle className="text-2xl font-semibold">
+                            {stats.inactives}
                         </CardTitle>
                     </CardHeader>
                 </Card>
@@ -159,8 +160,8 @@ export default function CategoriePage() {
                 <Card>
                     <CardHeader className="pb-2">
                         <CardDescription>Avec articles</CardDescription>
-                        <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                            <div className="text-2xl font-bold">{stats.avecArticles}</div>
+                        <CardTitle className="text-2xl font-semibold">
+                            {stats.avecArticles}
                         </CardTitle>
                     </CardHeader>
                 </Card>

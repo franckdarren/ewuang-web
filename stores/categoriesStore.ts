@@ -2,26 +2,19 @@
 /**
  * CategoriesStore - Store pour gérer les catégories de produits
  * 
- * Fonctionnalités :
- * - Lister toutes les catégories (avec hiérarchie parent/enfant)
- * - Créer une nouvelle catégorie
- * - Modifier une catégorie existante
- * - Supprimer une catégorie
- * - Activer/Désactiver une catégorie
- * - Gérer l'ordre d'affichage
- * - Récupérer l'arbre hiérarchique des catégories
+ * 🔒 SÉCURITÉ :
+ * - Toutes les opérations nécessitent un token Bearer
+ * - L'utilisateur doit avoir le rôle "Administrateur"
+ * - Le token est récupéré automatiquement depuis authStore
  */
 
 import { create } from 'zustand';
+import { useAuthStore } from './authStore';
 
 // ============================================
 // TYPES
 // ============================================
 
-/**
- * Interface Categorie complète
- * Correspond exactement à votre schéma Prisma
- */
 export interface Categorie {
     id: string;
     nom: string;
@@ -34,23 +27,18 @@ export interface Categorie {
     created_at: string;
     updated_at: string;
 
-    // Relations (optionnelles, chargées selon les besoins)
     parent?: Categorie;
     children?: Categorie[];
-    articles?: any[]; // On ne charge généralement pas les articles avec les catégories
+    articles?: any[];
     _count?: {
         articles?: number;
         children?: number;
     };
 }
 
-/**
- * Type pour créer une nouvelle catégorie
- * On omet les champs auto-générés (id, dates, etc.)
- */
 export interface CreateCategorieInput {
     nom: string;
-    slug?: string; // Optionnel, sera généré automatiquement si non fourni
+    slug?: string;
     description?: string;
     image?: string;
     parent_id?: string | null;
@@ -58,10 +46,6 @@ export interface CreateCategorieInput {
     ordre?: number;
 }
 
-/**
- * Type pour mettre à jour une catégorie
- * Tous les champs sont optionnels
- */
 export interface UpdateCategorieInput {
     nom?: string;
     slug?: string;
@@ -72,21 +56,14 @@ export interface UpdateCategorieInput {
     ordre?: number;
 }
 
-/**
- * État de chargement
- */
 interface LoadingState {
     isLoading: boolean;
     error: string | null;
 }
 
-/**
- * Nœud d'arbre de catégories
- * Utilisé pour afficher la hiérarchie
- */
 export interface CategorieTreeNode extends Categorie {
     children: CategorieTreeNode[];
-    level: number; // Niveau de profondeur (0 = racine)
+    level: number;
 }
 
 // ============================================
@@ -94,28 +71,10 @@ export interface CategorieTreeNode extends Categorie {
 // ============================================
 
 interface CategoriesState extends LoadingState {
-    // -------- ÉTAT --------
-
-    /**
-     * Liste de toutes les catégories (plate)
-     */
     categories: Categorie[];
-
-    /**
-     * Arbre hiérarchique des catégories
-     * Pratique pour l'affichage en arborescence
-     */
     categoriesTree: CategorieTreeNode[];
-
-    /**
-     * Catégorie actuellement sélectionnée
-     * Pour l'édition ou l'affichage des détails
-     */
     selectedCategorie: Categorie | null;
 
-    /**
-     * Statistiques
-     */
     stats: {
         total: number;
         actives: number;
@@ -123,78 +82,20 @@ interface CategoriesState extends LoadingState {
         avecArticles: number;
     };
 
-    // -------- ACTIONS --------
-
-    /**
-     * Récupère toutes les catégories
-     */
-    fetchCategories: () => Promise<void>;
-
-    /**
-     * Récupère l'arbre des catégories
-     */
-    fetchCategoriesTree: () => Promise<void>;
-
-    /**
-     * Récupère une catégorie par ID
-     */
-    fetchCategorieById: (id: string) => Promise<void>;
-
-    /**
-     * Crée une nouvelle catégorie
-     */
-    createCategorie: (data: CreateCategorieInput) => Promise<Categorie>;
-
-    /**
-     * Met à jour une catégorie
-     */
-    updateCategorie: (id: string, data: UpdateCategorieInput) => Promise<Categorie>;
-
-    /**
-     * Supprime une catégorie
-     */
-    deleteCategorie: (id: string) => Promise<void>;
-
-    /**
-     * Active ou désactive une catégorie
-     */
-    toggleCategorieActive: (id: string, isActive: boolean) => Promise<void>;
-
-    /**
-     * Sélectionne une catégorie
-     */
-    setSelectedCategorie: (categorie: Categorie | null) => void;
-
-    /**
-     * Efface les erreurs
-     */
-    clearError: () => void;
-
-    /**
-     * Calcule les statistiques
-     */
-    calculateStats: () => void;
-
-    /**
-     * Rafraîchit les données
-     */
-    refresh: () => Promise<void>;
-
-    // -------- SÉLECTEURS UTILITAIRES DANS LE STORE --------
-    /**
-     * Récupère uniquement les catégories actives
-     */
-    categoriesActives: () => Categorie[];
-
-    /**
-     * Récupère uniquement les catégories racines (sans parent)
-     */
+    // Ajout d'une propriété calculée pour les catégories racines
     categoriesRacines: () => Categorie[];
 
-    /**
-     * Récupère les enfants d'une catégorie
-     */
-    categorieChildren: (parentId: string) => Categorie[];
+    fetchCategories: () => Promise<void>;
+    fetchCategoriesTree: () => Promise<void>;
+    fetchCategorieById: (id: string) => Promise<void>;
+    createCategorie: (data: CreateCategorieInput) => Promise<Categorie>;
+    updateCategorie: (id: string, data: UpdateCategorieInput) => Promise<Categorie>;
+    deleteCategorie: (id: string) => Promise<void>;
+    toggleCategorieActive: (id: string, isActive: boolean) => Promise<void>;
+    setSelectedCategorie: (categorie: Categorie | null) => void;
+    clearError: () => void;
+    calculateStats: () => void;
+    refresh: () => Promise<void>;
 }
 
 // ============================================
@@ -202,26 +103,67 @@ interface CategoriesState extends LoadingState {
 // ============================================
 
 /**
- * Génère un slug à partir d'un nom
- * Exemple : "Électronique & High-Tech" → "electronique-high-tech"
+ * Récupère le token d'authentification
+ */
+function getAuthToken(): string {
+    const token = useAuthStore.getState().token;
+
+    if (!token) {
+        throw new Error('Non authentifié. Veuillez vous connecter.');
+    }
+
+    return token;
+}
+
+/**
+ * Vérifie le rôle administrateur
+ */
+function checkAdminRole(): void {
+    const user = useAuthStore.getState().user;
+
+    if (!user) {
+        throw new Error('Non authentifié. Veuillez vous connecter.');
+    }
+
+    // Vérifier le rôle (avec votre vraie valeur "Administrateur")
+    if (user.role !== 'Administrateur') {
+        throw new Error(
+            `Accès refusé. Cette action nécessite les privilèges administrateur. Votre rôle actuel : ${user.role}`
+        );
+    }
+}
+
+/**
+ * Crée les headers HTTP avec authentification
+ */
+function getAuthHeaders(): HeadersInit {
+    const token = getAuthToken();
+
+    return {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+    };
+}
+
+/**
+ * Génère un slug
  */
 function generateSlug(nom: string): string {
     return nom
         .toLowerCase()
-        .normalize('NFD') // Décompose les caractères accentués
-        .replace(/[\u0300-\u036f]/g, '') // Supprime les accents
-        .replace(/[^a-z0-9]+/g, '-') // Remplace les caractères spéciaux par des tirets
-        .replace(/^-+|-+$/g, ''); // Supprime les tirets au début et à la fin
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
 }
 
 /**
- * Construit un arbre hiérarchique à partir d'une liste plate de catégories
+ * Construit un arbre hiérarchique
  */
 function buildTree(categories: Categorie[]): CategorieTreeNode[] {
     const map = new Map<string, CategorieTreeNode>();
     const roots: CategorieTreeNode[] = [];
 
-    // Créer tous les nœuds
     categories.forEach(cat => {
         map.set(cat.id, {
             ...cat,
@@ -230,22 +172,18 @@ function buildTree(categories: Categorie[]): CategorieTreeNode[] {
         });
     });
 
-    // Construire l'arbre
     categories.forEach(cat => {
         const node = map.get(cat.id)!;
 
         if (cat.parent_id && map.has(cat.parent_id)) {
-            // Ajouter comme enfant
             const parent = map.get(cat.parent_id)!;
             node.level = parent.level + 1;
             parent.children.push(node);
         } else {
-            // C'est une racine
             roots.push(node);
         }
     });
 
-    // Trier par ordre
     const sortByOrdre = (a: CategorieTreeNode, b: CategorieTreeNode) => a.ordre - b.ordre;
     roots.sort(sortByOrdre);
     roots.forEach(root => sortChildren(root));
@@ -253,12 +191,38 @@ function buildTree(categories: Categorie[]): CategorieTreeNode[] {
     return roots;
 }
 
-/**
- * Trie récursivement les enfants d'un nœud
- */
 function sortChildren(node: CategorieTreeNode) {
     node.children.sort((a, b) => a.ordre - b.ordre);
     node.children.forEach(child => sortChildren(child));
+}
+
+/**
+ * Gère les erreurs API
+ */
+async function handleApiError(response: Response): Promise<never> {
+    let errorMessage = 'Une erreur est survenue';
+
+    try {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorData.message || errorMessage;
+    } catch {
+        switch (response.status) {
+            case 401:
+                errorMessage = 'Non authentifié. Veuillez vous reconnecter.';
+                break;
+            case 403:
+                errorMessage = 'Accès refusé. Privilèges administrateur requis.';
+                break;
+            case 404:
+                errorMessage = 'Ressource introuvable.';
+                break;
+            case 500:
+                errorMessage = 'Erreur serveur. Veuillez réessayer plus tard.';
+                break;
+        }
+    }
+
+    throw new Error(errorMessage);
 }
 
 // ============================================
@@ -280,193 +244,435 @@ export const useCategoriesStore = create<CategoriesState>((set, get) => ({
         avecArticles: 0,
     },
 
+    // -------- PROPRIÉTÉ CALCULÉE --------
+
+    /**
+     * Retourne les catégories racines (sans parent)
+     */
+    categoriesRacines: () => {
+        return get().categories.filter(cat => !cat.parent_id);
+    },
+
     // -------- ACTIONS --------
+
+    /**
+     * FETCH CATEGORIES - Récupérer toutes les catégories
+     */
     fetchCategories: async () => {
         set({ isLoading: true, error: null });
 
         try {
-            const response = await fetch('/api/categories/list');
+            const token = getAuthToken();
 
-            if (!response.ok) throw new Error('Erreur lors du chargement des catégories');
+            const response = await fetch('/api/categories/list', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
 
-            const data: { categories: Categorie[]; total: number } = await response.json();
+            if (!response.ok) {
+                await handleApiError(response);
+            }
+
+            const data = await response.json();
+
+            // IMPORTANT : Votre API retourne { categories: [...] }
+            const categories: Categorie[] = data.categories || data;
 
             set({
-                categories: data.categories,
-                categoriesTree: buildTree(data.categories),
+                categories,
                 isLoading: false,
                 error: null,
             });
 
+            const tree = buildTree(categories);
+            set({ categoriesTree: tree });
             get().calculateStats();
+
+            console.log(`✅ ${categories.length} catégories chargées`);
+
         } catch (error) {
-            console.error('fetchCategories error:', error);
+            const errorMessage = error instanceof Error
+                ? error.message
+                : 'Erreur de chargement';
+
             set({
-                error: error instanceof Error ? error.message : 'Erreur de chargement',
+                error: errorMessage,
+                isLoading: false,
+            });
+
+            console.error('❌ Erreur fetchCategories:', errorMessage);
+
+            if (errorMessage.includes('authentifié')) {
+                useAuthStore.getState().logout();
+            }
+        }
+    },
+
+    /**
+     * FETCH CATEGORIES TREE
+     */
+    fetchCategoriesTree: async () => {
+        set({ isLoading: true, error: null });
+
+        try {
+            const token = getAuthToken();
+
+            const response = await fetch('/api/categories/tree', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                await handleApiError(response);
+            }
+
+            const data = await response.json();
+
+            set({
+                categoriesTree: data,
+                isLoading: false,
+                error: null,
+            });
+
+            console.log('✅ Arbre des catégories chargé');
+
+        } catch (error) {
+            const errorMessage = error instanceof Error
+                ? error.message
+                : 'Erreur de chargement';
+
+            set({
+                error: errorMessage,
                 isLoading: false,
             });
         }
     },
 
-
-
-    fetchCategoriesTree: async () => {
-        set({ isLoading: true, error: null });
-        try {
-            const response = await fetch('/api/categories/tree');
-            if (!response.ok) throw new Error('Erreur lors du chargement de l\'arbre');
-            const data = await response.json();
-            set({ categoriesTree: data, isLoading: false, error: null });
-        } catch (error) {
-            set({ error: error instanceof Error ? error.message : 'Erreur', isLoading: false });
-        }
-    },
-
+    /**
+     * FETCH CATEGORIE BY ID
+     */
     fetchCategorieById: async (id: string) => {
         set({ isLoading: true, error: null });
+
         try {
-            const response = await fetch(`/api/categories/${id}`);
-            if (!response.ok) throw new Error('Catégorie introuvable');
-            const categorie: Categorie = await response.json();
-            set({ selectedCategorie: categorie, isLoading: false, error: null });
+            const token = getAuthToken();
+
+            const response = await fetch(`/api/categories/${id}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                await handleApiError(response);
+            }
+
+            const data = await response.json();
+
+            // IMPORTANT : Votre API retourne { category: {...} }
+            const categorie: Categorie = data.category || data;
+
+            set({
+                selectedCategorie: categorie,
+                isLoading: false,
+                error: null,
+            });
+
+            console.log('✅ Catégorie chargée:', categorie.nom);
+
         } catch (error) {
-            set({ error: error instanceof Error ? error.message : 'Erreur', isLoading: false, selectedCategorie: null });
+            const errorMessage = error instanceof Error
+                ? error.message
+                : 'Erreur de chargement';
+
+            set({
+                error: errorMessage,
+                isLoading: false,
+                selectedCategorie: null,
+            });
         }
     },
 
+    /**
+     * CREATE CATEGORIE - Créer une nouvelle catégorie
+     */
     createCategorie: async (data: CreateCategorieInput) => {
         set({ isLoading: true, error: null });
+
         try {
+            // Vérifier le rôle
+            checkAdminRole();
+
+            // Préparer les données
             const categorieData = {
-                ...data,
-                slug: data.slug || generateSlug(data.nom),
+                nom: data.nom.trim(),
+                slug: data.slug?.trim() || undefined,
+                description: data.description?.trim() || undefined,
+                image: data.image?.trim() || undefined,
+                parent_id: data.parent_id || undefined,
                 is_active: data.is_active ?? true,
                 ordre: data.ordre ?? 0,
             };
 
+            console.log('📤 Envoi des données:', categorieData);
+            console.log('🔑 Token présent:', !!getAuthToken());
+            console.log('👤 Utilisateur:', useAuthStore.getState().user);
+
             const response = await fetch('/api/categories/create', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getAuthHeaders(),
                 body: JSON.stringify(categorieData),
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Erreur lors de la création');
+                await handleApiError(response);
             }
 
-            const nouvelleCategorie: Categorie = await response.json();
-            const nouvellesCategories = [...get().categories, nouvelleCategorie];
+            const responseData = await response.json();
 
-            set({ categories: nouvellesCategories, isLoading: false, error: null });
-            set({ categoriesTree: buildTree(nouvellesCategories) });
+            // IMPORTANT : Votre API retourne { category: {...} }
+            const nouvelleCategorie: Categorie = responseData.category || responseData;
+
+            const nouvellesCategories = [...get().categories, nouvelleCategorie];
+            set({
+                categories: nouvellesCategories,
+                isLoading: false,
+                error: null,
+            });
+
+            const tree = buildTree(nouvellesCategories);
+            set({ categoriesTree: tree });
             get().calculateStats();
 
+            console.log('✅ Catégorie créée:', nouvelleCategorie.nom);
+
             return nouvelleCategorie;
+
         } catch (error) {
-            set({ error: error instanceof Error ? error.message : 'Erreur', isLoading: false });
+            const errorMessage = error instanceof Error
+                ? error.message
+                : 'Erreur de création';
+
+            set({
+                error: errorMessage,
+                isLoading: false,
+            });
+
+            console.error('❌ Erreur createCategorie:', errorMessage);
             throw error;
         }
     },
 
+    /**
+     * UPDATE CATEGORIE - Mettre à jour une catégorie
+     */
     updateCategorie: async (id: string, data: UpdateCategorieInput) => {
         set({ isLoading: true, error: null });
+
         try {
+            checkAdminRole();
+
             const updateData = { ...data };
-            if (data.nom && !data.slug) updateData.slug = generateSlug(data.nom);
+            if (data.nom && !data.slug) {
+                updateData.slug = generateSlug(data.nom);
+            }
 
             const response = await fetch(`/api/categories/${id}`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getAuthHeaders(),
                 body: JSON.stringify(updateData),
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Erreur lors de la mise à jour');
+                await handleApiError(response);
             }
 
-            const categorieMiseAJour: Categorie = await response.json();
-            const nouvellesCategories = get().categories.map(cat => cat.id === id ? categorieMiseAJour : cat);
-            const newSelectedCategorie = get().selectedCategorie?.id === id ? categorieMiseAJour : get().selectedCategorie;
+            const responseData = await response.json();
+            const categorieMiseAJour: Categorie = responseData.category || responseData;
 
-            set({ categories: nouvellesCategories, selectedCategorie: newSelectedCategorie, isLoading: false, error: null });
-            set({ categoriesTree: buildTree(nouvellesCategories) });
+            const nouvellesCategories = get().categories.map(cat =>
+                cat.id === id ? categorieMiseAJour : cat
+            );
+
+            const selectedCategorie = get().selectedCategorie;
+            const newSelectedCategorie = selectedCategorie?.id === id
+                ? categorieMiseAJour
+                : selectedCategorie;
+
+            set({
+                categories: nouvellesCategories,
+                selectedCategorie: newSelectedCategorie,
+                isLoading: false,
+                error: null,
+            });
+
+            const tree = buildTree(nouvellesCategories);
+            set({ categoriesTree: tree });
+
+            console.log('✅ Catégorie mise à jour:', categorieMiseAJour.nom);
 
             return categorieMiseAJour;
+
         } catch (error) {
-            set({ error: error instanceof Error ? error.message : 'Erreur', isLoading: false });
+            const errorMessage = error instanceof Error
+                ? error.message
+                : 'Erreur de mise à jour';
+
+            set({
+                error: errorMessage,
+                isLoading: false,
+            });
+
             throw error;
         }
     },
 
+    /**
+     * DELETE CATEGORIE - Supprimer une catégorie
+     */
     deleteCategorie: async (id: string) => {
         set({ isLoading: true, error: null });
+
         try {
-            const response = await fetch(`/api/categories/${id}`, { method: 'DELETE' });
+            checkAdminRole();
+
+            const response = await fetch(`/api/categories/${id}`, {
+                method: 'DELETE',
+                headers: getAuthHeaders(),
+            });
+
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Erreur lors de la suppression');
+                await handleApiError(response);
             }
 
             const nouvellesCategories = get().categories.filter(cat => cat.id !== id);
-            const newSelectedCategorie = get().selectedCategorie?.id === id ? null : get().selectedCategorie;
 
-            set({ categories: nouvellesCategories, selectedCategorie: newSelectedCategorie, isLoading: false, error: null });
-            set({ categoriesTree: buildTree(nouvellesCategories) });
+            const selectedCategorie = get().selectedCategorie;
+            const newSelectedCategorie = selectedCategorie?.id === id
+                ? null
+                : selectedCategorie;
+
+            set({
+                categories: nouvellesCategories,
+                selectedCategorie: newSelectedCategorie,
+                isLoading: false,
+                error: null,
+            });
+
+            const tree = buildTree(nouvellesCategories);
+            set({ categoriesTree: tree });
             get().calculateStats();
+
+            console.log('✅ Catégorie supprimée');
+
         } catch (error) {
-            set({ error: error instanceof Error ? error.message : 'Erreur', isLoading: false });
+            const errorMessage = error instanceof Error
+                ? error.message
+                : 'Erreur de suppression';
+
+            set({
+                error: errorMessage,
+                isLoading: false,
+            });
+
             throw error;
         }
     },
 
+    /**
+     * TOGGLE CATEGORIE ACTIVE
+     */
     toggleCategorieActive: async (id: string, isActive: boolean) => {
-        set({ isLoading: true, error: null });
         try {
             await get().updateCategorie(id, { is_active: isActive });
+            console.log(`✅ Catégorie ${isActive ? 'activée' : 'désactivée'}`);
         } catch (error) {
             throw error;
         }
     },
 
-    setSelectedCategorie: (categorie: Categorie | null) => { set({ selectedCategorie: categorie }); },
-    clearError: () => { set({ error: null }); },
+    setSelectedCategorie: (categorie: Categorie | null) => {
+        set({ selectedCategorie: categorie });
+    },
+
+    clearError: () => {
+        set({ error: null });
+    },
 
     calculateStats: () => {
         const categories = get().categories;
+
         const stats = {
             total: categories.length,
             actives: categories.filter(cat => cat.is_active).length,
             inactives: categories.filter(cat => !cat.is_active).length,
-            avecArticles: categories.filter(cat => cat._count?.articles && cat._count.articles > 0).length,
+            avecArticles: categories.filter(cat =>
+                cat._count && cat._count.articles && cat._count.articles > 0
+            ).length,
         };
+
         set({ stats });
     },
 
-    refresh: async () => { await get().fetchCategories(); },
-
-    // ============================================
-    // SÉLECTEURS UTILITAIRES DANS LE STORE
-    // ============================================
-
-    /**
-     * Récupère uniquement les catégories actives
-     */
-    categoriesActives: () => get().categories.filter(cat => cat.is_active),
-
-    /**
-     * Récupère uniquement les catégories racines (sans parent)
-     */
-    categoriesRacines: () => {
-        const cats = Array.isArray(get().categories) ? get().categories : [];
-        return cats.filter(cat => !cat.parent_id);
+    refresh: async () => {
+        await get().fetchCategories();
     },
-
-
-
-    /**
-     * Récupère les enfants d'une catégorie
-     */
-    categorieChildren: (parentId: string) => get().categories.filter(cat => cat.parent_id === parentId),
 }));
+
+// ============================================
+// SÉLECTEURS UTILITAIRES
+// ============================================
+
+/**
+ * IMPORTANT : Ces sélecteurs utilisent une référence stable
+ * pour éviter les re-renders infinis
+ */
+
+export const useCategoriesActives = () => {
+    return useCategoriesStore((state) => {
+        // Créer une référence stable en utilisant l'ID du premier élément
+        const ids = state.categories.filter(cat => cat.is_active).map(c => c.id).join(',');
+        return state.categories.filter(cat => cat.is_active);
+    }, (a, b) => {
+        // Comparateur personnalisé pour éviter les re-renders inutiles
+        return a.length === b.length && a.every((cat, i) => cat.id === b[i]?.id);
+    });
+};
+
+export const useCategoriesRacines = () => {
+    return useCategoriesStore((state) => {
+        // Filtrer les catégories racines
+        return state.categories.filter(cat => !cat.parent_id);
+    }, (a, b) => {
+        // Comparateur : éviter re-render si la liste n'a pas changé
+        if (a.length !== b.length) return false;
+        return a.every((cat, i) => cat.id === b[i]?.id);
+    });
+};
+
+export const useCategorieChildren = (parentId: string) => {
+    return useCategoriesStore((state) =>
+        state.categories.filter(cat => cat.parent_id === parentId),
+        (a, b) => {
+            if (a.length !== b.length) return false;
+            return a.every((cat, i) => cat.id === b[i]?.id);
+        }
+    );
+};
+
+export const useCategoriesLoading = () => {
+    return useCategoriesStore((state) => state.isLoading);
+};
+
+export const useCategoriesError = () => {
+    return useCategoriesStore((state) => state.error);
+};
+
+export const useCategoriesStats = () => {
+    return useCategoriesStore((state) => state.stats);
+};

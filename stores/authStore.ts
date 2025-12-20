@@ -121,7 +121,7 @@ export const useAuthStore = create<AuthState>()(
              * quand l'application démarre et que le layout a récupéré les données
              */
             initializeAuth: (user: User, token: string) => {
-                console.log('🔐 Initialisation de l\'authentification:', user.email);
+                // console.log('🔐 Initialisation de l\'authentification:', user.email);
 
                 set({
                     user,
@@ -138,7 +138,7 @@ export const useAuthStore = create<AuthState>()(
              * Utilisé quand on met à jour le profil sans changer le token
              */
             setUser: (user: User) => {
-                console.log('👤 Mise à jour de l\'utilisateur:', user.email);
+                // console.log('👤 Mise à jour de l\'utilisateur:', user.email);
 
                 set({
                     user,

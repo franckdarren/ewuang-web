@@ -1,7 +1,8 @@
 // components/categories/create-categorie-modal.tsx
+// VERSION ALTERNATIVE SANS SÉLECTEUR - GARANTIE SANS BOUCLE
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
     Dialog,
     DialogContent,
@@ -22,7 +23,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { useCategoriesStore, type Categorie } from '@/stores/categoriesStore';
+import { useCategoriesStore } from '@/stores/categoriesStore';
 
 interface CreateCategorieModalProps {
     isOpen: boolean;
@@ -48,20 +49,71 @@ export function CreateCategorieModal({ isOpen, onClose }: CreateCategorieModalPr
     const [error, setError] = useState('');
 
     // ============================================
-    // STORE
+    // STORE - RÉCUPÉRATION DIRECTE
     // ============================================
 
-    // Hook pour créer une catégorie
     const createCategorie = useCategoriesStore(state => state.createCategorie);
+    const fetchCategories = useCategoriesStore(state => state.fetchCategories);
+    const allCategories = useCategoriesStore(state => state.categories);
 
-    // Hook pour récupérer la méthode categoriesRacines
-    const getCategoriesRacines = useCategoriesStore(state => state.categoriesRacines);
+    // ============================================
+    // CALCUL DES CATÉGORIES RACINES AVEC useMemo
+    // ============================================
 
-    // Appel de la méthode hors du hook pour éviter infinite loop
-    const categoriesRacines: Categorie[] = getCategoriesRacines();
+    /**
+     * useMemo garantit que le tableau n'est recalculé
+     * QUE si allCategories change réellement
+     */
+    const categoriesRacines = useMemo(() => {
+        return allCategories.filter(cat => !cat.parent_id);
+    }, [allCategories]);
 
-    // Filtrer pour ne pas permettre de sélectionner la catégorie elle-même comme parent
-    const availableParents = categoriesRacines; // Ici, création donc pas de self-filter
+    // ============================================
+    // EFFETS
+    // ============================================
+
+    /**
+     * Charger les catégories si nécessaire
+     */
+    useEffect(() => {
+        if (isOpen && allCategories.length === 0) {
+            fetchCategories();
+        }
+    }, [isOpen]); // Dépendance minimale
+
+    /**
+     * Réinitialiser le formulaire
+     */
+    useEffect(() => {
+        if (!isOpen) {
+            setFormData({
+                nom: '',
+                slug: '',
+                description: '',
+                image: '',
+                parent_id: '',
+                is_active: true,
+                ordre: 0,
+            });
+            setError('');
+        }
+    }, [isOpen]);
+
+    /**
+     * Générer le slug automatiquement
+     */
+    useEffect(() => {
+        if (formData.nom && !formData.slug) {
+            const slug = formData.nom
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-+|-+$/g, '');
+            
+            setFormData(prev => ({ ...prev, slug }));
+        }
+    }, [formData.nom, formData.slug]); // Dépendances précises
 
     // ============================================
     // HANDLERS
@@ -69,35 +121,33 @@ export function CreateCategorieModal({ isOpen, onClose }: CreateCategorieModalPr
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-
         setIsLoading(true);
         setError('');
 
         try {
-            // Validation
             if (!formData.nom.trim()) {
                 throw new Error('Le nom est obligatoire');
             }
 
-            // Préparer les données
             const newCategorie = {
-                ...formData,
+                nom: formData.nom.trim(),
                 slug: formData.slug.trim() || undefined,
                 description: formData.description.trim() || undefined,
                 image: formData.image.trim() || undefined,
-                parent_id: formData.parent_id || null,
+                parent_id: formData.parent_id && formData.parent_id !== 'none' 
+                    ? formData.parent_id 
+                    : null,
+                is_active: formData.is_active,
+                ordre: formData.ordre,
             };
 
-            // Création via le store
+            console.log('📝 Données du formulaire:', newCategorie);
+
             await createCategorie(newCategorie);
 
-            // Fermer la modale
             onClose();
-
-            // Notification succès
             alert('Catégorie créée avec succès !');
 
-            // Réinitialiser le formulaire
             setFormData({
                 nom: '',
                 slug: '',
@@ -109,7 +159,9 @@ export function CreateCategorieModal({ isOpen, onClose }: CreateCategorieModalPr
             });
 
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Erreur lors de la création');
+            const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la création';
+            console.error('❌ Erreur dans le formulaire:', errorMessage);
+            setError(errorMessage);
         } finally {
             setIsLoading(false);
         }
@@ -118,9 +170,6 @@ export function CreateCategorieModal({ isOpen, onClose }: CreateCategorieModalPr
     const handleChange = (field: string, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
-
-    // Ne rien afficher si modal fermée
-    if (!isOpen) return null;
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
@@ -133,14 +182,12 @@ export function CreateCategorieModal({ isOpen, onClose }: CreateCategorieModalPr
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    {/* Message d'erreur */}
                     {error && (
                         <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded">
                             {error}
                         </div>
                     )}
 
-                    {/* Nom */}
                     <div className="space-y-2">
                         <Label htmlFor="nom">
                             Nom <span className="text-red-500">*</span>
@@ -154,9 +201,13 @@ export function CreateCategorieModal({ isOpen, onClose }: CreateCategorieModalPr
                         />
                     </div>
 
-                    {/* Slug */}
                     <div className="space-y-2">
-                        <Label htmlFor="slug">Slug</Label>
+                        <Label htmlFor="slug">
+                            Slug
+                            <span className="text-sm text-muted-foreground ml-2">
+                                (Généré automatiquement)
+                            </span>
+                        </Label>
                         <Input
                             id="slug"
                             value={formData.slug}
@@ -164,11 +215,10 @@ export function CreateCategorieModal({ isOpen, onClose }: CreateCategorieModalPr
                             placeholder="electronique"
                         />
                         <p className="text-xs text-muted-foreground">
-                            URL prévue : /categories/{formData.slug}
+                            URL prévue : /categories/{formData.slug || '...'}
                         </p>
                     </div>
 
-                    {/* Description */}
                     <div className="space-y-2">
                         <Label htmlFor="description">Description</Label>
                         <Textarea
@@ -180,7 +230,6 @@ export function CreateCategorieModal({ isOpen, onClose }: CreateCategorieModalPr
                         />
                     </div>
 
-                    {/* Image */}
                     <div className="space-y-2">
                         <Label htmlFor="image">URL de l'image</Label>
                         <Input
@@ -196,13 +245,14 @@ export function CreateCategorieModal({ isOpen, onClose }: CreateCategorieModalPr
                                     src={formData.image}
                                     alt="Aperçu"
                                     className="h-20 w-20 object-cover rounded border"
-                                    onError={(e) => { e.currentTarget.src = '/placeholder.png'; }}
+                                    onError={(e) => { 
+                                        e.currentTarget.src = "https://via.placeholder.com/80";
+                                    }}
                                 />
                             </div>
                         )}
                     </div>
 
-                    {/* Catégorie parente */}
                     <div className="space-y-2">
                         <Label htmlFor="parent_id">Catégorie parente</Label>
                         <Select
@@ -213,17 +263,19 @@ export function CreateCategorieModal({ isOpen, onClose }: CreateCategorieModalPr
                                 <SelectValue placeholder="Aucune (catégorie racine)" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="">Aucune (catégorie racine)</SelectItem>
-                                {availableParents.map((cat: Categorie) => (
+                                <SelectItem value="none">Aucune (catégorie racine)</SelectItem>
+                                {categoriesRacines.map((cat) => (
                                     <SelectItem key={cat.id} value={cat.id}>
                                         {cat.nom}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
+                        <p className="text-xs text-muted-foreground">
+                            Laissez vide pour créer une catégorie principale
+                        </p>
                     </div>
 
-                    {/* Ordre */}
                     <div className="space-y-2">
                         <Label htmlFor="ordre">Ordre d'affichage</Label>
                         <Input
@@ -233,9 +285,11 @@ export function CreateCategorieModal({ isOpen, onClose }: CreateCategorieModalPr
                             onChange={(e) => handleChange('ordre', parseInt(e.target.value) || 0)}
                             min="0"
                         />
+                        <p className="text-xs text-muted-foreground">
+                            Les catégories seront triées par ordre croissant
+                        </p>
                     </div>
 
-                    {/* Statut actif */}
                     <div className="flex items-center justify-between p-4 border rounded-lg">
                         <div className="space-y-0.5">
                             <Label htmlFor="is_active">Catégorie active</Label>
@@ -250,7 +304,6 @@ export function CreateCategorieModal({ isOpen, onClose }: CreateCategorieModalPr
                         />
                     </div>
 
-                    {/* Boutons */}
                     <DialogFooter>
                         <Button
                             type="button"
