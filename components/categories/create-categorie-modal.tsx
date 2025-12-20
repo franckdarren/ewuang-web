@@ -1,5 +1,4 @@
-// components/categories/create-categorie-modal.tsx
-// VERSION ALTERNATIVE SANS SÉLECTEUR - GARANTIE SANS BOUCLE
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -24,6 +23,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useCategoriesStore } from '@/stores/categoriesStore';
+import { toast } from "sonner";
 
 interface CreateCategorieModalProps {
     isOpen: boolean;
@@ -146,7 +146,7 @@ export function CreateCategorieModal({ isOpen, onClose }: CreateCategorieModalPr
             await createCategorie(newCategorie);
 
             onClose();
-            alert('Catégorie créée avec succès !');
+            toast.success("Catégorie créée avec succès");
 
             setFormData({
                 nom: '',
