@@ -28,8 +28,6 @@ import { CategoriesTable } from '../../../components/categories/categories-table
 import { CreateCategorieModal } from '../../../components/categories/create-categorie-modal';
 import { EditCategorieModal } from '../../../components/categories/edit-categorie-modal';
 import { Card, CardHeader, CardDescription, CardTitle } from "@/components/ui/card";
-import { supabase } from '@/lib/supabaseClient';
-import type { Session } from '@supabase/supabase-js';
 import { useAuthStore } from '@/stores/authStore';
 
 export default function CategoriePage() {
@@ -150,7 +148,7 @@ export default function CategoriePage() {
                 <Card>
                     <CardHeader className="pb-2">
                         <CardDescription>Total des catégories</CardDescription>
-                        <CardTitle className="text-2xl font-semibold">
+                        <CardTitle className="text-3xl font-bold">
                             {stats.total}
                         </CardTitle>
                     </CardHeader>
@@ -159,7 +157,7 @@ export default function CategoriePage() {
                 <Card>
                     <CardHeader className="pb-2">
                         <CardDescription>Catégories actives</CardDescription>
-                        <CardTitle className="text-2xl font-semibold">
+                        <CardTitle className="text-3xl font-bold">
                             {stats.actives}
                         </CardTitle>
                     </CardHeader>
@@ -168,7 +166,7 @@ export default function CategoriePage() {
                 <Card>
                     <CardHeader className="pb-2">
                         <CardDescription>Catégories inactives</CardDescription>
-                        <CardTitle className="text-2xl font-semibold">
+                        <CardTitle className="text-3xl font-bold">
                             {stats.inactives}
                         </CardTitle>
                     </CardHeader>
@@ -177,7 +175,7 @@ export default function CategoriePage() {
                 <Card>
                     <CardHeader className="pb-2">
                         <CardDescription>Avec articles</CardDescription>
-                        <CardTitle className="text-2xl font-semibold">
+                        <CardTitle className="text-3xl font-bold">
                             {stats.avecArticles}
                         </CardTitle>
                     </CardHeader>
