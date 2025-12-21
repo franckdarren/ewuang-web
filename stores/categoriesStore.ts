@@ -8,7 +8,7 @@
  * - Le token est récupéré automatiquement depuis authStore
  */
 
-import { create } from 'zustand';
+import { createWithEqualityFn } from 'zustand/traditional';
 import { useAuthStore } from './authStore';
 
 // ============================================
@@ -229,7 +229,7 @@ async function handleApiError(response: Response): Promise<never> {
 // CRÉATION DU STORE
 // ============================================
 
-export const useCategoriesStore = create<CategoriesState>((set, get) => ({
+export const useCategoriesStore = createWithEqualityFn<CategoriesState>((set, get) => ({
     // -------- ÉTAT INITIAL --------
     categories: [],
     categoriesTree: [],
