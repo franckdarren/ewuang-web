@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { toast } from "sonner";
+
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -73,19 +75,34 @@ export default function CategoriePage() {
 
     // Supprimer une catégorie
     const handleDelete = async (categorie: Categorie) => {
-        const confirmed = window.confirm(
-            `Êtes-vous sûr de vouloir supprimer la catégorie "${categorie.nom}" ?\n\n` +
-            `Cette action est irréversible. Les articles de cette catégorie ne seront pas supprimés mais n'auront plus de catégorie.`
+        let confirmed = false;
+
+        // Afficher un toast avec action
+        toast(
+            `Êtes-vous sûr de vouloir supprimer la catégorie "${categorie.nom}" ?`,
+            {
+                action: {
+                    label: "Supprimer",
+                    onClick: () => {
+                        confirmed = true;
+                        toast.dismiss(); // fermer le toast après confirmation
+                        performDelete(); // appeler la fonction de suppression
+                    },
+                },
+                dismissible: true, // permet de fermer le toast sans confirmer
+                duration: 15000, // durée avant disparition automatique
+            }
         );
 
-        if (!confirmed) return;
-
-        try {
-            await deleteCategorie(categorie.id);
-            alert('Catégorie supprimée avec succès !');
-        } catch (error) {
-            alert('Erreur lors de la suppression de la catégorie');
-        }
+        // Fonction qui effectue réellement la suppression
+        const performDelete = async () => {
+            try {
+                await deleteCategorie(categorie.id);
+                toast.success("Catégorie supprimée avec succès !");
+            } catch (error) {
+                toast.error("Erreur lors de la suppression de la catégorie");
+            }
+        };
     };
 
     // Activer/Désactiver une catégorie
