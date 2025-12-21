@@ -63,7 +63,7 @@ export function AuthProvider({
         }
 
         // Initialiser le store avec les données du serveur
-        console.log('🚀 Initialisation du AuthStore avec les données serveur');
+        // console.log('🚀 Initialisation du AuthStore avec les données serveur');
         initializeAuth(initialUser, initialToken);
 
         // Marquer comme initialisé

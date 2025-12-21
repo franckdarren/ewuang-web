@@ -28,7 +28,7 @@ import { UserFormModal } from "@/components/users/user-form-modal";
 interface UserFormValues {
     name: string;
     email: string;
-    role: string;
+    role: 'Client' | 'Boutique' | 'Livreur' | 'Administrateur';
     phone?: string | null;
     address?: string | null;
     description?: string | null;
@@ -49,11 +49,7 @@ export default function UsersPage() {
         isLoading,
         stats,
         fetchUsers,
-        fetchStats,
-        updateUser,
         deleteUser,
-        toggleUserActive,
-        toggleUserVerified,
     } = useUsersStore();
 
     // ========== STATE LOCAL ==========
@@ -93,31 +89,17 @@ export default function UsersPage() {
     /**
      * Gère la soumission du formulaire (création ou modification)
      */
+
     const handleFormSubmit = async (data: UserFormValues) => {
-        setIsSubmitting(true);
-
         try {
-            if (selectedUser) {
-                // Mise à jour d'un utilisateur existant
-                const result = await updateUser(selectedUser.id, data);
-
-                if (result) {
-                    setIsFormModalOpen(false);
-                    setSelectedUser(undefined);
-                }
-            } else {
-                // Création d'un nouvel utilisateur
-                // Note: Vous devrez ajouter la méthode createUser dans le store
-                toast.info("Fonctionnalité de création non implémentée", {
-                    description: "Veuillez ajouter la méthode createUser dans le store",
-                });
-            }
-        } catch (error) {
-            console.error("Erreur lors de la soumission:", error);
-        } finally {
-            setIsSubmitting(false);
+            await useUsersStore.getState().updateUser({
+            ...data,
+            role: data.role as 'Client' | 'Boutique' | 'Livreur' | 'Administrateur' });
+        } catch (err) {
+            console.error('Erreur lors de la soumission:', err);
         }
     };
+
 
     /**
      * Ferme le modal de formulaire
@@ -160,27 +142,27 @@ export default function UsersPage() {
     /**
      * Active ou désactive un utilisateur
      */
-    const handleToggleActive = async (user: User) => {
-        const newStatus = !user.is_active;
-        await toggleUserActive(user.id, newStatus);
-    };
+    // const handleToggleActive = async (user: User) => {
+    //     const newStatus = !user.is_active;
+    //     await toggleUserActive(user.id, newStatus);
+    // };
 
     /**
      * Vérifie ou dé-vérifie un utilisateur
      */
-    const handleToggleVerified = async (user: User) => {
-        const newStatus = !user.is_verified;
-        await toggleUserVerified(user.id, newStatus);
-    };
+    // const handleToggleVerified = async (user: User) => {
+    //     const newStatus = !user.is_verified;
+    //     await toggleUserVerified(user.id, newStatus);
+    // };
 
     /**
      * Gère la mise à jour du solde (placeholder pour l'instant)
      */
-    const handleUpdateSolde = (user: User) => {
-        toast.info("Fonctionnalité à venir", {
-            description: "La gestion du solde sera implémentée prochainement",
-        });
-    };
+    // const handleUpdateSolde = (user: User) => {
+    //     toast.info("Fonctionnalité à venir", {
+    //         description: "La gestion du solde sera implémentée prochainement",
+    //     });
+    // };
 
     // ========== RENDER ==========
 

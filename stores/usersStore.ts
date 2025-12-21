@@ -45,6 +45,7 @@ interface UsersStore {
     fetchUsers: () => Promise<void>;
     deleteUser: (id: string) => Promise<boolean>;
     reset: () => void;
+    updateUser: (data: Partial<User>) => Promise<User>;
 }
 
 // ============================================
@@ -52,7 +53,7 @@ interface UsersStore {
 // ============================================
 
 function computeStats(users: User[]): UserStats {
-    console.log('[computeStats] Calcul des stats depuis users:', users.length);
+    // console.log('[computeStats] Calcul des stats depuis users:', users.length);
 
     return {
         total: users.length,
@@ -87,7 +88,7 @@ export const useUsersStore = create<UsersStore>((set, get) => ({
     // FETCH USERS
     // ========================================
     fetchUsers: async () => {
-        console.log('[fetchUsers] Début récupération utilisateurs');
+        // console.log('[fetchUsers] Début récupération utilisateurs');
 
         set({ isLoading: true, error: null });
 
@@ -106,7 +107,7 @@ export const useUsersStore = create<UsersStore>((set, get) => ({
 
             const data = await res.json();
 
-            console.log('✅ [fetchUsers] Données reçues:', data);
+            // console.log('✅ [fetchUsers] Données reçues:', data);
 
             if (!Array.isArray(data)) {
                 console.error('[fetchUsers] Format invalide:', data);
@@ -121,10 +122,10 @@ export const useUsersStore = create<UsersStore>((set, get) => ({
                 isLoading: false,
             });
 
-            console.log('[fetchUsers] Store mis à jour', {
-                usersCount: data.length,
-                stats,
-            });
+            // console.log('[fetchUsers] Store mis à jour', {
+            //     usersCount: data.length,
+            //     stats,
+            // });
 
         } catch (err) {
             console.error('[fetchUsers] Erreur:', err);
@@ -148,7 +149,7 @@ export const useUsersStore = create<UsersStore>((set, get) => ({
     // DELETE USER
     // ========================================
     deleteUser: async (id) => {
-        console.log('[deleteUser] Suppression:', id);
+        // console.log('[deleteUser] Suppression:', id);
 
         try {
             const res = await fetch(`/api/users/${id}`, {
@@ -182,7 +183,7 @@ export const useUsersStore = create<UsersStore>((set, get) => ({
     // RESET
     // ========================================
     reset: () => {
-        console.log('[usersStore] Reset');
+        // console.log('[usersStore] Reset');
         set({
             users: [],
             stats: {
@@ -198,4 +199,60 @@ export const useUsersStore = create<UsersStore>((set, get) => ({
             error: null,
         });
     },
+
+    // ============================================
+    // UPDATE USER
+    // ============================================
+    updateUser: async (data: Partial<User>) => {
+        // console.log('[updateUser] Mise à jour utilisateur', data);
+
+        set({ isLoading: true, error: null });
+
+        try {
+            const token = useAuthStore.getState().token;
+
+            const res = await fetch('/api/users/update', {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify(data),
+            });
+
+            if (!res.ok) {
+                const text = await res.text();
+                throw new Error(`Erreur mise à jour: ${res.status} - ${text}`);
+            }
+
+            const json = await res.json();
+
+            if (!json.user) {
+                throw new Error('Réponse invalide du serveur');
+            }
+
+            // Mettre à jour le store : remplacer l’utilisateur mis à jour
+            const updatedUser: User = json.user;
+            const users = get().users.map(u =>
+                u.id === updatedUser.id ? updatedUser : u
+            );
+
+            const stats = computeStats(users);
+
+            set({ users, stats, isLoading: false });
+
+            toast.success('Utilisateur mis à jour');
+
+            return updatedUser;
+
+        } catch (err) {
+            console.error('[updateUser] Erreur:', err);
+            const message = err instanceof Error ? err.message : 'Erreur inconnue';
+            set({ isLoading: false, error: message });
+            toast.error('Erreur mise à jour utilisateur', { description: message });
+            throw err;
+        }
+    },
+
+
 }));

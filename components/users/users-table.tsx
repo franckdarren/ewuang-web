@@ -94,100 +94,100 @@ const createColumns = (
     onToggleVerified?: (u: User) => void,
     onUpdateSolde?: (u: User) => void
 ): ColumnDef<User>[] => [
-    {
-        id: "select",
-        header: ({ table }) => (
-            <Checkbox
-                checked={table.getIsAllPageRowsSelected()}
-                onCheckedChange={v => table.toggleAllPageRowsSelected(!!v)}
-            />
-        ),
-        cell: ({ row }) => (
-            <Checkbox
-                checked={row.getIsSelected()}
-                onCheckedChange={v => row.toggleSelected(!!v)}
-            />
-        ),
-        enableSorting: false,
-        enableHiding: false,
-    },
-    {
-        accessorKey: "name",
-        header: "Utilisateur",
-        cell: ({ row }) => {
-            const user = row.original;
-            return (
-                <div className="flex items-center gap-3">
-                    <Avatar>
-                        <AvatarImage src={user.url_logo ?? undefined} />
-                        <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                        <div className="font-medium">{user.name}</div>
-                        <div className="text-xs text-muted-foreground">{user.email}</div>
+        {
+            id: "select",
+            header: ({ table }) => (
+                <Checkbox
+                    checked={table.getIsAllPageRowsSelected()}
+                    onCheckedChange={v => table.toggleAllPageRowsSelected(!!v)}
+                />
+            ),
+            cell: ({ row }) => (
+                <Checkbox
+                    checked={row.getIsSelected()}
+                    onCheckedChange={v => row.toggleSelected(!!v)}
+                />
+            ),
+            enableSorting: false,
+            enableHiding: false,
+        },
+        {
+            accessorKey: "name",
+            header: "Utilisateur",
+            cell: ({ row }) => {
+                const user = row.original;
+                return (
+                    <div className="flex items-center gap-3">
+                        <Avatar>
+                            <AvatarImage src={user.url_logo ?? undefined} />
+                            <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                            <div className="font-medium">{user.name}</div>
+                            <div className="text-xs text-muted-foreground">{user.email}</div>
+                        </div>
                     </div>
-                </div>
-            );
+                );
+            },
+            filterFn: (row, _, value) => {
+                const user = row.original;
+                return (
+                    user.name.toLowerCase().includes(value.toLowerCase()) ||
+                    user.email.toLowerCase().includes(value.toLowerCase())
+                );
+            },
         },
-        filterFn: (row, _, value) => {
-            const user = row.original;
-            return (
-                user.name.toLowerCase().includes(value.toLowerCase()) ||
-                user.email.toLowerCase().includes(value.toLowerCase())
-            );
+        {
+            accessorKey: "role",
+            header: "Rôle",
+            cell: ({ row }) => getRoleBadge(row.original.role),
         },
-    },
-    {
-        accessorKey: "role",
-        header: "Rôle",
-        cell: ({ row }) => getRoleBadge(row.original.role),
-    },
-    {
-        accessorKey: "solde",
-        header: "Solde",
-        cell: ({ row }) => (
-            <span className="font-medium">
-                {formatMontant(row.original.solde)}
-            </span>
-        ),
-    },
-    {
-        accessorKey: "is_verified",
-        header: "Vérifié",
-        cell: ({ row }) =>
-            row.original.is_verified ? (
-                <Badge><ShieldCheck className="mr-1 h-3 w-3" /> Vérifié</Badge>
-            ) : (
-                <Badge variant="secondary"><Shield className="mr-1 h-3 w-3" /> Non</Badge>
+        {
+            accessorKey: "solde",
+            header: "Solde",
+            cell: ({ row }) => (
+                <span className="font-medium">
+                    {formatMontant(row.original.solde)}
+                </span>
             ),
-    },
-    {
-        accessorKey: "is_active",
-        header: "Statut",
-        cell: ({ row }) =>
-            row.original.is_active ? (
-                <Badge><CheckCircle className="mr-1 h-3 w-3" /> Actif</Badge>
-            ) : (
-                <Badge variant="secondary"><XCircle className="mr-1 h-3 w-3" /> Inactif</Badge>
-            ),
-    },
-    {
-        id: "actions",
-        cell: ({ row }) => {
-            const user = row.original;
-            return (
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button size="icon" variant="ghost">
-                            <MoreHorizontal />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => onEdit(user)}>
-                            <Edit className="mr-2 h-4 w-4" /> Modifier
-                        </DropdownMenuItem>
-                        {/* {onUpdateSolde && (
+        },
+        {
+            accessorKey: "is_verified",
+            header: "Vérifié",
+            cell: ({ row }) =>
+                row.original.is_verified ? (
+                    <Badge><ShieldCheck className="mr-1 h-3 w-3" /> Vérifié</Badge>
+                ) : (
+                    <Badge variant="secondary"><Shield className="mr-1 h-3 w-3" /> Non</Badge>
+                ),
+        },
+        {
+            accessorKey: "is_active",
+            header: "Statut",
+            cell: ({ row }) =>
+                row.original.is_active ? (
+                    <Badge><CheckCircle className="mr-1 h-3 w-3" /> Actif</Badge>
+                ) : (
+                    <Badge variant="secondary"><XCircle className="mr-1 h-3 w-3" /> Inactif</Badge>
+                ),
+        },
+        {
+            id: "actions",
+            cell: ({ row }) => {
+                const user = row.original;
+                return (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button size="icon" variant="ghost">
+                                <MoreHorizontal />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => onEdit(user)}>
+                                <Edit className="mr-2 h-4 w-4" /> Modifier
+                            </DropdownMenuItem>
+                            {/* {onUpdateSolde && (
                             <DropdownMenuItem onClick={() => onUpdateSolde(user)}>
                                 <Wallet className="mr-2 h-4 w-4" /> Solde
                             </DropdownMenuItem>
@@ -200,19 +200,19 @@ const createColumns = (
                                 {user.is_verified ? "Retirer vérification" : "Vérifier"}
                             </DropdownMenuItem>
                         )} */}
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                            onClick={() => onDelete(user)}
-                            className="text-red-600"
-                        >
-                            <Trash2 className="mr-2 h-4 w-4" /> Supprimer
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            );
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                                onClick={() => onDelete(user)}
+                                className="text-red-600"
+                            >
+                                <Trash2 className="mr-2 h-4 w-4" /> Supprimer
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                );
+            },
         },
-    },
-];
+    ];
 
 // ============================================
 // COMPONENT
@@ -229,7 +229,7 @@ export function UsersTable(props: any) {
         onUpdateSolde,
     } = props;
 
-    console.log("[UsersTable] users:", users.length);
+    // console.log("[UsersTable] users:", users.length);
 
     const [sorting, setSorting] = React.useState<SortingState>([]);
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
