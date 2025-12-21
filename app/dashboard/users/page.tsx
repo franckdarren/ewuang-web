@@ -20,6 +20,7 @@ import { Plus, Users, Store, Truck, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { UsersTable } from "@/components/users/users-table";
 import { UserFormModal } from "@/components/users/user-form-modal";
+import { is } from 'zod/v4/locales';
 
 // ============================================
 // TYPES
@@ -36,6 +37,7 @@ interface UserFormValues {
     heure_fermeture?: string | null;
     is_verified?: boolean;
     is_active?: boolean;
+    url_logo?: string | null;
 }
 
 // ============================================
@@ -85,21 +87,6 @@ export default function UsersPage() {
         setSelectedUser(user);
         setIsFormModalOpen(true);
     };
-
-    /**
-     * Gère la soumission du formulaire (création ou modification)
-     */
-
-    const handleFormSubmit = async (data: UserFormValues) => {
-        try {
-            await useUsersStore.getState().updateUser({
-            ...data,
-            role: data.role as 'Client' | 'Boutique' | 'Livreur' | 'Administrateur' });
-        } catch (err) {
-            console.error('Erreur lors de la soumission:', err);
-        }
-    };
-
 
     /**
      * Ferme le modal de formulaire
@@ -287,7 +274,6 @@ export default function UsersPage() {
             <UserFormModal
                 open={isFormModalOpen}
                 onClose={handleCloseFormModal}
-                onSubmit={handleFormSubmit}
                 user={selectedUser}
                 isLoading={isSubmitting}
             />

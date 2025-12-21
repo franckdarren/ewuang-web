@@ -13,6 +13,8 @@ const updateSchema = z.object({
     heure_ouverture: z.string().optional(),
     heure_fermeture: z.string().optional(),
     description: z.string().optional(),
+    is_verified: z.boolean().optional(),
+    is_active: z.boolean().optional(),
 });
 
 /**

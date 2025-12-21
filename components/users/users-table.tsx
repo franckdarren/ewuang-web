@@ -25,6 +25,7 @@ import {
     Shield,
     ShieldCheck,
     Wallet,
+    EyeIcon,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -185,7 +186,7 @@ const createColumns = (
                         <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
                             <DropdownMenuItem onClick={() => onEdit(user)}>
-                                <Edit className="mr-2 h-4 w-4" /> Modifier
+                                <EyeIcon className="mr-2 h-4 w-4" /> Voir
                             </DropdownMenuItem>
                             {/* {onUpdateSolde && (
                             <DropdownMenuItem onClick={() => onUpdateSolde(user)}>
@@ -200,13 +201,13 @@ const createColumns = (
                                 {user.is_verified ? "Retirer vérification" : "Vérifier"}
                             </DropdownMenuItem>
                         )} */}
-                            <DropdownMenuSeparator />
+                            {/* <DropdownMenuSeparator />
                             <DropdownMenuItem
                                 onClick={() => onDelete(user)}
                                 className="text-red-600"
                             >
                                 <Trash2 className="mr-2 h-4 w-4" /> Supprimer
-                            </DropdownMenuItem>
+                            </DropdownMenuItem> */}
                         </DropdownMenuContent>
                     </DropdownMenu>
                 );

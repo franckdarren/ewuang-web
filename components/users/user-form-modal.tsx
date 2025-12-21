@@ -1,4 +1,3 @@
-// components/users/user-form-modal.tsx
 'use client';
 
 import * as React from "react";
@@ -35,22 +34,24 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Loader2 } from "lucide-react";
 import { type User } from '@/stores/usersStore';
+import { url } from "inspector";
 
 // ============================================
 // VALIDATION SCHEMA
 // ============================================
 
 const userFormSchema = z.object({
-    name: z.string().min(2, "Le nom doit contenir au moins 2 caractères").max(255),
-    email: z.string().email("Adresse email invalide").max(255),
+    name: z.string().min(2).max(255),
+    email: z.string().email().max(255),
     role: z.enum(["Client", "Boutique", "Livreur", "Administrateur"]),
-    phone: z.string().min(9, "Le numéro de téléphone doit contenir au moins 9 chiffres").max(20).optional().or(z.literal("")),
+    phone: z.string().min(9).max(20).optional().or(z.literal("")),
     address: z.string().max(255).optional().or(z.literal("")),
     description: z.string().max(1000).optional().or(z.literal("")),
-    heure_ouverture: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Format: HH:MM").optional().or(z.literal("")),
-    heure_fermeture: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Format: HH:MM").optional().or(z.literal("")),
-    is_verified: z.boolean(),
-    is_active: z.boolean(),
+    heure_ouverture: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).optional().or(z.literal("")),
+    heure_fermeture: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).optional().or(z.literal("")),
+    is_verified: z.boolean().optional(),
+    is_active: z.boolean().optional(),
+    url_logo: z.string().url().max(255).optional().or(z.literal("")),
 });
 
 type UserFormValues = z.infer<typeof userFormSchema>;
@@ -62,7 +63,6 @@ type UserFormValues = z.infer<typeof userFormSchema>;
 interface UserFormModalProps {
     open: boolean;
     onClose: () => void;
-    onSubmit: (data: UserFormValues) => Promise<void>;
     user?: User;
     isLoading?: boolean;
 }
@@ -74,9 +74,8 @@ interface UserFormModalProps {
 export function UserFormModal({
     open,
     onClose,
-    onSubmit,
     user,
-    isLoading = false,
+    isLoading: externalLoading = false,
 }: UserFormModalProps) {
     const isEditing = !!user;
 
@@ -96,6 +95,8 @@ export function UserFormModal({
         },
     });
 
+    const [isSubmitting, setIsSubmitting] = React.useState(false);
+
     React.useEffect(() => {
         if (open) {
             form.reset({
@@ -114,8 +115,14 @@ export function UserFormModal({
     }, [open, user, form]);
 
     const handleSubmit = async (data: UserFormValues) => {
-        await onSubmit(data);
-        form.reset();
+        setIsSubmitting(true);
+        try {
+            onClose();
+        } catch (err) {
+            console.error("Erreur lors de la soumission:", err);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const handleClose = () => {
@@ -126,45 +133,47 @@ export function UserFormModal({
     const selectedRole = form.watch("role");
     const showBoutiqueFields = selectedRole === "Boutique";
 
+    const loading = isSubmitting || externalLoading;
+
     return (
         <Dialog open={open} onOpenChange={handleClose}>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>{isEditing ? "Modifier l'utilisateur" : "Créer un utilisateur"}</DialogTitle>
                     <DialogDescription>
-                        {isEditing ? "Modifiez les informations de l'utilisateur ci-dessous." : "Remplissez le formulaire pour créer un nouvel utilisateur."}
+                        {isEditing
+                            ? "Modifiez les informations de l'utilisateur ci-dessous."
+                            : "Remplissez le formulaire pour créer un nouvel utilisateur."}
                     </DialogDescription>
                 </DialogHeader>
 
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
                         <div className="space-y-4">
-                            <h3 className="text-lg font-medium">Informations générales</h3>
-
                             <FormField control={form.control} name="name" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Nom complet *</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="John Doe" {...field} disabled={isLoading} />
+                                        <Input placeholder="John Doe" {...field} disabled />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
-                            )}/>
+                            )} />
 
                             <FormField control={form.control} name="email" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Email *</FormLabel>
                                     <FormControl>
-                                        <Input type="email" placeholder="john.doe@example.com" {...field} disabled={isLoading} />
+                                        <Input type="email" {...field} disabled />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
-                            )}/>
+                            )} />
 
                             <FormField control={form.control} name="role" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Rôle *</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value} disabled={isLoading}>
+                                    <Select onValueChange={field.onChange} value={field.value} disabled>
                                         <FormControl>
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Sélectionner un rôle" />
@@ -179,102 +188,93 @@ export function UserFormModal({
                                     </Select>
                                     <FormMessage />
                                 </FormItem>
-                            )}/>
+                            )} />
 
                             <FormField control={form.control} name="phone" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Téléphone</FormLabel>
                                     <FormControl>
-                                        <Input type="tel" placeholder="+241 XX XX XX XX" {...field} disabled={isLoading} />
+                                        <Input type="tel" {...field} disabled />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
-                            )}/>
+                            )} />
 
                             <FormField control={form.control} name="address" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Adresse</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="123 Rue de la Paix, Libreville" {...field} disabled={isLoading} />
+                                        <Input {...field} disabled />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
-                            )}/>
+                            )} />
                         </div>
 
                         {showBoutiqueFields && (
                             <div className="space-y-4 border-t pt-4">
-                                <h3 className="text-lg font-medium">Informations boutique</h3>
-
                                 <FormField control={form.control} name="description" render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Description</FormLabel>
                                         <FormControl>
-                                            <Textarea placeholder="Description de la boutique..." className="resize-none" {...field} disabled={isLoading} />
+                                            <Textarea {...field} disabled />
                                         </FormControl>
-                                        <FormDescription>Décrivez brièvement votre boutique</FormDescription>
                                         <FormMessage />
                                     </FormItem>
-                                )}/>
+                                )} />
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <FormField control={form.control} name="heure_ouverture" render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Heure d'ouverture</FormLabel>
                                             <FormControl>
-                                                <Input type="time" {...field} disabled={isLoading} />
+                                                <Input type="time" {...field} disabled />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
-                                    )}/>
+                                    )} />
                                     <FormField control={form.control} name="heure_fermeture" render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Heure de fermeture</FormLabel>
                                             <FormControl>
-                                                <Input type="time" {...field} disabled={isLoading} />
+                                                <Input type="time" {...field} disabled />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
-                                    )}/>
+                                    )} />
                                 </div>
                             </div>
                         )}
 
                         <div className="space-y-4 border-t pt-4">
-                            <h3 className="text-lg font-medium">Paramètres</h3>
-
                             <FormField control={form.control} name="is_verified" render={({ field }) => (
-                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                                    <div className="space-y-0.5">
-                                        <FormLabel className="text-base">Compte vérifié</FormLabel>
-                                        <FormDescription>L'utilisateur a été vérifié par l'administration</FormDescription>
+                                <FormItem className="flex flex-row items-center justify-between border p-4 rounded-lg">
+                                    <div>
+                                        <FormLabel>Compte vérifié</FormLabel>
+                                        <FormDescription>Vérifié par l'administration</FormDescription>
                                     </div>
                                     <FormControl>
-                                        <Switch checked={field.value} onCheckedChange={field.onChange} disabled={isLoading} />
+                                        <Switch checked={field.value} onCheckedChange={field.onChange} disabled />
                                     </FormControl>
                                 </FormItem>
-                            )}/>
+                            )} />
 
                             <FormField control={form.control} name="is_active" render={({ field }) => (
-                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                                    <div className="space-y-0.5">
-                                        <FormLabel className="text-base">Compte actif</FormLabel>
+                                <FormItem className="flex flex-row items-center justify-between border p-4 rounded-lg">
+                                    <div>
+                                        <FormLabel>Compte actif</FormLabel>
                                         <FormDescription>L'utilisateur peut accéder à la plateforme</FormDescription>
                                     </div>
                                     <FormControl>
-                                        <Switch checked={field.value} onCheckedChange={field.onChange} disabled={isLoading} />
+                                        <Switch checked={field.value} onCheckedChange={field.onChange} disabled />
                                     </FormControl>
                                 </FormItem>
-                            )}/>
+                            )} />
                         </div>
 
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={handleClose} disabled={isLoading}>
-                                Annuler
-                            </Button>
-                            <Button type="submit" disabled={isLoading}>
-                                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                {isEditing ? "Mettre à jour" : "Créer"}
+                            <Button type="button" variant="outline" onClick={handleClose}>
+                                Fermer
                             </Button>
                         </DialogFooter>
                     </form>

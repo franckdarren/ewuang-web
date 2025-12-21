@@ -45,7 +45,6 @@ interface UsersStore {
     fetchUsers: () => Promise<void>;
     deleteUser: (id: string) => Promise<boolean>;
     reset: () => void;
-    updateUser: (data: Partial<User>) => Promise<User>;
 }
 
 // ============================================
@@ -200,59 +199,5 @@ export const useUsersStore = create<UsersStore>((set, get) => ({
         });
     },
 
-    // ============================================
-    // UPDATE USER
-    // ============================================
-    updateUser: async (data: Partial<User>) => {
-        // console.log('[updateUser] Mise à jour utilisateur', data);
-
-        set({ isLoading: true, error: null });
-
-        try {
-            const token = useAuthStore.getState().token;
-
-            const res = await fetch('/api/users/update', {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify(data),
-            });
-
-            if (!res.ok) {
-                const text = await res.text();
-                throw new Error(`Erreur mise à jour: ${res.status} - ${text}`);
-            }
-
-            const json = await res.json();
-
-            if (!json.user) {
-                throw new Error('Réponse invalide du serveur');
-            }
-
-            // Mettre à jour le store : remplacer l’utilisateur mis à jour
-            const updatedUser: User = json.user;
-            const users = get().users.map(u =>
-                u.id === updatedUser.id ? updatedUser : u
-            );
-
-            const stats = computeStats(users);
-
-            set({ users, stats, isLoading: false });
-
-            toast.success('Utilisateur mis à jour');
-
-            return updatedUser;
-
-        } catch (err) {
-            console.error('[updateUser] Erreur:', err);
-            const message = err instanceof Error ? err.message : 'Erreur inconnue';
-            set({ isLoading: false, error: message });
-            toast.error('Erreur mise à jour utilisateur', { description: message });
-            throw err;
-        }
-    },
-
-
+    
 }));
