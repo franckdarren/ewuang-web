@@ -100,20 +100,37 @@ export function CreateCategorieModal({ isOpen, onClose }: CreateCategorieModalPr
     }, [isOpen]);
 
     /**
-     * Générer le slug automatiquement
+     * Générer le slug automatiquement EN TEMPS RÉEL
+     * 
+     * IMPORTANT : On garde un état séparé pour savoir si l'utilisateur
+     * a modifié manuellement le slug
      */
+    const [slugModifiedManually, setSlugModifiedManually] = useState(false);
+
     useEffect(() => {
-        if (formData.nom && !formData.slug) {
+        // Ne régénérer le slug automatiquement que si :
+        // 1. Il y a un nom
+        // 2. L'utilisateur n'a pas modifié le slug manuellement
+        if (formData.nom && !slugModifiedManually) {
             const slug = formData.nom
                 .toLowerCase()
                 .normalize('NFD')
                 .replace(/[\u0300-\u036f]/g, '')
                 .replace(/[^a-z0-9]+/g, '-')
                 .replace(/^-+|-+$/g, '');
-            
+
             setFormData(prev => ({ ...prev, slug }));
         }
-    }, [formData.nom, formData.slug]); // Dépendances précises
+    }, [formData.nom, slugModifiedManually]); // Ne dépend plus de formData.slug !
+
+    /**
+     * Réinitialiser le flag quand la modale s'ouvre
+     */
+    useEffect(() => {
+        if (isOpen) {
+            setSlugModifiedManually(false);
+        }
+    }, [isOpen]);
 
     // ============================================
     // HANDLERS
@@ -134,8 +151,8 @@ export function CreateCategorieModal({ isOpen, onClose }: CreateCategorieModalPr
                 slug: formData.slug.trim() || undefined,
                 description: formData.description.trim() || undefined,
                 image: formData.image.trim() || undefined,
-                parent_id: formData.parent_id && formData.parent_id !== 'none' 
-                    ? formData.parent_id 
+                parent_id: formData.parent_id && formData.parent_id !== 'none'
+                    ? formData.parent_id
                     : null,
                 is_active: formData.is_active,
                 ordre: formData.ordre,
@@ -162,12 +179,18 @@ export function CreateCategorieModal({ isOpen, onClose }: CreateCategorieModalPr
             const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la création';
             console.error('❌ Erreur dans le formulaire:', errorMessage);
             setError(errorMessage);
+            toast.error("Erreur lors de la création de la catégorie");
         } finally {
             setIsLoading(false);
         }
     };
 
     const handleChange = (field: string, value: any) => {
+        // Si l'utilisateur modifie le slug manuellement, arrêter la génération auto
+        if (field === 'slug') {
+            setSlugModifiedManually(true);
+        }
+
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
@@ -202,12 +225,28 @@ export function CreateCategorieModal({ isOpen, onClose }: CreateCategorieModalPr
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="slug">
-                            Slug
-                            <span className="text-sm text-muted-foreground ml-2">
-                                (Généré automatiquement)
-                            </span>
-                        </Label>
+                        <div className="flex items-center justify-between">
+                            <Label htmlFor="slug">
+                                Slug
+                                <span className="text-sm text-muted-foreground ml-2">
+                                    (Généré automatiquement)
+                                </span>
+                            </Label>
+                            {slugModifiedManually && (
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                        setSlugModifiedManually(false);
+                                        // Le useEffect régénérera automatiquement le slug
+                                    }}
+                                    className="text-xs h-6"
+                                >
+                                    Régénérer automatiquement
+                                </Button>
+                            )}
+                        </div>
                         <Input
                             id="slug"
                             value={formData.slug}
@@ -245,7 +284,7 @@ export function CreateCategorieModal({ isOpen, onClose }: CreateCategorieModalPr
                                     src={formData.image}
                                     alt="Aperçu"
                                     className="h-20 w-20 object-cover rounded border"
-                                    onError={(e) => { 
+                                    onError={(e) => {
                                         e.currentTarget.src = "https://via.placeholder.com/80";
                                     }}
                                 />
