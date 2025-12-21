@@ -482,7 +482,7 @@ export const useCategoriesStore = create<CategoriesState>((set, get) => ({
                 updateData.slug = generateSlug(data.nom);
             }
 
-            const response = await fetch(`/api/categories/${id}`, {
+            const response = await fetch(`/api/categories/update/${id}`, {
                 method: 'PATCH',
                 headers: getAuthHeaders(),
                 body: JSON.stringify(updateData),
@@ -541,7 +541,7 @@ export const useCategoriesStore = create<CategoriesState>((set, get) => ({
         try {
             checkAdminRole();
 
-            const response = await fetch(`/api/categories/${id}`, {
+            const response = await fetch(`/api/categories/delete/${id}`, {
                 method: 'DELETE',
                 headers: getAuthHeaders(),
             });

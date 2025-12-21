@@ -2,6 +2,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { toast } from "sonner";
+
 import {
     Dialog,
     DialogContent,
@@ -54,6 +56,7 @@ export function EditCategorieModal({
 
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+    const [slugModifiedManually, setSlugModifiedManually] = useState(false);
 
     // ============================================
     // STORE
@@ -94,6 +97,26 @@ export function EditCategorieModal({
             setError('');
         }
     }, [isOpen, categorie]);
+
+    /**
+   * Générer le slug automatiquement si le nom change
+   */
+    useEffect(() => {
+        if (formData.nom && !slugModifiedManually && categorie) {
+            // Générer seulement si le nom a changé par rapport à l'original
+            if (formData.nom !== categorie.nom) {
+                const slug = formData.nom
+                    .toLowerCase()
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .replace(/[^a-z0-9]+/g, '-')
+                    .replace(/^-+|-+$/g, '');
+
+                setFormData(prev => ({ ...prev, slug }));
+            }
+        }
+    }, [formData.nom, slugModifiedManually, categorie]);
+
 
     // ============================================
     // HANDLERS
@@ -157,10 +180,12 @@ export function EditCategorieModal({
             onClose();
 
             // Notification de succès
-            alert('Catégorie mise à jour avec succès !');
+            toast.success("Catégorie mise à jour avec succès");
 
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Erreur lors de la mise à jour');
+            toast.error("Erreur lors de la mise à jour de la catégorie");
+
         } finally {
             setIsLoading(false);
         }
@@ -276,7 +301,7 @@ export function EditCategorieModal({
                                 <SelectValue placeholder="Aucune (catégorie racine)" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="">Aucune (catégorie racine)</SelectItem>
+                                <SelectItem value="none">Aucune (catégorie racine)</SelectItem>
                                 {availableParents.map((cat: Categorie) => (
                                     <SelectItem key={cat.id} value={cat.id}>
                                         {cat.nom}
