@@ -607,7 +607,7 @@ export const usePublicitesStore = createWithEqualityFn<PublicitesState>((set, ge
             get().calculateStats();
 
             console.log('✅ Publicité supprimée');
-
+            
         } catch (error) {
             const errorMessage = error instanceof Error
                 ? error.message
@@ -619,6 +619,7 @@ export const usePublicitesStore = createWithEqualityFn<PublicitesState>((set, ge
             });
 
             throw error;
+
         }
     },
 
