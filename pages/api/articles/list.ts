@@ -21,7 +21,7 @@ import { supabaseAdmin } from "../../../app/lib/supabaseAdmin";
 const querySchema = z.object({
     page: z.string().optional(),
     perPage: z.string().optional(),
-    q: z.string().optional()
+    q: z.string().optional(),
 });
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -33,23 +33,45 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const perPage = query.perPage ? Math.min(100, parseInt(query.perPage)) : 20;
         const offset = (page - 1) * perPage;
 
-        let sb = supabaseAdmin.from("articles").select("*, variations(*), image_articles(*)").order("created_at", { ascending: false }).range(offset, offset + perPage - 1);
+        // Construction de la requête
+        let sbQuery = supabaseAdmin
+            .from("articles")
+            .select(`
+        *,
+        variations(*),
+        image_articles(*),
+        users!user_id(id, name),
+        categories!categorie_id(id, nom)
+        `)
+            .order("created_at", { ascending: false })
+            .range(offset, offset + perPage - 1);
 
         if (query.q) {
-            // simple full text-ish search (il vaut mieux indexer en SQL pour prod)
-            sb = supabaseAdmin.from("articles")
-                .select("*, variations(*), image_articles(*)")
-                .ilike("nom", `%${query.q}%`)
-                .order("created_at", { ascending: false })
-                .range(offset, offset + perPage - 1);
+            // Recherche par nom (LIKE simple)
+            sbQuery = sbQuery.ilike("nom", `%${query.q}%`);
         }
 
-        const { data: articles, error } = await sb;
+        const { data: articles, error } = await sbQuery;
+
         if (error) {
             console.error("Supabase list articles error:", error);
             return res.status(500).json({ error: "Impossible de récupérer les articles" });
         }
-        return res.status(200).json({ page, perPage, articles: articles ?? [] });
+
+        // Mapping pour que le frontend ait tout propre
+        const mappedArticles = articles?.map((article: any) => ({
+            ...article,
+            vendeur: article.users || null,
+            categorie: article.categories || null,
+            variations: article.variations || [],
+            image_articles: article.image_articles || [],
+        }));
+
+        return res.status(200).json({
+            page,
+            perPage,
+            articles: mappedArticles ?? [],
+        });
     } catch (err) {
         if (err instanceof ZodError) return res.status(400).json({ errors: err.issues });
         console.error("Error /api/articles/list:", err);

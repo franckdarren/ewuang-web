@@ -16,14 +16,14 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { 
-    Plus, 
-    Package, 
-    TrendingUp, 
-    Star, 
+import {
+    Plus,
+    Package,
+    TrendingUp,
+    Star,
     MapPin,
     DollarSign,
-    ShoppingCart 
+    ShoppingCart
 } from "lucide-react";
 import { toast } from "sonner";
 import { ArticlesTable } from "../../../components/articles/articles-table";
@@ -166,7 +166,7 @@ export default function ArticlePage() {
      */
     const handleTogglePromotion = async (article: Article) => {
         const newStatus = !article.is_promotion;
-        
+
         if (newStatus && !article.prix_promotion) {
             toast.info("Définir le prix promotionnel", {
                 description: "Veuillez d'abord modifier l'article pour définir un prix promotionnel",
@@ -175,8 +175,8 @@ export default function ArticlePage() {
         }
 
         await toggleArticlePromotion(
-            article.id, 
-            newStatus, 
+            article.id,
+            newStatus,
             article.prix_promotion || undefined,
             article.pourcentage_reduction || undefined
         );

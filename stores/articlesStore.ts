@@ -282,7 +282,7 @@ export const useArticlesStore = create<ArticlesStore>((set, get) => ({
      * Récupère tous les articles depuis l'API
      */
     fetchArticles: async (filters) => {
-        console.log('[fetchArticles] Début récupération articles avec filtres:', filters);
+        // console.log('[fetchArticles] Début récupération articles avec filtres:', filters);
 
         set({ isLoading: true, error: null });
 
@@ -326,7 +326,7 @@ export const useArticlesStore = create<ArticlesStore>((set, get) => ({
 
             const data = await response.json();
 
-            console.log('✅ [fetchArticles] Données reçues:', data.articles?.length || 0, 'articles');
+            // console.log('✅ [fetchArticles] Données reçues:', data.articles?.length || 0, 'articles');
 
             const articles = data.articles || [];
             const stats = computeStats(articles);
@@ -419,7 +419,7 @@ export const useArticlesStore = create<ArticlesStore>((set, get) => ({
      * Crée un nouvel article
      */
     createArticle: async (data: ArticleFormData) => {
-        console.log('[createArticle] Création article:', data);
+        // console.log('[createArticle] Création article:', data);
 
         set({ isLoading: true, error: null });
 
@@ -481,7 +481,7 @@ export const useArticlesStore = create<ArticlesStore>((set, get) => ({
      * Met à jour un article existant
      */
     updateArticle: async (id: string, data: Partial<ArticleFormData>) => {
-        console.log('[updateArticle] Mise à jour article:', id, data);
+        // console.log('[updateArticle] Mise à jour article:', id, data);
 
         set({ isLoading: true, error: null });
 
@@ -545,7 +545,7 @@ export const useArticlesStore = create<ArticlesStore>((set, get) => ({
      * Supprime un article
      */
     deleteArticle: async (id: string) => {
-        console.log('[deleteArticle] Suppression article:', id);
+        // console.log('[deleteArticle] Suppression article:', id);
 
         set({ isLoading: true, error: null });
 
@@ -711,7 +711,7 @@ export const useArticlesStore = create<ArticlesStore>((set, get) => ({
      * Met à jour les filtres actifs
      */
     setFilters: (filters: ArticleFilters) => {
-        console.log('[setFilters] Nouveaux filtres:', filters);
+        // console.log('[setFilters] Nouveaux filtres:', filters);
         set({ currentFilters: filters });
     },
 
@@ -719,7 +719,7 @@ export const useArticlesStore = create<ArticlesStore>((set, get) => ({
      * Réinitialise les filtres
      */
     resetFilters: () => {
-        console.log('[resetFilters] Réinitialisation des filtres');
+        // console.log('[resetFilters] Réinitialisation des filtres');
         set({ currentFilters: initialFilters });
         get().fetchArticles();
     },
