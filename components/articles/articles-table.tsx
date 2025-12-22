@@ -370,9 +370,9 @@ const createColumns = (
 
                             <DropdownMenuItem onClick={() => onView(article)}>
                                 <Eye className="mr-2 h-4 w-4" />
-                                Voir les détails
+                                Voir
                             </DropdownMenuItem>
-
+{/* 
                             <DropdownMenuItem onClick={() => onEdit(article)}>
                                 <Edit className="mr-2 h-4 w-4" />
                                 Modifier
@@ -408,9 +408,9 @@ const createColumns = (
                                         </>
                                     )}
                                 </DropdownMenuItem>
-                            )}
+                            )} */}
 
-                            <DropdownMenuSeparator />
+                            {/* <DropdownMenuSeparator />
 
                             <DropdownMenuItem
                                 onClick={() => onDelete(article)}
@@ -418,7 +418,7 @@ const createColumns = (
                             >
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 Supprimer
-                            </DropdownMenuItem>
+                            </DropdownMenuItem> */}
                         </DropdownMenuContent>
                     </DropdownMenu>
                 );

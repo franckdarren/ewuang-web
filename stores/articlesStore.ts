@@ -308,7 +308,10 @@ export const useArticlesStore = create<ArticlesStore>((set, get) => ({
             if (activeFilters.prix_max) params.append('prix_max', String(activeFilters.prix_max));
 
             const queryString = params.toString();
-            const url = `/api/articles${queryString ? `?${queryString}` : ''}`;
+            const url = queryString
+                ? `/api/articles/list?${queryString}`
+                : '/api/articles/list';
+
 
             const response = await fetch(url, {
                 headers: {

@@ -49,8 +49,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             console.error("Supabase list articles error:", error);
             return res.status(500).json({ error: "Impossible de récupérer les articles" });
         }
-
-        return res.status(200).json({ page, perPage, data: articles ?? [] });
+        return res.status(200).json({ page, perPage, articles: articles ?? [] });
     } catch (err) {
         if (err instanceof ZodError) return res.status(400).json({ errors: err.issues });
         console.error("Error /api/articles/list:", err);
