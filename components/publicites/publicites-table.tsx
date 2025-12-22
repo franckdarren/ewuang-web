@@ -277,25 +277,25 @@ const createColumns = (
                 );
             },
         },
-        {
-            accessorKey: "lien",
-            header: "Lien",
-            cell: ({ row }) => {
-                const lien = row.getValue("lien") as string;
+        // {
+        //     accessorKey: "lien",
+        //     header: "Lien",
+        //     cell: ({ row }) => {
+        //         const lien = row.getValue("lien") as string;
 
-                return (
-                    <a
-                        href={lien}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-sm text-blue-600 hover:underline max-w-[150px] truncate"
-                    >
-                        <ExternalLink className="h-3 w-3" />
-                        <span className="truncate">{new URL(lien).hostname}</span>
-                    </a>
-                );
-            },
-        },
+        //         return (
+        //             <a
+        //                 href={lien}
+        //                 target="_blank"
+        //                 rel="noopener noreferrer"
+        //                 className="flex items-center gap-2 text-sm text-blue-600 hover:underline max-w-[150px] truncate"
+        //             >
+        //                 <ExternalLink className="h-3 w-3" />
+        //                 <span className="truncate">{new URL(lien).hostname}</span>
+        //             </a>
+        //         );
+        //     },
+        // },
         {
             accessorKey: "status",
             header: "Statut",
@@ -357,12 +357,12 @@ const createColumns = (
                                 Copier l'ID
                             </DropdownMenuItem>
 
-                            <DropdownMenuItem
+                            {/* <DropdownMenuItem
                                 onClick={() => window.open(publicite.lien, '_blank')}
                             >
                                 <ExternalLink className="mr-2 h-4 w-4" />
                                 Ouvrir le lien
-                            </DropdownMenuItem>
+                            </DropdownMenuItem> */}
 
                             <DropdownMenuSeparator />
 

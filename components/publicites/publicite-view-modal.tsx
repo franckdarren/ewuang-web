@@ -198,7 +198,7 @@ export function PubliciteViewModal({
                 <div className="space-y-6">
                     {/* Statut en haut */}
                     <Card className={status.bgColor}>
-                        <CardContent className="pt-6">
+                        <CardContent className="">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                     <StatusIcon className={`h-6 w-6 ${status.color}`} />
@@ -272,14 +272,14 @@ export function PubliciteViewModal({
                             </div>
 
                             {/* Lien externe */}
-                            <Button
+                            {/* <Button
                                 variant="outline"
                                 className="w-full"
                                 onClick={() => window.open(publicite.lien, '_blank')}
                             >
                                 <ExternalLink className="mr-2 h-4 w-4" />
                                 Ouvrir le lien de destination
-                            </Button>
+                            </Button> */}
                         </div>
 
                         {/* Informations détaillées */}
@@ -302,7 +302,7 @@ export function PubliciteViewModal({
 
                                 <div className="grid gap-4">
                                     <Card>
-                                        <CardContent className="pt-6">
+                                        <CardContent className="">
                                             <div className="flex items-start gap-3">
                                                 <Calendar className="h-5 w-5 text-green-600 mt-0.5" />
                                                 <div>
@@ -321,7 +321,7 @@ export function PubliciteViewModal({
                                     </Card>
 
                                     <Card>
-                                        <CardContent className="pt-6">
+                                        <CardContent className="">
                                             <div className="flex items-start gap-3">
                                                 <Calendar className="h-5 w-5 text-red-600 mt-0.5" />
                                                 <div>
@@ -340,7 +340,7 @@ export function PubliciteViewModal({
                                     </Card>
 
                                     <Card className="bg-muted/50">
-                                        <CardContent className="pt-6">
+                                        <CardContent className="">
                                             <div className="text-center">
                                                 <p className="text-sm text-muted-foreground">
                                                     Durée totale de la campagne
@@ -354,10 +354,10 @@ export function PubliciteViewModal({
                                 </div>
                             </div>
 
-                            <Separator />
+                            {/* <Separator /> */}
 
                             {/* Informations supplémentaires */}
-                            <div className="space-y-3">
+                            {/* <div className="space-y-3">
                                 <h4 className="font-semibold">Lien de destination</h4>
                                 <div className="flex items-center gap-2 text-sm">
                                     <ExternalLink className="h-4 w-4 text-muted-foreground" />
@@ -370,7 +370,7 @@ export function PubliciteViewModal({
                                         {publicite.lien}
                                     </a>
                                 </div>
-                            </div>
+                            </div> */}
                         </div>
                     </div>
 
@@ -379,7 +379,7 @@ export function PubliciteViewModal({
                     {/* Métadonnées */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                         <Card>
-                            <CardContent className="pt-6">
+                            <CardContent className="">
                                 <div className="flex items-center gap-2">
                                     <Calendar className="h-4 w-4 text-muted-foreground" />
                                     <div>
@@ -391,7 +391,7 @@ export function PubliciteViewModal({
                         </Card>
 
                         <Card>
-                            <CardContent className="pt-6">
+                            <CardContent className="">
                                 <div className="flex items-center gap-2">
                                     <Calendar className="h-4 w-4 text-muted-foreground" />
                                     <div>
