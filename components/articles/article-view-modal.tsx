@@ -11,11 +11,11 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { 
-    Package, 
-    Tag, 
-    MapPin, 
-    Store, 
+import {
+    Package,
+    Tag,
+    MapPin,
+    Store,
     Calendar,
     DollarSign,
     Image as ImageIcon,
@@ -83,8 +83,8 @@ export function ArticleViewModal({
     if (!article) return null;
 
     const totalStock = getTotalStock(article);
-    const prixAffichage = article.is_promotion && article.prix_promotion 
-        ? article.prix_promotion 
+    const prixAffichage = article.is_promotion && article.prix_promotion
+        ? article.prix_promotion
         : article.prix;
 
     return (
@@ -187,13 +187,12 @@ export function ArticleViewModal({
                                     Stock disponible
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <span className={`text-2xl font-bold ${
-                                        totalStock === 0 
-                                            ? 'text-red-600' 
-                                            : totalStock < 10 
-                                            ? 'text-orange-600' 
+                                    <span className={`text-2xl font-bold ${totalStock === 0
+                                        ? 'text-red-600'
+                                        : totalStock < 10
+                                            ? 'text-orange-600'
                                             : 'text-green-600'
-                                    }`}>
+                                        }`}>
                                         {totalStock}
                                     </span>
                                     <span className="text-muted-foreground">unités</span>
@@ -237,7 +236,7 @@ export function ArticleViewModal({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Catégorie */}
                         <Card>
-                            <CardContent className="pt-6">
+                            <CardContent className="">
                                 <div className="flex items-center gap-3">
                                     <Layers className="h-5 w-5 text-muted-foreground" />
                                     <div>
@@ -252,7 +251,7 @@ export function ArticleViewModal({
 
                         {/* Vendeur */}
                         <Card>
-                            <CardContent className="pt-6">
+                            <CardContent className="">
                                 <div className="flex items-center gap-3">
                                     <Store className="h-5 w-5 text-muted-foreground" />
                                     <div>
@@ -279,10 +278,10 @@ export function ArticleViewModal({
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {article.variations.map((variation) => (
                                     <Card key={variation.id}>
-                                        <CardContent className="pt-6">
+                                        <CardContent className="">
                                             <div className="space-y-3">
                                                 {variation.image && (
-                                                    <Avatar className="h-20 w-20 rounded-md">
+                                                    <Avatar className="h-auto w-auto rounded-md">
                                                         <AvatarImage
                                                             src={variation.image}
                                                             alt="Variation"
