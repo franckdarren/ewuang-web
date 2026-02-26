@@ -117,13 +117,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             type: formidableFile.mimetype || 'image/jpeg',
         });
 
-        // Upload image vers Supabase
+        // Upload image vers Supabase (avec le token utilisateur pour le RLS)
         const uploadResult: UploadResult = await uploadArticleImage(
             imageFile,
             user.id,
             articleId,
             type as 'principale' | 'gallery',
-            index
+            index,
+            token
         );
 
         if (!uploadResult.success) {

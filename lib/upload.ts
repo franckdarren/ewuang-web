@@ -4,8 +4,32 @@
  * Helpers pour l'upload et la gestion des images avec Supabase Storage
  */
 
+import { createClient } from '@supabase/supabase-js';
 import sharp from 'sharp';
 import { supabaseAdmin as supabase } from '../app/lib/supabaseAdmin';
+
+/**
+ * Crée un client Supabase authentifié avec le token utilisateur
+ * pour satisfaire les policies RLS "TO authenticated" sur le storage
+ */
+function getStorageClient(userToken?: string) {
+    if (userToken) {
+        return createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY!,
+            {
+                global: {
+                    headers: { Authorization: `Bearer ${userToken}` },
+                },
+                auth: {
+                    autoRefreshToken: false,
+                    persistSession: false,
+                },
+            }
+        );
+    }
+    return supabase;
+}
 
 // Configuration
 const MAX_FILE_SIZE = parseInt(process.env.MAX_FILE_SIZE || '5242880'); // 5 MB
@@ -78,7 +102,8 @@ export async function uploadArticleImage(
     userId: string,
     articleId: string,
     type: 'principale' | 'gallery' = 'principale',
-    index?: number
+    index?: number,
+    userToken?: string
 ): Promise<UploadResult> {
     try {
         // Validation
@@ -102,8 +127,11 @@ export async function uploadArticleImage(
         // Chemin dans le bucket
         const filePath = `${userId}/${articleId}/${fileName}`;
 
+        // Utiliser le client authentifié pour satisfaire le RLS
+        const storageClient = getStorageClient(userToken);
+
         // Upload vers Supabase Storage
-        const { data, error } = await supabase.storage
+        const { data, error } = await storageClient.storage
             .from('articles-images')
             .upload(filePath, optimizedBuffer, {
                 contentType: 'image/webp',
@@ -141,7 +169,8 @@ export async function uploadArticleImage(
 export async function uploadVariationImage(
     file: File,
     userId: string,
-    variationId: string
+    variationId: string,
+    userToken?: string
 ): Promise<UploadResult> {
     try {
         // Validation
@@ -160,8 +189,11 @@ export async function uploadVariationImage(
         // Chemin dans le bucket
         const filePath = `${userId}/${variationId}/image.webp`;
 
+        // Utiliser le client authentifié pour satisfaire le RLS
+        const storageClient = getStorageClient(userToken);
+
         // Upload vers Supabase Storage
-        const { data, error } = await supabase.storage
+        const { data, error } = await storageClient.storage
             .from('variations-images')
             .upload(filePath, optimizedBuffer, {
                 contentType: 'image/webp',

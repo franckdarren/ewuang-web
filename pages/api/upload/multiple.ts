@@ -127,13 +127,14 @@ export default async function handler(
                 { type: file.mimetype || "image/jpeg" }
             );
 
-            // Upload vers Supabase
+            // Upload vers Supabase (avec le token utilisateur pour le RLS)
             const result = await uploadArticleImage(
                 imageFile,
                 user.id, // userId Supabase
                 articleId,
                 "gallery",
-                i + 1
+                i + 1,
+                token
             );
 
             if (result.success && result.url) {
