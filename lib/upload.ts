@@ -4,18 +4,8 @@
  * Helpers pour l'upload et la gestion des images avec Supabase Storage
  */
 
-import { createClient } from '@supabase/supabase-js';
 import sharp from 'sharp';
-
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    console.error('[upload] ERREUR CRITIQUE: Variables Supabase manquantes!',
-        { url: !!process.env.NEXT_PUBLIC_SUPABASE_URL, key: !!process.env.SUPABASE_SERVICE_ROLE_KEY });
-}
-
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { supabaseAdmin as supabase } from '../app/lib/supabaseAdmin';
 
 // Configuration
 const MAX_FILE_SIZE = parseInt(process.env.MAX_FILE_SIZE || '5242880'); // 5 MB

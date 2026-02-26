@@ -30,13 +30,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
-        // ⚠️ On lit bien req.query.category (et non req.query)
         const { category } = paramSchema.parse(req.query);
+
+        // Chercher la catégorie par nom (insensible à la casse)
+        const { data: cat, error: catError } = await supabaseAdmin
+            .from("categories")
+            .select("id")
+            .ilike("nom", category)
+            .single();
+
+        if (catError || !cat) {
+            return res.status(404).json({
+                message: `Catégorie '${category}' introuvable.`
+            });
+        }
 
         const { data, error } = await supabaseAdmin
             .from("articles")
             .select("*, variations(*), image_articles(*)")
-            .eq("categorie", category)
+            .eq("categorie_id", cat.id)
             .order("created_at", { ascending: false });
 
         if (error) {
