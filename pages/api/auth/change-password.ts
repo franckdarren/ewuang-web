@@ -1,7 +1,7 @@
 // pages/api/auth/change-password.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { z, ZodError } from "zod";
-import { supabaseAdmin } from "../../../app/lib/supabaseAdmin";
+import { createClient } from "@supabase/supabase-js";
 import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
 
 /**
@@ -59,8 +59,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const body = changePasswordSchema.parse(req.body);
 
-        // Vérifier l'ancien mot de passe en essayant de se connecter
-        const { error: signInError } = await supabaseAdmin.auth.signInWithPassword({
+        // Créer un client temporaire pour la session utilisateur
+        const tempClient = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
+
+        // Vérifier l'ancien mot de passe en se connectant
+        const { error: signInError } = await tempClient.auth.signInWithPassword({
             email: authUser.email!,
             password: body.current_password,
         });
@@ -71,16 +77,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
         }
 
-        // Mettre à jour le mot de passe
-        const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
-            authUser.id,
-            { password: body.new_password }
-        );
+        // Mettre à jour le mot de passe via la session utilisateur
+        const { error: updateError } = await tempClient.auth.updateUser({
+            password: body.new_password,
+        });
 
         if (updateError) {
-            console.error("Supabase auth error:", updateError);
+            console.error("Supabase updateUser error:", updateError);
             return res.status(500).json({
-                error: "Impossible de changer le mot de passe"
+                error: "Impossible de changer le mot de passe",
+                details: updateError.message,
             });
         }
 
