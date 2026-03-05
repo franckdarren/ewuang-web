@@ -3,6 +3,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { z, ZodError } from "zod";
 import { createClient } from "@supabase/supabase-js";
 import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
+import { supabaseAdmin } from "../../../app/lib/supabaseAdmin";
 
 /**
  * @swagger
@@ -77,10 +78,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
         }
 
-        // Mettre à jour le mot de passe via la session utilisateur
-        const { error: updateError } = await tempClient.auth.updateUser({
-            password: body.new_password,
-        });
+        // Mettre à jour le mot de passe via le client admin (updateUser ne fonctionne pas côté serveur)
+        const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+            authUser.id,
+            { password: body.new_password }
+        );
 
         if (updateError) {
             console.error("Supabase updateUser error:", updateError);
