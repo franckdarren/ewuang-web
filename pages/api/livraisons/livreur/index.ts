@@ -83,7 +83,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         *,
         commandes (id, numero, statut, prix, adresse_livraison)
       `, { count: "exact" })
-            .eq("user_id", profile.id);
+            .eq("livreur_id", profile.id);
 
         // Filtre par statut si fourni
         if (statut) {
