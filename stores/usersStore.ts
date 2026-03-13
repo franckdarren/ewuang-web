@@ -36,6 +36,15 @@ export interface UserStats {
     active: number;
 }
 
+export interface CreateUserPayload {
+    email: string;
+    password: string;
+    name: string;
+    role: 'Client' | 'Boutique' | 'Livreur' | 'Administrateur';
+    phone?: string;
+    address?: string;
+}
+
 interface UsersStore {
     users: User[];
     stats: UserStats;
@@ -43,6 +52,7 @@ interface UsersStore {
     error: string | null;
 
     fetchUsers: () => Promise<void>;
+    createUser: (payload: CreateUserPayload) => Promise<User | null>;
     deleteUser: (id: string) => Promise<boolean>;
     reset: () => void;
 }
@@ -141,6 +151,48 @@ export const useUsersStore = create<UsersStore>((set, get) => ({
             toast.error('Erreur chargement utilisateurs', {
                 description: message,
             });
+        }
+    },
+
+    // ========================================
+    // CREATE USER
+    // ========================================
+    createUser: async (payload) => {
+        try {
+            const token = useAuthStore.getState().token;
+
+            const res = await fetch('/api/users/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify(payload),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                const message = data.error || data.errors?.map((e: any) => e.message).join(', ') || 'Erreur inconnue';
+                toast.error('Erreur création utilisateur', { description: message });
+                return null;
+            }
+
+            const newUser = data.user as User;
+            const updatedUsers = [...get().users, newUser];
+            const stats = computeStats(updatedUsers);
+
+            set({ users: updatedUsers, stats });
+
+            toast.success('Utilisateur créé avec succès', {
+                description: `${newUser.name} (${newUser.role})`,
+            });
+
+            return newUser;
+        } catch (err) {
+            console.error('[createUser] Erreur:', err);
+            toast.error('Erreur création utilisateur');
+            return null;
         }
     },
 

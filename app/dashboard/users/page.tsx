@@ -163,10 +163,10 @@ export default function UsersPage() {
                         Gérez les utilisateurs présents sur la plateforme
                     </p>
                 </div>
-                {/* <Button onClick={handleCreate}>
+                <Button onClick={handleCreate}>
                     <Plus className="mr-2 h-4 w-4" />
                     Créer un utilisateur
-                </Button> */}
+                </Button>
             </div>
 
             {/* ========== STATISTIQUES ========== */}

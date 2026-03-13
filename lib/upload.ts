@@ -131,7 +131,7 @@ export async function uploadArticleImage(
         const storageClient = getStorageClient(userToken);
 
         // Upload vers Supabase Storage
-        const { data, error } = await storageClient.storage
+        const { error } = await storageClient.storage
             .from('articles-images')
             .upload(filePath, optimizedBuffer, {
                 contentType: 'image/webp',
@@ -193,7 +193,7 @@ export async function uploadVariationImage(
         const storageClient = getStorageClient(userToken);
 
         // Upload vers Supabase Storage
-        const { data, error } = await storageClient.storage
+        const { error } = await storageClient.storage
             .from('variations-images')
             .upload(filePath, optimizedBuffer, {
                 contentType: 'image/webp',
@@ -314,7 +314,7 @@ export async function deleteArticleImages(
         }
 
         // Supprimer tous les fichiers
-        const filePaths = files.map(file => `${userId}/${articleId}/${file.name}`);
+        const filePaths = files.map((file: { name: string }) => `${userId}/${articleId}/${file.name}`);
 
         const { error: deleteError } = await supabase.storage
             .from('articles-images')
@@ -355,7 +355,7 @@ export async function listArticleImages(
         }
 
         // Générer les URLs publiques
-        const images = files.map(file => {
+        const images = files.map((file: { name: string }) => {
             const { data } = supabase.storage
                 .from('articles-images')
                 .getPublicUrl(`${userId}/${articleId}/${file.name}`);
