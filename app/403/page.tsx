@@ -38,7 +38,7 @@ export default function Page403() {
                                 <span className="font-semibold">Pourquoi je vois cette page ?</span>
                                 <br />
                                 Cette zone est réservée à un rôle spécifique. Veuillez contacter
-                                votre administrateur si vous pensez qu'il s'agit d'une erreur.
+                                votre administrateur si vous pensez qu'il s'agit d'une erreur...
                             </p>
                         </div>
 
