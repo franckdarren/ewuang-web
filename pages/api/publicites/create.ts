@@ -51,7 +51,7 @@ import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
 const schema = z.object({
     titre: z.string().min(1),
     url_image: z.string().url(),
-    lien: z.string().url(),
+    lien: z.string().url().optional().or(z.literal("")),
     description: z.string().min(1),
     date_start: z.string().refine(v => !isNaN(Date.parse(v)), "Invalid date"),
     date_end: z.string().refine(v => !isNaN(Date.parse(v)), "Invalid date"),
@@ -86,7 +86,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         if (error) return res.status(500).json({ error: "Impossible de créer la publicité" });
 
-        return res.status(201).json({ publicité: data });
+        return res.status(201).json({ publicite: data });
     } catch (err) {
         if (err instanceof ZodError)
             return res.status(400).json({ errors: err.flatten() });
