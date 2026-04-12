@@ -1,7 +1,8 @@
 // components/categories/edit-categorie-modal.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { supabaseBrowser } from '@/app/utils/supabase/clients';
 import { toast } from "sonner";
 
 import {
@@ -28,6 +29,11 @@ import {
     useCategoriesStore,
     type Categorie
 } from '@/stores/categoriesStore';
+import { Upload, X, Loader2, ImageIcon } from 'lucide-react';
+
+const BUCKET_NAME = 'categories-images';
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 interface EditCategorieModalProps {
     isOpen: boolean;
@@ -55,8 +61,10 @@ export function EditCategorieModal({
     });
 
     const [isLoading, setIsLoading] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
     const [error, setError] = useState('');
     const [slugModifiedManually, setSlugModifiedManually] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     // ============================================
     // STORE
@@ -195,6 +203,42 @@ export function EditCategorieModal({
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
+    const handleImageUpload = async (file: File) => {
+        if (!ACCEPTED_TYPES.includes(file.type)) {
+            toast.error('Type de fichier non accepté', { description: 'Formats acceptés : JPG, PNG, WEBP' });
+            return;
+        }
+        if (file.size > MAX_FILE_SIZE) {
+            toast.error('Fichier trop volumineux', { description: 'Taille maximum : 5 MB' });
+            return;
+        }
+
+        setIsUploading(true);
+        try {
+            const supabase = supabaseBrowser();
+
+            const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+            const filePath = `${categorie?.id ?? Date.now()}-${Math.random().toString(36).substring(2, 8)}.${ext}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from(BUCKET_NAME)
+                .upload(filePath, file, { upsert: true, contentType: file.type });
+
+            if (uploadError) throw new Error(uploadError.message);
+
+            const { data: urlData } = supabase.storage
+                .from(BUCKET_NAME)
+                .getPublicUrl(filePath);
+
+            handleChange('image', urlData.publicUrl);
+            toast.success('Image uploadée avec succès');
+        } catch (err: any) {
+            toast.error("Erreur lors de l'upload", { description: err.message });
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
     // Ne rien afficher si pas de catégorie
     if (!categorie) return null;
 
@@ -268,24 +312,65 @@ export function EditCategorieModal({
 
                     {/* Image */}
                     <div className="space-y-2">
-                        <Label htmlFor="image">URL de l'image</Label>
-                        <Input
-                            id="image"
-                            type="url"
-                            value={formData.image}
-                            onChange={(e) => handleChange('image', e.target.value)}
-                            placeholder="https://example.com/image.jpg"
+                        <Label>Image</Label>
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            className="hidden"
+                            onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleImageUpload(file);
+                                e.target.value = '';
+                            }}
                         />
-                        {formData.image && (
-                            <div className="mt-2">
+                        {formData.image ? (
+                            <div className="relative w-full h-40 rounded-lg border overflow-hidden group">
                                 <img
                                     src={formData.image}
                                     alt="Aperçu"
-                                    className="h-20 w-20 object-cover rounded border"
-                                    onError={(e) => {
-                                        e.currentTarget.src = '/placeholder.png';
-                                    }}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => { e.currentTarget.src = '/placeholder.png'; }}
                                 />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                    <Button
+                                        type="button"
+                                        variant="secondary"
+                                        size="sm"
+                                        disabled={isUploading}
+                                        onClick={() => fileInputRef.current?.click()}
+                                    >
+                                        {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4 mr-1" />}
+                                        Changer
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="destructive"
+                                        size="sm"
+                                        onClick={() => handleChange('image', '')}
+                                    >
+                                        <X className="h-4 w-4 mr-1" />
+                                        Supprimer
+                                    </Button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div
+                                className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-lg cursor-pointer hover:border-primary/60 hover:bg-muted/30 transition-colors"
+                                onClick={() => !isUploading && fileInputRef.current?.click()}
+                            >
+                                {isUploading ? (
+                                    <>
+                                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mb-2" />
+                                        <p className="text-sm text-muted-foreground">Upload en cours...</p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <ImageIcon className="h-8 w-8 text-muted-foreground mb-2" />
+                                        <p className="text-sm font-medium">Cliquer pour ajouter une image</p>
+                                        <p className="text-xs text-muted-foreground mt-1">JPG, PNG, WEBP — max 5 MB</p>
+                                    </>
+                                )}
                             </div>
                         )}
                     </div>
