@@ -17,6 +17,7 @@
 
 import { useState } from 'react';
 import { useAuthStore, User } from '@/stores/authStore';
+import { InactivityGuard } from '@/components/inactivity-guard';
 
 interface AuthProviderProps {
     children: React.ReactNode;
@@ -36,5 +37,5 @@ export function AuthProvider({
         useAuthStore.getState().initializeAuth(initialUser, initialToken);
     });
 
-    return <>{children}</>;
+    return <InactivityGuard>{children}</InactivityGuard>;
 }
