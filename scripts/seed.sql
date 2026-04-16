@@ -41,24 +41,24 @@ SET session_replication_role = DEFAULT;
 INSERT INTO users (id, auth_id, name, role, email, url_logo, phone, heure_ouverture, heure_fermeture, description, address, solde, is_verified, is_active, created_at, updated_at)
 VALUES
   -- Admin
-  ('00000000-0000-0000-0000-000000000001', gen_random_uuid(), 'Admin Ewuang',        'admin',   'admin@ewuang.com',          'https://i.pravatar.cc/150?img=1',  '+24177000001', NULL,    NULL,    NULL,                                   'Libreville, Gabon', 0,       true,  true, NOW() - INTERVAL '90 days', NOW()),
+  ('00000000-0000-0000-0000-000000000001', gen_random_uuid(), 'Admin Ewuang',        'Administrateur', 'admin@ewuang.com',          'https://i.pravatar.cc/150?img=1',  '+24177000001', NULL,    NULL,    NULL,                                   'Libreville, Gabon', 0,       true,  true, NOW() - INTERVAL '90 days', NOW()),
 
   -- Vendeurs / Boutiques
-  ('00000000-0000-0000-0000-000000000002', gen_random_uuid(), 'TechGabon Store',      'vendeur', 'techgabon@ewuang.com',       'https://i.pravatar.cc/150?img=2',  '+24177000002', '08:00', '18:00', 'Spécialiste en électronique et tech.',   'Boulevard de l''Indépendance, Libreville', 250000, true,  true, NOW() - INTERVAL '80 days', NOW()),
-  ('00000000-0000-0000-0000-000000000003', gen_random_uuid(), 'Mode Gabonaise',       'vendeur', 'modegabon@ewuang.com',       'https://i.pravatar.cc/150?img=3',  '+24177000003', '09:00', '19:00', 'Vêtements et accessoires tendance.',     'Quartier Louis, Libreville',              180000, true,  true, NOW() - INTERVAL '75 days', NOW()),
-  ('00000000-0000-0000-0000-000000000004', gen_random_uuid(), 'Maison & Déco Plus',   'vendeur', 'maisondeco@ewuang.com',      'https://i.pravatar.cc/150?img=4',  '+24177000004', '08:30', '17:30', 'Mobilier, décoration et électroménager.','Owendo, Libreville',                      95000,  true,  true, NOW() - INTERVAL '60 days', NOW()),
-  ('00000000-0000-0000-0000-000000000005', gen_random_uuid(), 'Beauté Naturelle',     'vendeur', 'beautenaturelle@ewuang.com', 'https://i.pravatar.cc/150?img=5',  '+24177000005', '09:00', '18:00', 'Cosmétiques et soins naturels.',         'Akanda, Libreville',                      72000,  false, true, NOW() - INTERVAL '40 days', NOW()),
+  ('00000000-0000-0000-0000-000000000002', gen_random_uuid(), 'TechGabon Store',      'Boutique', 'techgabon@ewuang.com',       'https://i.pravatar.cc/150?img=2',  '+24177000002', '08:00', '18:00', 'Spécialiste en électronique et tech.',   'Boulevard de l''Indépendance, Libreville', 250000, true,  true, NOW() - INTERVAL '80 days', NOW()),
+  ('00000000-0000-0000-0000-000000000003', gen_random_uuid(), 'Mode Gabonaise',       'Boutique', 'modegabon@ewuang.com',       'https://i.pravatar.cc/150?img=3',  '+24177000003', '09:00', '19:00', 'Vêtements et accessoires tendance.',     'Quartier Louis, Libreville',              180000, true,  true, NOW() - INTERVAL '75 days', NOW()),
+  ('00000000-0000-0000-0000-000000000004', gen_random_uuid(), 'Maison & Déco Plus',   'Boutique', 'maisondeco@ewuang.com',      'https://i.pravatar.cc/150?img=4',  '+24177000004', '08:30', '17:30', 'Mobilier, décoration et électroménager.','Owendo, Libreville',                      95000,  true,  true, NOW() - INTERVAL '60 days', NOW()),
+  ('00000000-0000-0000-0000-000000000005', gen_random_uuid(), 'Beauté Naturelle',     'Boutique', 'beautenaturelle@ewuang.com', 'https://i.pravatar.cc/150?img=5',  '+24177000005', '09:00', '18:00', 'Cosmétiques et soins naturels.',         'Akanda, Libreville',                      72000,  false, true, NOW() - INTERVAL '40 days', NOW()),
 
   -- Acheteurs
-  ('00000000-0000-0000-0000-000000000006', gen_random_uuid(), 'Jean-Baptiste Mba',    'acheteur','jbmba@gmail.com',            'https://i.pravatar.cc/150?img=6',  '+24166000001', NULL,    NULL,    NULL,                                   'Lalala, Libreville',                      0,      true,  true, NOW() - INTERVAL '70 days', NOW()),
-  ('00000000-0000-0000-0000-000000000007', gen_random_uuid(), 'Marie-Claire Nze',     'acheteur','marienze@gmail.com',         'https://i.pravatar.cc/150?img=7',  '+24166000002', NULL,    NULL,    NULL,                                   'Nkembo, Libreville',                      0,      true,  true, NOW() - INTERVAL '65 days', NOW()),
-  ('00000000-0000-0000-0000-000000000008', gen_random_uuid(), 'Paul Obame',           'acheteur','pobame@gmail.com',           'https://i.pravatar.cc/150?img=8',  '+24166000003', NULL,    NULL,    NULL,                                   'PK8, Libreville',                         0,      false, true, NOW() - INTERVAL '50 days', NOW()),
-  ('00000000-0000-0000-0000-000000000009', gen_random_uuid(), 'Sandrine Mouele',      'acheteur','smouele@gmail.com',          'https://i.pravatar.cc/150?img=9',  '+24166000004', NULL,    NULL,    NULL,                                   'Angondjé, Libreville',                    0,      true,  true, NOW() - INTERVAL '45 days', NOW()),
-  ('00000000-0000-0000-0000-000000000010', gen_random_uuid(), 'Éric Nguema',          'acheteur','ericnguema@gmail.com',       'https://i.pravatar.cc/150?img=10', '+24166000005', NULL,    NULL,    NULL,                                   'PK12, Libreville',                        0,      true,  true, NOW() - INTERVAL '30 days', NOW()),
+  ('00000000-0000-0000-0000-000000000006', gen_random_uuid(), 'Jean-Baptiste Mba',    'Client','jbmba@gmail.com',            'https://i.pravatar.cc/150?img=6',  '+24166000001', NULL,    NULL,    NULL,                                   'Lalala, Libreville',                      0,      true,  true, NOW() - INTERVAL '70 days', NOW()),
+  ('00000000-0000-0000-0000-000000000007', gen_random_uuid(), 'Marie-Claire Nze',     'Client','marienze@gmail.com',         'https://i.pravatar.cc/150?img=7',  '+24166000002', NULL,    NULL,    NULL,                                   'Nkembo, Libreville',                      0,      true,  true, NOW() - INTERVAL '65 days', NOW()),
+  ('00000000-0000-0000-0000-000000000008', gen_random_uuid(), 'Paul Obame',           'Client','pobame@gmail.com',           'https://i.pravatar.cc/150?img=8',  '+24166000003', NULL,    NULL,    NULL,                                   'PK8, Libreville',                         0,      false, true, NOW() - INTERVAL '50 days', NOW()),
+  ('00000000-0000-0000-0000-000000000009', gen_random_uuid(), 'Sandrine Mouele',      'Client','smouele@gmail.com',          'https://i.pravatar.cc/150?img=9',  '+24166000004', NULL,    NULL,    NULL,                                   'Angondjé, Libreville',                    0,      true,  true, NOW() - INTERVAL '45 days', NOW()),
+  ('00000000-0000-0000-0000-000000000010', gen_random_uuid(), 'Éric Nguema',          'Client','ericnguema@gmail.com',       'https://i.pravatar.cc/150?img=10', '+24166000005', NULL,    NULL,    NULL,                                   'PK12, Libreville',                        0,      true,  true, NOW() - INTERVAL '30 days', NOW()),
 
   -- Livreurs
-  ('00000000-0000-0000-0000-000000000011', gen_random_uuid(), 'Didier Koumba',        'livreur', 'dkoumba@ewuang.com',         'https://i.pravatar.cc/150?img=11', '+24107000001', NULL,    NULL,    NULL,                                   'Libreville',                              35000,  true,  true, NOW() - INTERVAL '55 days', NOW()),
-  ('00000000-0000-0000-0000-000000000012', gen_random_uuid(), 'Ariel Ndong',          'livreur', 'andong@ewuang.com',          'https://i.pravatar.cc/150?img=12', '+24107000002', NULL,    NULL,    NULL,                                   'Libreville',                              22000,  true,  true, NOW() - INTERVAL '50 days', NOW());
+  ('00000000-0000-0000-0000-000000000011', gen_random_uuid(), 'Didier Koumba',        'Livreur', 'dkoumba@ewuang.com',         'https://i.pravatar.cc/150?img=11', '+24107000001', NULL,    NULL,    NULL,                                   'Libreville',                              35000,  true,  true, NOW() - INTERVAL '55 days', NOW()),
+  ('00000000-0000-0000-0000-000000000012', gen_random_uuid(), 'Ariel Ndong',          'Livreur', 'andong@ewuang.com',          'https://i.pravatar.cc/150?img=12', '+24107000002', NULL,    NULL,    NULL,                                   'Libreville',                              22000,  true,  true, NOW() - INTERVAL '50 days', NOW());
 
 -- ============================================================
 -- 3. CATÉGORIES (hiérarchie parent → enfant)
@@ -207,24 +207,24 @@ INSERT INTO image_articles (id, url_photo, article_id) VALUES
 -- ============================================================
 INSERT INTO paiements (id, user_id, montant, methode, statut, reference, transaction_id, created_at, updated_at)
 VALUES
-  ('30000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000006', 285000, 'mobile_money', 'valide',    'PAY-2024-001-JBMBA',  'TXN001AIRTEL', NOW() - INTERVAL '30 days', NOW()),
-  ('30000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000007', 77000,  'mobile_money', 'valide',    'PAY-2024-002-MCNZE',  'TXN002MOOV',   NOW() - INTERVAL '25 days', NOW()),
-  ('30000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000008', 650000, 'carte',        'valide',    'PAY-2024-003-POBAME', 'TXN003VISA',   NOW() - INTERVAL '20 days', NOW()),
-  ('30000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000009', 115000, 'mobile_money', 'en_attente','PAY-2024-004-SMOUELE',NULL,           NOW() - INTERVAL '5 days',  NOW()),
-  ('30000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000010', 195000, 'especes',      'valide',    'PAY-2024-005-ERICN',  NULL,           NOW() - INTERVAL '10 days', NOW());
+  ('30000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000006', 285000, 'mobile_money', 'Validé',    'PAY-2024-001-JBMBA',  'TXN001AIRTEL', NOW() - INTERVAL '30 days', NOW()),
+  ('30000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000007', 77000,  'mobile_money', 'Validé',    'PAY-2024-002-MCNZE',  'TXN002MOOV',   NOW() - INTERVAL '25 days', NOW()),
+  ('30000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000008', 650000, 'carte',        'Validé',    'PAY-2024-003-POBAME', 'TXN003VISA',   NOW() - INTERVAL '20 days', NOW()),
+  ('30000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000009', 115000, 'mobile_money', 'En attente','PAY-2024-004-SMOUELE',NULL,           NOW() - INTERVAL '5 days',  NOW()),
+  ('30000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000010', 195000, 'especes',      'Validé',    'PAY-2024-005-ERICN',  NULL,           NOW() - INTERVAL '10 days', NOW());
 
 -- ============================================================
 -- 6. COMMANDES
 -- ============================================================
-INSERT INTO commandes (id, numero, statut, prix, commentaire, isLivrable, user_id, vendeur_id, paiement_id, adresse_livraison, created_at, updated_at)
+INSERT INTO commandes (id, numero, statut, prix, commentaire, "isLivrable", user_id, vendeur_id, paiement_id, adresse_livraison, created_at, updated_at)
 VALUES
-  ('40000000-0000-0000-0000-000000000001', 'CMD-2024-001', 'livree',                '285000', 'Livraison rapide SVP', true,  '00000000-0000-0000-0000-000000000006', '00000000-0000-0000-0000-000000000002', '30000000-0000-0000-0000-000000000001', 'Lalala, Quartier Nord, Libreville',       NOW() - INTERVAL '30 days', NOW()),
-  ('40000000-0000-0000-0000-000000000002', 'CMD-2024-002', 'livree',                '77000',  'Merci pour le wax',   true,  '00000000-0000-0000-0000-000000000007', '00000000-0000-0000-0000-000000000003', '30000000-0000-0000-0000-000000000002', 'Nkembo, Rue 12, Libreville',              NOW() - INTERVAL '25 days', NOW()),
-  ('40000000-0000-0000-0000-000000000003', 'CMD-2024-003', 'en_preparation',        '650000', 'Appeler avant',       true,  '00000000-0000-0000-0000-000000000008', '00000000-0000-0000-0000-000000000002', '30000000-0000-0000-0000-000000000003', 'PK8, Résidence Cité Belle, Libreville',   NOW() - INTERVAL '20 days', NOW()),
-  ('40000000-0000-0000-0000-000000000004', 'CMD-2024-004', 'en_attente',            '115000', 'Pointure 42 svp',     true,  '00000000-0000-0000-0000-000000000009', '00000000-0000-0000-0000-000000000003', '30000000-0000-0000-0000-000000000004', 'Angondjé, Boulevard, Libreville',         NOW() - INTERVAL '5 days',  NOW()),
-  ('40000000-0000-0000-0000-000000000005', 'CMD-2024-005', 'prete_pour_livraison',  '195000', 'Casque noir',         true,  '00000000-0000-0000-0000-000000000010', '00000000-0000-0000-0000-000000000002', '30000000-0000-0000-0000-000000000005', 'PK12, Cité de la SEEG, Libreville',       NOW() - INTERVAL '10 days', NOW()),
-  ('40000000-0000-0000-0000-000000000006', 'CMD-2024-006', 'en_cours_de_livraison', '42000',  'Robe taille M rouge', true,  '00000000-0000-0000-0000-000000000006', '00000000-0000-0000-0000-000000000003', NULL,                                          'Lalala, Quartier Nord, Libreville',       NOW() - INTERVAL '3 days',  NOW()),
-  ('40000000-0000-0000-0000-000000000007', 'CMD-2024-007', 'annule',                '125000', 'Plus besoin',         false, '00000000-0000-0000-0000-000000000007', '00000000-0000-0000-0000-000000000005', NULL,                                          'Nkembo, Rue 12, Libreville',              NOW() - INTERVAL '15 days', NOW());
+  ('40000000-0000-0000-0000-000000000001', 'CMD-2024-001', 'Livrée',                285000, 'Livraison rapide SVP', true,  '00000000-0000-0000-0000-000000000006', '00000000-0000-0000-0000-000000000002', '30000000-0000-0000-0000-000000000001', 'Lalala, Quartier Nord, Libreville',       NOW() - INTERVAL '30 days', NOW()),
+  ('40000000-0000-0000-0000-000000000002', 'CMD-2024-002', 'Livrée',                77000,  'Merci pour le wax',   true,  '00000000-0000-0000-0000-000000000007', '00000000-0000-0000-0000-000000000003', '30000000-0000-0000-0000-000000000002', 'Nkembo, Rue 12, Libreville',              NOW() - INTERVAL '25 days', NOW()),
+  ('40000000-0000-0000-0000-000000000003', 'CMD-2024-003', 'En préparation',        650000, 'Appeler avant',       true,  '00000000-0000-0000-0000-000000000008', '00000000-0000-0000-0000-000000000002', '30000000-0000-0000-0000-000000000003', 'PK8, Résidence Cité Belle, Libreville',   NOW() - INTERVAL '20 days', NOW()),
+  ('40000000-0000-0000-0000-000000000004', 'CMD-2024-004', 'En attente',            115000, 'Pointure 42 svp',     true,  '00000000-0000-0000-0000-000000000009', '00000000-0000-0000-0000-000000000003', '30000000-0000-0000-0000-000000000004', 'Angondjé, Boulevard, Libreville',         NOW() - INTERVAL '5 days',  NOW()),
+  ('40000000-0000-0000-0000-000000000005', 'CMD-2024-005', 'Prête pour livraison',  195000, 'Casque noir',         true,  '00000000-0000-0000-0000-000000000010', '00000000-0000-0000-0000-000000000002', '30000000-0000-0000-0000-000000000005', 'PK12, Cité de la SEEG, Libreville',       NOW() - INTERVAL '10 days', NOW()),
+  ('40000000-0000-0000-0000-000000000006', 'CMD-2024-006', 'En cours de livraison', 42000,  'Robe taille M rouge', true,  '00000000-0000-0000-0000-000000000006', '00000000-0000-0000-0000-000000000003', NULL,                                          'Lalala, Quartier Nord, Libreville',       NOW() - INTERVAL '3 days',  NOW()),
+  ('40000000-0000-0000-0000-000000000007', 'CMD-2024-007', 'Annulée',               125000, 'Plus besoin',         false, '00000000-0000-0000-0000-000000000007', '00000000-0000-0000-0000-000000000005', NULL,                                          'Nkembo, Rue 12, Libreville',              NOW() - INTERVAL '15 days', NOW());
 
 -- ============================================================
 -- 7. ARTICLES DES COMMANDES
@@ -276,8 +276,8 @@ VALUES
 -- ============================================================
 INSERT INTO reclamations (id, description, phone, statut, commande_id, user_id, reponse, created_at, updated_at)
 VALUES
-  (gen_random_uuid(), 'La robe reçue n''est pas la bonne taille, j''ai commandé M mais reçu S.', '+24166000002', 'en_cours', '40000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000007', 'Nous vous prions de nous excuser. Un retour est en cours de traitement.', NOW() - INTERVAL '20 days', NOW()),
-  (gen_random_uuid(), 'Mon colis n''est pas encore arrivé après 2 semaines.', '+24166000001', 'en_attente_de_traitement', '40000000-0000-0000-0000-000000000006', '00000000-0000-0000-0000-000000000006', NULL, NOW() - INTERVAL '2 days', NOW());
+  (gen_random_uuid(), 'La robe reçue n''est pas la bonne taille, j''ai commandé M mais reçu S.', '+24166000002', 'En cours', '40000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000007', 'Nous vous prions de nous excuser. Un retour est en cours de traitement.', NOW() - INTERVAL '20 days', NOW()),
+  (gen_random_uuid(), 'Mon colis n''est pas encore arrivé après 2 semaines.', '+24166000001', 'En attente de traitement', '40000000-0000-0000-0000-000000000006', '00000000-0000-0000-0000-000000000006', NULL, NOW() - INTERVAL '2 days', NOW());
 
 -- ============================================================
 -- 10. AVIS / REVIEWS
@@ -339,13 +339,13 @@ VALUES
 -- ============================================================
 INSERT INTO notifications (id, user_id, type, titre, message, lien, is_read, created_at)
 VALUES
-  (gen_random_uuid(), '00000000-0000-0000-0000-000000000006', 'commande',  'Commande livrée !',           'Votre commande CMD-2024-001 a été livrée avec succès.',               '/commandes/40000000-0000-0000-0000-000000000001', true,  NOW() - INTERVAL '28 days'),
-  (gen_random_uuid(), '00000000-0000-0000-0000-000000000007', 'commande',  'Commande livrée !',           'Votre commande CMD-2024-002 a été livrée avec succès.',               '/commandes/40000000-0000-0000-0000-000000000002', true,  NOW() - INTERVAL '23 days'),
-  (gen_random_uuid(), '00000000-0000-0000-0000-000000000008', 'commande',  'Commande en préparation',     'Votre commande CMD-2024-003 est en cours de préparation.',            '/commandes/40000000-0000-0000-0000-000000000003', false, NOW() - INTERVAL '20 days'),
-  (gen_random_uuid(), '00000000-0000-0000-0000-000000000010', 'livraison', 'Livraison en cours',          'Votre commande CMD-2024-005 est en route. Arrivée prévue demain.',    '/commandes/40000000-0000-0000-0000-000000000005', false, NOW() - INTERVAL '10 days'),
-  (gen_random_uuid(), '00000000-0000-0000-0000-000000000002', 'avis',      'Nouvel avis sur votre article','Jean-Baptiste a laissé un avis 5 étoiles sur Samsung Galaxy A54.',   '/articles/20000000-0000-0000-0000-000000000001',  false, NOW() - INTERVAL '25 days'),
-  (gen_random_uuid(), '00000000-0000-0000-0000-000000000003', 'commande',  'Nouvelle commande reçue',     'Vous avez une nouvelle commande CMD-2024-006 de Sandrine Mouele.',    '/commandes/40000000-0000-0000-0000-000000000006', false, NOW() - INTERVAL '3 days'),
-  (gen_random_uuid(), '00000000-0000-0000-0000-000000000009', 'promotion', 'Offre spéciale pour vous !',  'Profitez de -14% sur nos robes wax. Offre valable jusqu''au 30 avril.','/articles?categorie=mode',                        false, NOW() - INTERVAL '1 day');
+  (gen_random_uuid(), '00000000-0000-0000-0000-000000000006', 'Commande',  'Commande livrée !',           'Votre commande CMD-2024-001 a été livrée avec succès.',               '/commandes/40000000-0000-0000-0000-000000000001', true,  NOW() - INTERVAL '28 days'),
+  (gen_random_uuid(), '00000000-0000-0000-0000-000000000007', 'Commande',  'Commande livrée !',           'Votre commande CMD-2024-002 a été livrée avec succès.',               '/commandes/40000000-0000-0000-0000-000000000002', true,  NOW() - INTERVAL '23 days'),
+  (gen_random_uuid(), '00000000-0000-0000-0000-000000000008', 'Commande',  'Commande en préparation',     'Votre commande CMD-2024-003 est en cours de préparation.',            '/commandes/40000000-0000-0000-0000-000000000003', false, NOW() - INTERVAL '20 days'),
+  (gen_random_uuid(), '00000000-0000-0000-0000-000000000010', 'Livraison', 'Livraison en cours',          'Votre commande CMD-2024-005 est en route. Arrivée prévue demain.',    '/commandes/40000000-0000-0000-0000-000000000005', false, NOW() - INTERVAL '10 days'),
+  (gen_random_uuid(), '00000000-0000-0000-0000-000000000002', 'Avis',      'Nouvel avis sur votre article','Jean-Baptiste a laissé un avis 5 étoiles sur Samsung Galaxy A54.',   '/articles/20000000-0000-0000-0000-000000000001',  false, NOW() - INTERVAL '25 days'),
+  (gen_random_uuid(), '00000000-0000-0000-0000-000000000003', 'Commande',  'Nouvelle commande reçue',     'Vous avez une nouvelle commande CMD-2024-006 de Sandrine Mouele.',    '/commandes/40000000-0000-0000-0000-000000000006', false, NOW() - INTERVAL '3 days'),
+  (gen_random_uuid(), '00000000-0000-0000-0000-000000000009', 'Promotion', 'Offre spéciale pour vous !',  'Profitez de -14% sur nos robes wax. Offre valable jusqu''au 30 avril.','/articles?categorie=mode',                        false, NOW() - INTERVAL '1 day');
 
 -- ============================================================
 -- 15. CONVERSATIONS
