@@ -127,16 +127,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const boutiqueIds: string[] = [];
         const commandeArticles: any[] = [];
 
-        // 1. Récupérer l'admin
-        const { data: admin, error: adminError } = await supabaseAdmin
+        // 1. Récupérer l'admin (optionnel — les frais seront appliqués s'il existe)
+        const { data: admin } = await supabaseAdmin
             .from("users")
             .select("id, solde")
             .eq("role", "Administrateur")
             .single();
-
-        if (adminError || !admin) {
-            return res.status(500).json({ error: "Aucun administrateur trouvé" });
-        }
 
         // 2. Valider les articles et calculer les montants
         for (const item of body.articles) {
@@ -311,17 +307,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 }
             }
 
-            // Mettre à jour le solde de l'admin
-            const { error: adminSoldeError } = await supabaseAdmin.rpc(
-                "increment_user_solde",
-                {
-                    user_id: admin.id,
-                    amount: adminFrais,
-                }
-            );
+            // Mettre à jour le solde de l'admin (seulement s'il existe)
+            if (admin) {
+                const { error: adminSoldeError } = await supabaseAdmin.rpc(
+                    "increment_user_solde",
+                    {
+                        user_id: admin.id,
+                        amount: adminFrais,
+                    }
+                );
 
-            if (adminSoldeError) {
-                throw new Error(`Erreur mise à jour solde admin: ${adminSoldeError.message}`);
+                if (adminSoldeError) {
+                    throw new Error(`Erreur mise à jour solde admin: ${adminSoldeError.message}`);
+                }
             }
 
             // Récupérer la commande complète avec les articles

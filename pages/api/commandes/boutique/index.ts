@@ -119,7 +119,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             query = query.eq("commandes.statut", statut);
         }
 
-        const { data: commandeArticles, error: commandeError, count: totalCount } = await query;
+        const { data: commandeArticles, error: commandeError } = await query;
 
         if (commandeError) {
             console.error("Supabase error:", commandeError);
@@ -151,7 +151,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     .from("commande_articles")
                     .select(`
             *,
-            articles (id, nom, prix, image_principale, categorie),
+            articles (id, nom, prix, image_principale, categorie_id),
             variations (id, couleur, taille, prix)
             `)
                     .eq("commande_id", commande.id)

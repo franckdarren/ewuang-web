@@ -77,7 +77,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             image_principale,
             categorie,
             made_in_gabon,
-            users (id, name, url_logo)
+            users!user_id (id, name, url_logo)
         )
         `, { count: "exact" })
             .eq("user_id", profile.id)
