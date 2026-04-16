@@ -39,7 +39,7 @@ export function NavMain({
             const isActive =
               item.url === "/dashboard"
                 ? activeUrl === "/dashboard"
-                : activeUrl.startsWith(item.url)
+                : activeUrl?.startsWith(item.url) ?? false
 
             return (
               <SidebarMenuItem key={item.title}>
