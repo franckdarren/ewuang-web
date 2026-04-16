@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Plus, Users, Store, Truck, Shield } from "lucide-react";
 import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 import { UsersTable } from "@/components/users/users-table";
 import { UserFormModal } from "@/components/users/user-form-modal";
 import { is } from 'zod/v4/locales';
@@ -60,6 +61,7 @@ export default function UsersPage() {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
     const [userToDelete, setUserToDelete] = React.useState<User | undefined>(undefined);
     const [isSubmitting, setIsSubmitting] = React.useState(false);
+    const [isInitialLoading, setIsInitialLoading] = React.useState(true);
 
     // ========== EFFECTS ==========
 
@@ -67,7 +69,7 @@ export default function UsersPage() {
      * Charge les utilisateurs au montage du composant
      */
     React.useEffect(() => {
-        fetchUsers();
+        fetchUsers().finally(() => setIsInitialLoading(false));
     }, [fetchUsers]);
 
     // ========== HANDLERS ==========
@@ -152,6 +154,50 @@ export default function UsersPage() {
     // };
 
     // ========== RENDER ==========
+
+    if (isInitialLoading) {
+        return (
+            <div className="flex flex-col gap-6 p-6">
+                {/* Skeleton en-tête */}
+                <div className="flex items-center justify-between">
+                    <div className="space-y-2">
+                        <Skeleton className="h-9 w-44" />
+                        <Skeleton className="h-4 w-72" />
+                    </div>
+                    <Skeleton className="h-10 w-44" />
+                </div>
+
+                {/* Skeleton stats x4 */}
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                        <Card key={i}>
+                            <CardHeader className="pb-2">
+                                <Skeleton className="h-4 w-36" />
+                                <Skeleton className="h-9 w-16 mt-1" />
+                            </CardHeader>
+                            <CardContent>
+                                <Skeleton className="h-4 w-28" />
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+
+                {/* Skeleton tableau */}
+                <Card>
+                    <CardHeader>
+                        <Skeleton className="h-6 w-44" />
+                        <Skeleton className="h-4 w-64 mt-1" />
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                        <Skeleton className="h-10 w-full" />
+                        {Array.from({ length: 6 }).map((_, i) => (
+                            <Skeleton key={i} className="h-14 w-full" />
+                        ))}
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col gap-6 p-6">
