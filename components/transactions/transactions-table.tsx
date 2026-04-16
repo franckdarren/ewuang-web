@@ -95,6 +95,8 @@ const getStatutConfig = (statut: PaiementStatut) => {
             return { label: 'Échoué', variant: 'destructive' as const, icon: XCircle, className: '' };
         case 'rembourse':
             return { label: 'Remboursé', variant: 'outline' as const, icon: RefreshCcw, className: 'text-orange-600 border-orange-600' };
+        default:
+            return { label: statut ?? 'Inconnu', variant: 'secondary' as const, icon: Clock, className: '' };
     }
 };
 
