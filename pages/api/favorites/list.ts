@@ -75,7 +75,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             is_promotion,
             pourcentage_reduction,
             image_principale,
-            categorie,
+            categorie_id,
             made_in_gabon,
             users!user_id (id, name, url_logo)
         )
