@@ -25,7 +25,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const { id } = paramsSchema.parse(req.query);
         const { data: articles, error } = await supabaseAdmin
             .from("articles")
-            .select("*, variations(*), image_articles(*)")
+            .select(`
+                *,
+                variations(*),
+                image_articles!article_id(*),
+                categories!categorie_id(id, nom)
+            `)
             .eq("user_id", id)
             .order("created_at", { ascending: false });
 
