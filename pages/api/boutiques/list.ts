@@ -4,13 +4,13 @@ import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
 
 /**
  * @swagger
- * /api/users/list:
+ * /api/boutique/list:
  *   get:
  *     summary: Liste tous les utilisateurs avec rôle Boutique et leurs détails auth + public
  *     description: >
  *       Récupère la liste de tous les utilisateurs dont le rôle est "Boutique", avec leurs détails dans la table `public.users`.
  *       La route est sécurisée et nécessite un token Bearer valide.
- *     tags: [Users]
+ *     tags: [Boutiques]
  *     security:
  *       - bearerAuth: []
  *     responses:

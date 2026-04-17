@@ -4,13 +4,13 @@ import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
 
 /**
  * @swagger
- * /api/users/list:
+ * /api/livreurs/list:
  *   get:
  *     summary: Liste tous les utilisateurs avec rôle Livreur et leurs détails auth + public
  *     description: >
  *       Récupère la liste de tous les utilisateurs dont le rôle est "Livreur", avec leurs détails dans la table `public.users`.
  *       La route est sécurisée et nécessite un token Bearer valide.
- *     tags: [Users]
+ *     tags: [Livreurs]
  *     security:
  *       - bearerAuth: []
  *     responses:
