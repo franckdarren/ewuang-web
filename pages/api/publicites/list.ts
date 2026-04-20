@@ -17,11 +17,14 @@ import { supabaseAdmin } from "../../../app/lib/supabaseAdmin";
  *         description: Erreur serveur
  */
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(_req: NextApiRequest, res: NextApiResponse) {
     try {
         const { data, error } = await supabaseAdmin.from("publicites").select("*").order("created_at", { ascending: false });
 
-        if (error) return res.status(500).json({ error: "Impossible de charger les publicités" });
+        if (error) {
+            console.error("Supabase publicites error:", JSON.stringify(error));
+            return res.status(500).json({ error: "Impossible de charger les publicités", detail: error.message });
+        }
 
         return res.status(200).json({ publicites: data });
     } catch (e) {
