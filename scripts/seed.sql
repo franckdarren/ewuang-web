@@ -88,7 +88,21 @@ VALUES
 
   -- Sous-catégories Beauté
   ('10000000-0000-0000-0000-000000000041', 'Soins Visage',          'beaute-visage',         'Crèmes, sérums, masques visage',                   'https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=400', '10000000-0000-0000-0000-000000000004', true, 1, NOW(), NOW()),
-  ('10000000-0000-0000-0000-000000000042', 'Parfums',               'beaute-parfums',        'Eau de parfum et eau de toilette',                 'https://images.unsplash.com/photo-1563170351-be82bc888aa4?w=400', '10000000-0000-0000-0000-000000000004', true, 2, NOW(), NOW());
+  ('10000000-0000-0000-0000-000000000042', 'Parfums',               'beaute-parfums',        'Eau de parfum et eau de toilette',                 'https://images.unsplash.com/photo-1563170351-be82bc888aa4?w=400', '10000000-0000-0000-0000-000000000004', true, 2, NOW(), NOW()),
+
+  -- Sous-catégories Sport & Loisirs
+  ('10000000-0000-0000-0000-000000000051', 'Fitness & Musculation', 'sport-fitness',         'Équipements de fitness et musculation',            'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=400', '10000000-0000-0000-0000-000000000005', true, 1, NOW(), NOW()),
+  ('10000000-0000-0000-0000-000000000052', 'Sports Collectifs',     'sport-collectifs',      'Football, basket, volley et accessoires',          'https://images.unsplash.com/photo-1517649763962-0c623066013b?w=400', '10000000-0000-0000-0000-000000000005', true, 2, NOW(), NOW()),
+
+  -- Nouvelle catégorie parente : Alimentation & Boissons
+  ('10000000-0000-0000-0000-000000000006', 'Alimentation & Boissons','alimentation',         'Épicerie locale, produits du terroir et boissons','https://images.unsplash.com/photo-1542838132-92c53300491e?w=400', NULL,                                   true, 6, NOW(), NOW()),
+  ('10000000-0000-0000-0000-000000000061', 'Épicerie Locale',       'alimentation-epicerie', 'Produits gabonais, épices, condiments',            'https://images.unsplash.com/photo-1606787366850-de6330128bfc?w=400', '10000000-0000-0000-0000-000000000006', true, 1, NOW(), NOW()),
+  ('10000000-0000-0000-0000-000000000062', 'Boissons',              'alimentation-boissons', 'Jus naturels, sodas, boissons traditionnelles',    'https://images.unsplash.com/photo-1544145945-f90425340c7e?w=400', '10000000-0000-0000-0000-000000000006', true, 2, NOW(), NOW()),
+
+  -- Nouvelle catégorie parente : Bébé & Enfant
+  ('10000000-0000-0000-0000-000000000007', 'Bébé & Enfant',         'bebe-enfant',           'Articles pour bébés et enfants',                   'https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=400', NULL,                                   true, 7, NOW(), NOW()),
+  ('10000000-0000-0000-0000-000000000071', 'Vêtements Bébé',        'bebe-vetements',        'Bodies, pyjamas et vêtements pour bébé',           'https://images.unsplash.com/photo-1522771930-78848d9293e8?w=400', '10000000-0000-0000-0000-000000000007', true, 1, NOW(), NOW()),
+  ('10000000-0000-0000-0000-000000000072', 'Jouets',                'bebe-jouets',           'Jouets éducatifs et de divertissement',            'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=400', '10000000-0000-0000-0000-000000000007', true, 2, NOW(), NOW());
 
 -- ============================================================
 -- 4. ARTICLES + VARIATIONS + IMAGES + STOCKS
@@ -100,9 +114,9 @@ VALUES
 INSERT INTO articles (id, nom, description, prix, prix_promotion, is_promotion, pourcentage_reduction, made_in_gabon, user_id, categorie_id, image_principale, is_active, created_at, updated_at)
 VALUES ('20000000-0000-0000-0000-000000000001', 'Samsung Galaxy A54 5G 128GB', 'Smartphone Samsung Galaxy A54 avec écran Super AMOLED 6.4", puce Exynos 1380, 5G et batterie 5000mAh.', 285000, 265000, true, 7, false, '00000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000011', 'https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=500', true, NOW() - INTERVAL '60 days', NOW());
 INSERT INTO variations (id, article_id, couleur, taille, stock, prix, image, created_at, updated_at) VALUES
-  (gen_random_uuid(), '20000000-0000-0000-0000-000000000001', 'Noir',    NULL, 25, NULL, 'https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=300', NOW(), NOW()),
-  (gen_random_uuid(), '20000000-0000-0000-0000-000000000001', 'Blanc',   NULL, 18, NULL, 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=300', NOW(), NOW()),
-  (gen_random_uuid(), '20000000-0000-0000-0000-000000000001', 'Violet',  NULL, 12, NULL, 'https://images.unsplash.com/photo-1574920162043-b872873f19bc?w=300', NOW(), NOW());
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000001', 'Noir',    NULL, 25, 285000, 'https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=300', NOW(), NOW()),
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000001', 'Blanc',   NULL, 18, 285000, 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=300', NOW(), NOW()),
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000001', 'Violet',  NULL, 12, 285000, 'https://images.unsplash.com/photo-1574920162043-b872873f19bc?w=300', NOW(), NOW());
 INSERT INTO image_articles (id, url_photo, article_id) VALUES
   (gen_random_uuid(), 'https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=800', '20000000-0000-0000-0000-000000000001'),
   (gen_random_uuid(), 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=800', '20000000-0000-0000-0000-000000000001');
@@ -111,8 +125,8 @@ INSERT INTO image_articles (id, url_photo, article_id) VALUES
 INSERT INTO articles (id, nom, description, prix, prix_promotion, is_promotion, pourcentage_reduction, made_in_gabon, user_id, categorie_id, image_principale, is_active, created_at, updated_at)
 VALUES ('20000000-0000-0000-0000-000000000002', 'HP Pavilion 15 Core i5 512GB SSD', 'Laptop HP avec Intel Core i5 11ème gen, 8GB RAM, SSD 512GB, écran FHD 15.6" et Windows 11.', 650000, NULL, false, 0, false, '00000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000012', 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=500', true, NOW() - INTERVAL '55 days', NOW());
 INSERT INTO variations (id, article_id, couleur, taille, stock, prix, image, created_at, updated_at) VALUES
-  (gen_random_uuid(), '20000000-0000-0000-0000-000000000002', 'Argent', NULL, 8,  NULL, 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=300', NOW(), NOW()),
-  (gen_random_uuid(), '20000000-0000-0000-0000-000000000002', 'Gris',   NULL, 10, NULL, 'https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?w=300', NOW(), NOW());
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000002', 'Argent', NULL, 8,  650000, 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=300', NOW(), NOW()),
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000002', 'Gris',   NULL, 10, 650000, 'https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?w=300', NOW(), NOW());
 INSERT INTO image_articles (id, url_photo, article_id) VALUES
   (gen_random_uuid(), 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800', '20000000-0000-0000-0000-000000000002'),
   (gen_random_uuid(), 'https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?w=800', '20000000-0000-0000-0000-000000000002');
@@ -121,8 +135,8 @@ INSERT INTO image_articles (id, url_photo, article_id) VALUES
 INSERT INTO articles (id, nom, description, prix, prix_promotion, is_promotion, pourcentage_reduction, made_in_gabon, user_id, categorie_id, image_principale, is_active, created_at, updated_at)
 VALUES ('20000000-0000-0000-0000-000000000003', 'Sony WH-1000XM5 – Casque Bluetooth', 'Casque Sony avec réduction de bruit active, autonomie 30h, qualité audio Hi-Res et connexion multipoint.', 195000, 175000, true, 10, false, '00000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000013', 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500', true, NOW() - INTERVAL '45 days', NOW());
 INSERT INTO variations (id, article_id, couleur, taille, stock, prix, image, created_at, updated_at) VALUES
-  (gen_random_uuid(), '20000000-0000-0000-0000-000000000003', 'Noir',  NULL, 20, NULL, 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300', NOW(), NOW()),
-  (gen_random_uuid(), '20000000-0000-0000-0000-000000000003', 'Blanc', NULL, 15, NULL, 'https://images.unsplash.com/photo-1583394838336-acd977736f90?w=300', NOW(), NOW());
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000003', 'Noir',  NULL, 20, 195000, 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300', NOW(), NOW()),
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000003', 'Blanc', NULL, 15, 195000, 'https://images.unsplash.com/photo-1583394838336-acd977736f90?w=300', NOW(), NOW());
 INSERT INTO image_articles (id, url_photo, article_id) VALUES
   (gen_random_uuid(), 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800', '20000000-0000-0000-0000-000000000003');
 
@@ -132,10 +146,10 @@ INSERT INTO image_articles (id, url_photo, article_id) VALUES
 INSERT INTO articles (id, nom, description, prix, prix_promotion, is_promotion, pourcentage_reduction, made_in_gabon, user_id, categorie_id, image_principale, is_active, created_at, updated_at)
 VALUES ('20000000-0000-0000-0000-000000000004', 'Chemise Batik Africain – Homme', 'Chemise en tissu batik 100% coton, coupe ajustée, motifs africains colorés. Fabriquée au Gabon.', 35000, NULL, false, 0, true, '00000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000021', 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=500', true, NOW() - INTERVAL '40 days', NOW());
 INSERT INTO variations (id, article_id, couleur, taille, stock, prix, image, created_at, updated_at) VALUES
-  (gen_random_uuid(), '20000000-0000-0000-0000-000000000004', 'Multicolore', 'S',  15, NULL, 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=300', NOW(), NOW()),
-  (gen_random_uuid(), '20000000-0000-0000-0000-000000000004', 'Multicolore', 'M',  22, NULL, 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=300', NOW(), NOW()),
-  (gen_random_uuid(), '20000000-0000-0000-0000-000000000004', 'Multicolore', 'L',  18, NULL, 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=300', NOW(), NOW()),
-  (gen_random_uuid(), '20000000-0000-0000-0000-000000000004', 'Multicolore', 'XL', 10, NULL, 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=300', NOW(), NOW());
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000004', 'Multicolore', 'S',  15, 35000, 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=300', NOW(), NOW()),
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000004', 'Multicolore', 'M',  22, 35000, 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=300', NOW(), NOW()),
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000004', 'Multicolore', 'L',  18, 35000, 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=300', NOW(), NOW()),
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000004', 'Multicolore', 'XL', 10, 35000, 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=300', NOW(), NOW());
 INSERT INTO image_articles (id, url_photo, article_id) VALUES
   (gen_random_uuid(), 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=800', '20000000-0000-0000-0000-000000000004');
 
@@ -143,10 +157,10 @@ INSERT INTO image_articles (id, url_photo, article_id) VALUES
 INSERT INTO articles (id, nom, description, prix, prix_promotion, is_promotion, pourcentage_reduction, made_in_gabon, user_id, categorie_id, image_principale, is_active, created_at, updated_at)
 VALUES ('20000000-0000-0000-0000-000000000005', 'Robe Wax Africaine – Femme', 'Robe longue en tissu wax authentique, motifs géométriques, fermeture zip dans le dos. Couture locale gabonaise.', 42000, 36000, true, 14, true, '00000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000022', 'https://images.unsplash.com/photo-1612336307429-8a898d10e223?w=500', true, NOW() - INTERVAL '35 days', NOW());
 INSERT INTO variations (id, article_id, couleur, taille, stock, prix, image, created_at, updated_at) VALUES
-  (gen_random_uuid(), '20000000-0000-0000-0000-000000000005', 'Bleu/Jaune', 'S',  12, NULL, 'https://images.unsplash.com/photo-1612336307429-8a898d10e223?w=300', NOW(), NOW()),
-  (gen_random_uuid(), '20000000-0000-0000-0000-000000000005', 'Bleu/Jaune', 'M',  20, NULL, 'https://images.unsplash.com/photo-1612336307429-8a898d10e223?w=300', NOW(), NOW()),
-  (gen_random_uuid(), '20000000-0000-0000-0000-000000000005', 'Rouge/Noir', 'M',  8,  NULL, 'https://images.unsplash.com/photo-1580612753390-c0a0-4b8c-8e4c-5d7b8e44f5b3?w=300', NOW(), NOW()),
-  (gen_random_uuid(), '20000000-0000-0000-0000-000000000005', 'Rouge/Noir', 'L',  6,  NULL, 'https://images.unsplash.com/photo-1580612753390-c0a0-4b8c-8e4c-5d7b8e44f5b3?w=300', NOW(), NOW());
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000005', 'Bleu/Jaune', 'S',  12, 42000, 'https://images.unsplash.com/photo-1612336307429-8a898d10e223?w=300', NOW(), NOW()),
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000005', 'Bleu/Jaune', 'M',  20, 42000, 'https://images.unsplash.com/photo-1612336307429-8a898d10e223?w=300', NOW(), NOW()),
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000005', 'Rouge/Noir', 'M',  8,  42000, 'https://images.unsplash.com/photo-1580612753390-c0a0-4b8c-8e4c-5d7b8e44f5b3?w=300', NOW(), NOW()),
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000005', 'Rouge/Noir', 'L',  6,  42000, 'https://images.unsplash.com/photo-1580612753390-c0a0-4b8c-8e4c-5d7b8e44f5b3?w=300', NOW(), NOW());
 INSERT INTO image_articles (id, url_photo, article_id) VALUES
   (gen_random_uuid(), 'https://images.unsplash.com/photo-1612336307429-8a898d10e223?w=800', '20000000-0000-0000-0000-000000000005');
 
@@ -154,11 +168,11 @@ INSERT INTO image_articles (id, url_photo, article_id) VALUES
 INSERT INTO articles (id, nom, description, prix, prix_promotion, is_promotion, pourcentage_reduction, made_in_gabon, user_id, categorie_id, image_principale, is_active, created_at, updated_at)
 VALUES ('20000000-0000-0000-0000-000000000006', 'Nike Air Max 270 – Sneakers', 'Chaussures de sport Nike Air Max 270 avec semelle Air visible, amorti maximal et style streetwear.', 115000, 98000, true, 15, false, '00000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000023', 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500', true, NOW() - INTERVAL '30 days', NOW());
 INSERT INTO variations (id, article_id, couleur, taille, stock, prix, image, created_at, updated_at) VALUES
-  (gen_random_uuid(), '20000000-0000-0000-0000-000000000006', 'Noir/Blanc', '40', 8,  NULL, 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=300', NOW(), NOW()),
-  (gen_random_uuid(), '20000000-0000-0000-0000-000000000006', 'Noir/Blanc', '41', 12, NULL, 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=300', NOW(), NOW()),
-  (gen_random_uuid(), '20000000-0000-0000-0000-000000000006', 'Noir/Blanc', '42', 15, NULL, 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=300', NOW(), NOW()),
-  (gen_random_uuid(), '20000000-0000-0000-0000-000000000006', 'Blanc/Rouge','42', 10, NULL, 'https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=300', NOW(), NOW()),
-  (gen_random_uuid(), '20000000-0000-0000-0000-000000000006', 'Blanc/Rouge','43', 7,  NULL, 'https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=300', NOW(), NOW());
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000006', 'Noir/Blanc', '40', 8,  115000, 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=300', NOW(), NOW()),
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000006', 'Noir/Blanc', '41', 12, 115000, 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=300', NOW(), NOW()),
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000006', 'Noir/Blanc', '42', 15, 115000, 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=300', NOW(), NOW()),
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000006', 'Blanc/Rouge','42', 10, 115000, 'https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=300', NOW(), NOW()),
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000006', 'Blanc/Rouge','43', 7,  115000, 'https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=300', NOW(), NOW());
 INSERT INTO image_articles (id, url_photo, article_id) VALUES
   (gen_random_uuid(), 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800', '20000000-0000-0000-0000-000000000006'),
   (gen_random_uuid(), 'https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=800', '20000000-0000-0000-0000-000000000006');
@@ -169,8 +183,8 @@ INSERT INTO image_articles (id, url_photo, article_id) VALUES
 INSERT INTO articles (id, nom, description, prix, prix_promotion, is_promotion, pourcentage_reduction, made_in_gabon, user_id, categorie_id, image_principale, is_active, created_at, updated_at)
 VALUES ('20000000-0000-0000-0000-000000000007', 'Canapé 3 Places Tissu Gris', 'Canapé moderne 3 places en tissu résistant, pieds métal chromé, confort optimal pour votre salon.', 320000, NULL, false, 0, false, '00000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000031', 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=500', true, NOW() - INTERVAL '50 days', NOW());
 INSERT INTO variations (id, article_id, couleur, taille, stock, prix, image, created_at, updated_at) VALUES
-  (gen_random_uuid(), '20000000-0000-0000-0000-000000000007', 'Gris',  NULL, 5, NULL, 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=300', NOW(), NOW()),
-  (gen_random_uuid(), '20000000-0000-0000-0000-000000000007', 'Beige', NULL, 3, NULL, 'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=300', NOW(), NOW());
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000007', 'Gris',  NULL, 5, 320000, 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=300', NOW(), NOW()),
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000007', 'Beige', NULL, 3, 320000, 'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=300', NOW(), NOW());
 INSERT INTO image_articles (id, url_photo, article_id) VALUES
   (gen_random_uuid(), 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800', '20000000-0000-0000-0000-000000000007');
 
@@ -178,7 +192,7 @@ INSERT INTO image_articles (id, url_photo, article_id) VALUES
 INSERT INTO articles (id, nom, description, prix, prix_promotion, is_promotion, pourcentage_reduction, made_in_gabon, user_id, categorie_id, image_principale, is_active, created_at, updated_at)
 VALUES ('20000000-0000-0000-0000-000000000008', 'Machine à Laver Samsung 7kg Front', 'Lave-linge frontal Samsung 7kg, classe A+++, 1400 tours/min, programmes eco et silence.', 480000, 450000, true, 6, false, '00000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000032', 'https://images.unsplash.com/photo-1610557892470-55d9e80c0bce?w=500', true, NOW() - INTERVAL '42 days', NOW());
 INSERT INTO variations (id, article_id, couleur, taille, stock, prix, image, created_at, updated_at) VALUES
-  (gen_random_uuid(), '20000000-0000-0000-0000-000000000008', 'Blanc', '7kg', 6, NULL, 'https://images.unsplash.com/photo-1610557892470-55d9e80c0bce?w=300', NOW(), NOW());
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000008', 'Blanc', '7kg', 6, 480000, 'https://images.unsplash.com/photo-1610557892470-55d9e80c0bce?w=300', NOW(), NOW());
 INSERT INTO image_articles (id, url_photo, article_id) VALUES
   (gen_random_uuid(), 'https://images.unsplash.com/photo-1610557892470-55d9e80c0bce?w=800', '20000000-0000-0000-0000-000000000008');
 
@@ -188,7 +202,7 @@ INSERT INTO image_articles (id, url_photo, article_id) VALUES
 INSERT INTO articles (id, nom, description, prix, prix_promotion, is_promotion, pourcentage_reduction, made_in_gabon, user_id, categorie_id, image_principale, is_active, created_at, updated_at)
 VALUES ('20000000-0000-0000-0000-000000000009', 'Crème Hydratante Karité & Aloe Vera', 'Crème visage et corps à base de beurre de karité pur et gel d''aloe vera bio. Peau douce et lumineuse. Fabriquée au Gabon.', 12500, NULL, false, 0, true, '00000000-0000-0000-0000-000000000005', '10000000-0000-0000-0000-000000000041', 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=500', true, NOW() - INTERVAL '28 days', NOW());
 INSERT INTO variations (id, article_id, couleur, taille, stock, prix, image, created_at, updated_at) VALUES
-  (gen_random_uuid(), '20000000-0000-0000-0000-000000000009', NULL, '200ml', 40, NULL, 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=300', NOW(), NOW()),
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000009', NULL, '200ml', 40, 12500, 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=300', NOW(), NOW()),
   (gen_random_uuid(), '20000000-0000-0000-0000-000000000009', NULL, '500ml', 25, 19000, 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=300', NOW(), NOW());
 INSERT INTO image_articles (id, url_photo, article_id) VALUES
   (gen_random_uuid(), 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=800', '20000000-0000-0000-0000-000000000009');
@@ -197,10 +211,139 @@ INSERT INTO image_articles (id, url_photo, article_id) VALUES
 INSERT INTO articles (id, nom, description, prix, prix_promotion, is_promotion, pourcentage_reduction, made_in_gabon, user_id, categorie_id, image_principale, is_active, created_at, updated_at)
 VALUES ('20000000-0000-0000-0000-000000000010', 'Dior Sauvage Eau de Parfum 100ml', 'Fragrance masculine emblématique Dior Sauvage, notes fraiches et boisées, longue tenue 24h.', 125000, 110000, true, 12, false, '00000000-0000-0000-0000-000000000005', '10000000-0000-0000-0000-000000000042', 'https://images.unsplash.com/photo-1563170351-be82bc888aa4?w=500', true, NOW() - INTERVAL '20 days', NOW());
 INSERT INTO variations (id, article_id, couleur, taille, stock, prix, image, created_at, updated_at) VALUES
-  (gen_random_uuid(), '20000000-0000-0000-0000-000000000010', NULL, '100ml', 15, NULL, 'https://images.unsplash.com/photo-1563170351-be82bc888aa4?w=300', NOW(), NOW()),
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000010', NULL, '100ml', 15, 125000, 'https://images.unsplash.com/photo-1563170351-be82bc888aa4?w=300', NOW(), NOW()),
   (gen_random_uuid(), '20000000-0000-0000-0000-000000000010', NULL, '60ml',  20, 85000, 'https://images.unsplash.com/photo-1563170351-be82bc888aa4?w=300', NOW(), NOW());
 INSERT INTO image_articles (id, url_photo, article_id) VALUES
   (gen_random_uuid(), 'https://images.unsplash.com/photo-1563170351-be82bc888aa4?w=800', '20000000-0000-0000-0000-000000000010');
+
+-- === SPORT & LOISIRS ===
+
+-- Article 11 : Haltères réglables
+INSERT INTO articles (id, nom, description, prix, prix_promotion, is_promotion, pourcentage_reduction, made_in_gabon, user_id, categorie_id, image_principale, is_active, created_at, updated_at)
+VALUES ('20000000-0000-0000-0000-000000000011', 'Haltères Réglables – Paire 10/20kg', 'Paire d''haltères réglables en acier chromé avec revêtement antidérapant. Idéal pour la musculation à domicile.', 85000, 75000, true, 12, false, '00000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000051', 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=500', true, NOW() - INTERVAL '15 days', NOW());
+INSERT INTO variations (id, article_id, couleur, taille, stock, prix, image, created_at, updated_at) VALUES
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000011', 'Noir', '10kg', 20, 45000, 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=300', NOW(), NOW()),
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000011', 'Noir', '20kg', 12, 85000, 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=300', NOW(), NOW());
+INSERT INTO image_articles (id, url_photo, article_id) VALUES
+  (gen_random_uuid(), 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800', '20000000-0000-0000-0000-000000000011');
+
+-- Article 12 : Ballon de Football
+INSERT INTO articles (id, nom, description, prix, prix_promotion, is_promotion, pourcentage_reduction, made_in_gabon, user_id, categorie_id, image_principale, is_active, created_at, updated_at)
+VALUES ('20000000-0000-0000-0000-000000000012', 'Ballon de Football Adidas Taille 5', 'Ballon officiel Adidas, taille 5 (adulte), résistant et certifié FIFA Quality. Parfait pour les matchs et l''entraînement.', 18000, NULL, false, 0, false, '00000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000052', 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=500', true, NOW() - INTERVAL '10 days', NOW());
+INSERT INTO variations (id, article_id, couleur, taille, stock, prix, image, created_at, updated_at) VALUES
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000012', 'Blanc/Noir', '5', 30, 18000, 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=300', NOW(), NOW()),
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000012', 'Blanc/Rouge', '4', 25, 14000, 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=300', NOW(), NOW());
+INSERT INTO image_articles (id, url_photo, article_id) VALUES
+  (gen_random_uuid(), 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800', '20000000-0000-0000-0000-000000000012');
+
+-- === ALIMENTATION & BOISSONS ===
+
+-- Article 13 : Épices du Gabon
+INSERT INTO articles (id, nom, description, prix, prix_promotion, is_promotion, pourcentage_reduction, made_in_gabon, user_id, categorie_id, image_principale, is_active, created_at, updated_at)
+VALUES ('20000000-0000-0000-0000-000000000013', 'Assortiment Épices du Gabon – 5 sachets', 'Mélange d''épices locales gabonaises : bâtons de cannelle, poivre de Guinée, mboula, ndomba et massep. 100% naturel, sans additifs.', 8500, NULL, false, 0, true, '00000000-0000-0000-0000-000000000005', '10000000-0000-0000-0000-000000000061', 'https://images.unsplash.com/photo-1606787366850-de6330128bfc?w=500', true, NOW() - INTERVAL '12 days', NOW());
+INSERT INTO variations (id, article_id, couleur, taille, stock, prix, image, created_at, updated_at) VALUES
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000013', NULL, '5 sachets',  50, 8500,  'https://images.unsplash.com/photo-1606787366850-de6330128bfc?w=300', NOW(), NOW()),
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000013', NULL, '10 sachets', 30, 15000, 'https://images.unsplash.com/photo-1606787366850-de6330128bfc?w=300', NOW(), NOW());
+INSERT INTO image_articles (id, url_photo, article_id) VALUES
+  (gen_random_uuid(), 'https://images.unsplash.com/photo-1606787366850-de6330128bfc?w=800', '20000000-0000-0000-0000-000000000013');
+
+-- Article 14 : Jus naturel
+INSERT INTO articles (id, nom, description, prix, prix_promotion, is_promotion, pourcentage_reduction, made_in_gabon, user_id, categorie_id, image_principale, is_active, created_at, updated_at)
+VALUES ('20000000-0000-0000-0000-000000000014', 'Jus de Bissap & Gingembre 1L', 'Boisson naturelle à base de fleurs de bissap (hibiscus) et gingembre frais. Sans sucre ajouté, riche en antioxydants. Produit local gabonais.', 3500, NULL, false, 0, true, '00000000-0000-0000-0000-000000000005', '10000000-0000-0000-0000-000000000062', 'https://images.unsplash.com/photo-1544145945-f90425340c7e?w=500', true, NOW() - INTERVAL '8 days', NOW());
+INSERT INTO variations (id, article_id, couleur, taille, stock, prix, image, created_at, updated_at) VALUES
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000014', NULL, '1L', 80, 3500,  'https://images.unsplash.com/photo-1544145945-f90425340c7e?w=300', NOW(), NOW()),
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000014', NULL, '2L', 45, 6500,  'https://images.unsplash.com/photo-1544145945-f90425340c7e?w=300', NOW(), NOW()),
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000014', NULL, '5L', 20, 14000, 'https://images.unsplash.com/photo-1544145945-f90425340c7e?w=300', NOW(), NOW());
+INSERT INTO image_articles (id, url_photo, article_id) VALUES
+  (gen_random_uuid(), 'https://images.unsplash.com/photo-1544145945-f90425340c7e?w=800', '20000000-0000-0000-0000-000000000014');
+
+-- === BÉBÉ & ENFANT ===
+
+-- Article 15 : Bodies bébé
+INSERT INTO articles (id, nom, description, prix, prix_promotion, is_promotion, pourcentage_reduction, made_in_gabon, user_id, categorie_id, image_principale, is_active, created_at, updated_at)
+VALUES ('20000000-0000-0000-0000-000000000015', 'Pack 5 Bodies Bébé 0-6 mois', 'Lot de 5 bodies bébé en coton bio 100%, doux pour les peaux sensibles, fermeture pression. Lavable en machine. Fabriqué localement.', 15000, 12500, true, 17, true, '00000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000071', 'https://images.unsplash.com/photo-1522771930-78848d9293e8?w=500', true, NOW() - INTERVAL '6 days', NOW());
+INSERT INTO variations (id, article_id, couleur, taille, stock, prix, image, created_at, updated_at) VALUES
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000015', 'Blanc',      '0-3 mois', 35, 15000, 'https://images.unsplash.com/photo-1522771930-78848d9293e8?w=300', NOW(), NOW()),
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000015', 'Blanc',      '3-6 mois', 30, 15000, 'https://images.unsplash.com/photo-1522771930-78848d9293e8?w=300', NOW(), NOW()),
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000015', 'Multicolore','0-3 mois', 20, 15000, 'https://images.unsplash.com/photo-1522771930-78848d9293e8?w=300', NOW(), NOW()),
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000015', 'Multicolore','3-6 mois', 18, 15000, 'https://images.unsplash.com/photo-1522771930-78848d9293e8?w=300', NOW(), NOW());
+INSERT INTO image_articles (id, url_photo, article_id) VALUES
+  (gen_random_uuid(), 'https://images.unsplash.com/photo-1522771930-78848d9293e8?w=800', '20000000-0000-0000-0000-000000000015');
+
+-- Article 16 : Puzzle éducatif
+INSERT INTO articles (id, nom, description, prix, prix_promotion, is_promotion, pourcentage_reduction, made_in_gabon, user_id, categorie_id, image_principale, is_active, created_at, updated_at)
+VALUES ('20000000-0000-0000-0000-000000000016', 'Puzzle Éducatif Animaux d''Afrique 50 pièces', 'Puzzle en bois 50 pièces représentant les animaux d''Afrique. Pour enfants 3-8 ans. Peint avec peintures non toxiques. Fabriqué au Gabon.', 9500, NULL, false, 0, true, '00000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000072', 'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=500', true, NOW() - INTERVAL '4 days', NOW());
+INSERT INTO variations (id, article_id, couleur, taille, stock, prix, image, created_at, updated_at) VALUES
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000016', NULL, '50 pièces',  40, 9500,  'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=300', NOW(), NOW()),
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000016', NULL, '100 pièces', 25, 16000, 'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=300', NOW(), NOW());
+INSERT INTO image_articles (id, url_photo, article_id) VALUES
+  (gen_random_uuid(), 'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=800', '20000000-0000-0000-0000-000000000016');
+
+-- === NOUVEAUX PRODUITS MADE IN GABON ===
+
+-- Article 17 : Savon artisanal huile de palme (NOUVEAU)
+INSERT INTO articles (id, nom, description, prix, prix_promotion, is_promotion, pourcentage_reduction, made_in_gabon, user_id, categorie_id, image_principale, is_active, created_at, updated_at)
+VALUES ('20000000-0000-0000-0000-000000000017', 'Savon Artisanal Huile de Palme & Cacao', 'Savon 100% naturel fabriqué à Libreville à base d''huile de palme rouge et beurre de cacao bio. Sans produit chimique, idéal peaux sensibles.', 4500, NULL, false, 0, true, '00000000-0000-0000-0000-000000000005', '10000000-0000-0000-0000-000000000041', 'https://images.unsplash.com/photo-1600857062241-98e5dba7f025?w=500', true, NOW(), NOW());
+INSERT INTO variations (id, article_id, couleur, taille, stock, prix, image, created_at, updated_at) VALUES
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000017', NULL, '100g',      60, 4500,  'https://images.unsplash.com/photo-1600857062241-98e5dba7f025?w=300', NOW(), NOW()),
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000017', NULL, 'Pack x3',   40, 12000, 'https://images.unsplash.com/photo-1600857062241-98e5dba7f025?w=300', NOW(), NOW()),
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000017', NULL, 'Pack x6',   25, 22000, 'https://images.unsplash.com/photo-1600857062241-98e5dba7f025?w=300', NOW(), NOW());
+INSERT INTO image_articles (id, url_photo, article_id) VALUES
+  (gen_random_uuid(), 'https://images.unsplash.com/photo-1600857062241-98e5dba7f025?w=800', '20000000-0000-0000-0000-000000000017');
+
+-- Article 18 : Huile de coco vierge (NOUVEAU)
+INSERT INTO articles (id, nom, description, prix, prix_promotion, is_promotion, pourcentage_reduction, made_in_gabon, user_id, categorie_id, image_principale, is_active, created_at, updated_at)
+VALUES ('20000000-0000-0000-0000-000000000018', 'Huile de Coco Vierge Pressée à Froid 250ml', 'Huile de coco 100% pure extraite à froid, non raffinée. Usage cheveux, peau et cuisine. Produite artisanalement au Gabon.', 7500, 6500, true, 13, true, '00000000-0000-0000-0000-000000000005', '10000000-0000-0000-0000-000000000041', 'https://images.unsplash.com/photo-1590301157890-4810ed352733?w=500', true, NOW(), NOW());
+INSERT INTO variations (id, article_id, couleur, taille, stock, prix, image, created_at, updated_at) VALUES
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000018', NULL, '250ml', 45, 7500,  'https://images.unsplash.com/photo-1590301157890-4810ed352733?w=300', NOW(), NOW()),
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000018', NULL, '500ml', 30, 13500, 'https://images.unsplash.com/photo-1590301157890-4810ed352733?w=300', NOW(), NOW()),
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000018', NULL, '1L',    18, 24000, 'https://images.unsplash.com/photo-1590301157890-4810ed352733?w=300', NOW(), NOW());
+INSERT INTO image_articles (id, url_photo, article_id) VALUES
+  (gen_random_uuid(), 'https://images.unsplash.com/photo-1590301157890-4810ed352733?w=800', '20000000-0000-0000-0000-000000000018');
+
+-- Article 19 : T-shirt coton bio Gabon (NOUVEAU)
+INSERT INTO articles (id, nom, description, prix, prix_promotion, is_promotion, pourcentage_reduction, made_in_gabon, user_id, categorie_id, image_principale, is_active, created_at, updated_at)
+VALUES ('20000000-0000-0000-0000-000000000019', 'T-shirt Coton Bio – Motif Okapi du Gabon', 'T-shirt unisexe en coton biologique, imprimé d''un okapi stylisé. Coupe moderne, col rond. Cousu et imprimé localement à Libreville.', 18000, NULL, false, 0, true, '00000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000021', 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500', true, NOW(), NOW());
+INSERT INTO variations (id, article_id, couleur, taille, stock, prix, image, created_at, updated_at) VALUES
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000019', 'Blanc', 'S',  20, 18000, 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=300', NOW(), NOW()),
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000019', 'Blanc', 'M',  30, 18000, 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=300', NOW(), NOW()),
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000019', 'Blanc', 'L',  25, 18000, 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=300', NOW(), NOW()),
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000019', 'Noir',  'S',  15, 18000, 'https://images.unsplash.com/photo-1503341504253-dff4815485f1?w=300', NOW(), NOW()),
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000019', 'Noir',  'M',  22, 18000, 'https://images.unsplash.com/photo-1503341504253-dff4815485f1?w=300', NOW(), NOW()),
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000019', 'Noir',  'L',  18, 18000, 'https://images.unsplash.com/photo-1503341504253-dff4815485f1?w=300', NOW(), NOW());
+INSERT INTO image_articles (id, url_photo, article_id) VALUES
+  (gen_random_uuid(), 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800', '20000000-0000-0000-0000-000000000019'),
+  (gen_random_uuid(), 'https://images.unsplash.com/photo-1503341504253-dff4815485f1?w=800', '20000000-0000-0000-0000-000000000019');
+
+-- Article 20 : Sculpture en bois d'Okoumé (NOUVEAU)
+INSERT INTO articles (id, nom, description, prix, prix_promotion, is_promotion, pourcentage_reduction, made_in_gabon, user_id, categorie_id, image_principale, is_active, created_at, updated_at)
+VALUES ('20000000-0000-0000-0000-000000000020', 'Sculpture en Bois d''Okoumé – Masque Traditionnel', 'Masque traditionnel gabonais sculpté à la main dans du bois d''okoumé massif. Pièce unique signée par un artisan de Port-Gentil. Décoration ou collection.', 55000, 48000, true, 13, true, '00000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000031', 'https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?w=500', true, NOW(), NOW());
+INSERT INTO variations (id, article_id, couleur, taille, stock, prix, image, created_at, updated_at) VALUES
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000020', 'Naturel',  'Petit (20cm)',  12, 55000, 'https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?w=300', NOW(), NOW()),
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000020', 'Naturel',  'Grand (35cm)',  6,  85000, 'https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?w=300', NOW(), NOW()),
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000020', 'Peint',    'Petit (20cm)',  8,  62000, 'https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?w=300', NOW(), NOW());
+INSERT INTO image_articles (id, url_photo, article_id) VALUES
+  (gen_random_uuid(), 'https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?w=800', '20000000-0000-0000-0000-000000000020');
+
+-- Article 21 : Tisane plantes du Gabon (NOUVEAU)
+INSERT INTO articles (id, nom, description, prix, prix_promotion, is_promotion, pourcentage_reduction, made_in_gabon, user_id, categorie_id, image_principale, is_active, created_at, updated_at)
+VALUES ('20000000-0000-0000-0000-000000000021', 'Tisane Détox Plantes du Gabon – 20 sachets', 'Mélange de plantes médicinales gabonaises : iboga, écorce de quinquina local, feuilles de neem. Détox et bien-être. Conditionnement artisanal.', 6000, NULL, false, 0, true, '00000000-0000-0000-0000-000000000005', '10000000-0000-0000-0000-000000000061', 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=500', true, NOW(), NOW());
+INSERT INTO variations (id, article_id, couleur, taille, stock, prix, image, created_at, updated_at) VALUES
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000021', NULL, '20 sachets', 55, 6000,  'https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=300', NOW(), NOW()),
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000021', NULL, '40 sachets', 30, 11000, 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=300', NOW(), NOW());
+INSERT INTO image_articles (id, url_photo, article_id) VALUES
+  (gen_random_uuid(), 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=800', '20000000-0000-0000-0000-000000000021');
+
+-- Article 22 : Pagne tissé main (NOUVEAU)
+INSERT INTO articles (id, nom, description, prix, prix_promotion, is_promotion, pourcentage_reduction, made_in_gabon, user_id, categorie_id, image_principale, is_active, created_at, updated_at)
+VALUES ('20000000-0000-0000-0000-000000000022', 'Pagne Tissé Main – Motifs Fang', 'Pagne 2m x 1,20m tissé à la main par des artisanes gabonaises, motifs géométriques Fang aux couleurs vives. Chaque pièce est unique.', 28000, NULL, false, 0, true, '00000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000022', 'https://images.unsplash.com/photo-1614948844836-94a7dbb50adf?w=500', true, NOW(), NOW());
+INSERT INTO variations (id, article_id, couleur, taille, stock, prix, image, created_at, updated_at) VALUES
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000022', 'Rouge/Or',    '2m x 1,20m', 15, 28000, 'https://images.unsplash.com/photo-1614948844836-94a7dbb50adf?w=300', NOW(), NOW()),
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000022', 'Bleu/Blanc',  '2m x 1,20m', 12, 28000, 'https://images.unsplash.com/photo-1614948844836-94a7dbb50adf?w=300', NOW(), NOW()),
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000022', 'Vert/Jaune',  '2m x 1,20m', 10, 28000, 'https://images.unsplash.com/photo-1614948844836-94a7dbb50adf?w=300', NOW(), NOW()),
+  (gen_random_uuid(), '20000000-0000-0000-0000-000000000022', 'Multicolore', '4m x 1,20m', 8,  52000, 'https://images.unsplash.com/photo-1614948844836-94a7dbb50adf?w=300', NOW(), NOW());
+INSERT INTO image_articles (id, url_photo, article_id) VALUES
+  (gen_random_uuid(), 'https://images.unsplash.com/photo-1614948844836-94a7dbb50adf?w=800', '20000000-0000-0000-0000-000000000022');
 
 -- ============================================================
 -- 5. PAIEMENTS
