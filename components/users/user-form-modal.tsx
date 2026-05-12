@@ -56,10 +56,7 @@ const baseSchema = z.object({
 const createSchema = baseSchema.superRefine((data, ctx) => {
     if (!data.password || data.password.length < 6) {
         ctx.addIssue({
-            code: z.ZodIssueCode.too_small,
-            minimum: 6,
-            type: "string",
-            inclusive: true,
+            code: z.ZodIssueCode.custom,
             message: "Le mot de passe doit contenir au moins 6 caractères",
             path: ["password"],
         });
