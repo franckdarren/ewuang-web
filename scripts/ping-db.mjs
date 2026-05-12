@@ -15,7 +15,7 @@ async function pingDatabase() {
 
   // Utilisons une table réelle de votre base
   const { data, error } = await supabase
-    .from('articles') // ⚠️ À modifier
+    .from('articles')
     .select('id')
     .limit(1);
 
