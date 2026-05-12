@@ -80,7 +80,7 @@ export function UserFormModal({
     const createUser = useUsersStore((s) => s.createUser);
 
     const form = useForm<FormValues>({
-        resolver: zodResolver(isEditing ? editSchema : createSchema),
+        resolver: zodResolver(createSchema),
         defaultValues: {
             name: user?.name || "",
             email: user?.email || "",
@@ -135,7 +135,7 @@ export function UserFormModal({
 
             const result = await createUser({
                 email: data.email,
-                password: data.password,
+                password,
                 name: data.name,
                 role: data.role,
                 phone: data.phone || undefined,
@@ -145,7 +145,7 @@ export function UserFormModal({
             if (result) {
                 setCreatedCredentials({
                     email: data.email,
-                    password: data.password,
+                    password,
                 });
             }
         } catch (err) {
