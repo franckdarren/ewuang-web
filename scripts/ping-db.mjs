@@ -1,5 +1,3 @@
-import { createClient } from '@supabase/supabase-js';
-
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -8,23 +6,22 @@ if (!supabaseUrl || !supabaseServiceKey) {
   process.exit(1);
 }
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
 async function pingDatabase() {
   console.log('📡 Envoi du ping à Supabase...');
 
-  // Utilisons une table réelle de votre base
-  const { data, error } = await supabase
-    .from('articles')
-    .select('id')
-    .limit(1);
+  const response = await fetch(`${supabaseUrl}/rest/v1/articles?select=id&limit=1`, {
+    headers: {
+      'apikey': supabaseServiceKey,
+      'Authorization': `Bearer ${supabaseServiceKey}`,
+    },
+  });
 
-  if (error) {
-    console.error('❌ Échec du ping :', error.message);
+  if (!response.ok) {
+    console.error(`❌ Échec du ping : HTTP ${response.status} ${response.statusText}`);
     process.exit(1);
-  } else {
-    console.log('✅ Ping réussi ! La base de données est détectée comme active.');
   }
+
+  console.log('✅ Ping réussi ! La base de données est détectée comme active.');
 }
 
 pingDatabase();
