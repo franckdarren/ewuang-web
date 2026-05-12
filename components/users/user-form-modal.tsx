@@ -39,7 +39,7 @@ import { type User, useUsersStore } from '@/stores/usersStore';
 // VALIDATION SCHEMA
 // ============================================
 
-const baseSchema = z.object({
+const createSchema = z.object({
     name: z.string().min(2, "Le nom doit contenir au moins 2 caractères").max(255),
     email: z.string().email("Email invalide").max(255),
     password: z.string().optional(),
@@ -53,17 +53,7 @@ const baseSchema = z.object({
     is_active: z.boolean().optional(),
 });
 
-const createSchema = baseSchema.superRefine((data, ctx) => {
-    if (!data.password || data.password.length < 6) {
-        ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "Le mot de passe doit contenir au moins 6 caractères",
-            path: ["password"],
-        });
-    }
-});
-
-type FormValues = z.infer<typeof baseSchema>;
+type FormValues = z.infer<typeof createSchema> & { is_verified?: boolean; is_active?: boolean };
 
 // ============================================
 // PROPS
@@ -90,7 +80,7 @@ export function UserFormModal({
     const createUser = useUsersStore((s) => s.createUser);
 
     const form = useForm<FormValues>({
-        resolver: zodResolver(isEditing ? baseSchema : createSchema),
+        resolver: zodResolver(isEditing ? editSchema : createSchema),
         defaultValues: {
             name: user?.name || "",
             email: user?.email || "",
@@ -140,9 +130,12 @@ export function UserFormModal({
 
         setIsSubmitting(true);
         try {
+            const password = data.password || "";
+            if (!password) return;
+
             const result = await createUser({
                 email: data.email,
-                password: data.password!,
+                password: data.password,
                 name: data.name,
                 role: data.role,
                 phone: data.phone || undefined,
@@ -152,7 +145,7 @@ export function UserFormModal({
             if (result) {
                 setCreatedCredentials({
                     email: data.email,
-                    password: data.password!,
+                    password: data.password,
                 });
             }
         } catch (err) {

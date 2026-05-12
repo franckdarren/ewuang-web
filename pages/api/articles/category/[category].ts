@@ -32,23 +32,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
         const { category } = paramSchema.parse(req.query);
 
-        // Chercher la catégorie par nom (insensible à la casse)
-        const { data: cat, error: catError } = await supabaseAdmin
-            .from("categories")
-            .select("id")
-            .ilike("nom", category)
-            .single();
+        // Accepte un UUID (recherche directe) ou un nom/slug (recherche par texte)
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        let categoryId: string;
 
-        if (catError || !cat) {
-            return res.status(404).json({
-                message: `Catégorie '${category}' introuvable.`
-            });
+        if (uuidRegex.test(category)) {
+            categoryId = category;
+        } else {
+            // Recherche par nom (ilike) ou par slug (exact)
+            const { data: cat, error: catError } = await supabaseAdmin
+                .from("categories")
+                .select("id")
+                .or(`nom.ilike.${category},slug.eq.${category}`)
+                .single();
+
+            if (catError || !cat) {
+                return res.status(404).json({
+                    message: `Catégorie '${category}' introuvable.`
+                });
+            }
+            categoryId = cat.id;
         }
 
         const { data, error } = await supabaseAdmin
             .from("articles")
             .select("*, variations(*), image_articles(*)")
-            .eq("categorie_id", cat.id)
+            .eq("categorie_id", categoryId)
             .order("created_at", { ascending: false });
 
         if (error) {
@@ -58,13 +67,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
         }
 
-        if (!data || data.length === 0) {
-            return res.status(404).json({
-                message: `Aucun article trouvé pour la catégorie '${category}'.`
-            });
-        }
-
-        return res.status(200).json(data);
+        return res.status(200).json(data ?? []);
     } catch (err) {
         if (err instanceof ZodError)
             return res.status(400).json({ errors: err.issues });

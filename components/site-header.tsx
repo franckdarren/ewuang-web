@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation"
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { NavUser } from "@/components/nav-user"
+import { ModeToggle } from "@/components/mode-toggle"
 import type { UserData } from "../lib/stores/user-store"
 
 
@@ -30,6 +31,7 @@ export function SiteHeader({ user }: { user?: UserData }) {
         {/* <h1 className="text-base font-medium">{title}</h1> */}
 
         <div className="ml-auto flex items-center gap-2">
+          <ModeToggle />
           {user && <NavUser user={user} />}
         </div>
       </div>

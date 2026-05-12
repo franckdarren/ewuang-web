@@ -24,11 +24,11 @@ import {
     Clock,
     AlertCircle,
     CheckCircle,
-    XCircle
 } from "lucide-react";
 import { PublicitesTable } from "@/components/publicites/publicites-table";
 import { PubliciteFormModal } from "../../../components/publicites/publicite-form-modal";
 import { PubliciteViewModal } from "../../../components/publicites/publicite-view-modal";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // ============================================
 // COMPOSANT PRINCIPAL
@@ -51,7 +51,7 @@ export default function PublicitesPage() {
     const [selectedPublicite, setSelectedPublicite] = React.useState<Publicite | undefined>(undefined);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
     const [publiciteToDelete, setPubliciteToDelete] = React.useState<Publicite | undefined>(undefined);
-    const [isSubmitting, setIsSubmitting] = React.useState(false);
+    const [isInitialLoading, setIsInitialLoading] = React.useState(true);
 
     // ========== EFFECTS ==========
 
@@ -59,7 +59,7 @@ export default function PublicitesPage() {
      * Charge les publicités au montage du composant
      */
     React.useEffect(() => {
-        fetchPublicites();
+        fetchPublicites().finally(() => setIsInitialLoading(false));
     }, [fetchPublicites]);
 
     // ========== HANDLERS ==========
@@ -153,6 +153,50 @@ export default function PublicitesPage() {
     };
 
     // ========== RENDER ==========
+
+    if (isInitialLoading) {
+        return (
+            <div className="flex flex-col gap-6 p-6">
+                {/* Skeleton en-tête */}
+                <div className="flex items-center justify-between">
+                    <div className="space-y-2">
+                        <Skeleton className="h-9 w-48" />
+                        <Skeleton className="h-4 w-72" />
+                    </div>
+                    <Skeleton className="h-10 w-40" />
+                </div>
+
+                {/* Skeleton stats */}
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                        <Card key={i}>
+                            <CardHeader className="pb-2">
+                                <Skeleton className="h-4 w-32" />
+                                <Skeleton className="h-9 w-16 mt-1" />
+                            </CardHeader>
+                            <CardContent>
+                                <Skeleton className="h-4 w-24" />
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+
+                {/* Skeleton tableau */}
+                <Card>
+                    <CardHeader>
+                        <Skeleton className="h-6 w-40" />
+                        <Skeleton className="h-4 w-64 mt-1" />
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                        <Skeleton className="h-10 w-full" />
+                        {Array.from({ length: 5 }).map((_, i) => (
+                            <Skeleton key={i} className="h-14 w-full" />
+                        ))}
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col gap-6 p-6">
@@ -291,7 +335,7 @@ export default function PublicitesPage() {
                                         <div className="flex items-center justify-between text-xs text-muted-foreground">
                                             <div className="flex items-center gap-1">
                                                 <Calendar className="h-3 w-3" />
-                                                <span>Jusqu'au {formatDate(publicite.date_end)}</span>
+                                                <span>{"Jusqu'au"} {formatDate(publicite.date_end)}</span>
                                             </div>
                                             <Button
                                                 variant="ghost"
@@ -333,7 +377,6 @@ export default function PublicitesPage() {
                 open={isFormModalOpen}
                 onClose={handleCloseFormModal}
                 publicite={selectedPublicite}
-                isLoading={isSubmitting}
             />
 
             {/* ========== MODAL DE VISUALISATION ========== */}

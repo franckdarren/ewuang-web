@@ -84,7 +84,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         *,
         commande_articles (
           *,
-            articles (id, nom, prix, image_principale, categorie),
+            articles (id, nom, prix, image_principale, categorie_id),
             variations (id, couleur, taille, prix)
         ),
         livraisons (*)

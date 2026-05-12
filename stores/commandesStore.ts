@@ -18,14 +18,34 @@
  */
 
 import { create } from 'zustand';
+import { useAuthStore } from './authStore';
 import {
     Commande,
     CommandeStatut,
     LoadingState,
-    PaginatedResponse,
     PaginationParams,
     SearchFilters
 } from './types/common';
+
+// ============================================
+// FONCTIONS UTILITAIRES D'AUTH
+// ============================================
+
+function getAuthToken(): string {
+    const token = useAuthStore.getState().token;
+    if (!token) throw new Error('Non authentifié. Veuillez vous connecter.');
+    return token;
+}
+
+function getAuthHeaders(withContentType = false): HeadersInit {
+    const headers: HeadersInit = {
+        'Authorization': `Bearer ${getAuthToken()}`,
+    };
+    if (withContentType) {
+        (headers as Record<string, string>)['Content-Type'] = 'application/json';
+    }
+    return headers;
+}
 
 // ============================================
 // DÉFINITION DE L'INTERFACE DU STORE
@@ -191,24 +211,29 @@ export const useCommandesStore = create<CommandesState>((set, get) => ({
             });
 
             // Appeler l'API
-            const response = await fetch(`/api/commandes/list?${queryParams.toString()}`);
+            const response = await fetch(`/api/commandes/list?${queryParams.toString()}`, {
+                headers: getAuthHeaders(),
+            });
 
             if (!response.ok) {
-                throw new Error('Erreur lors du chargement des commandes');
+                const errBody = await response.json().catch(() => ({}));
+                throw new Error(
+                    errBody?.error ?? `HTTP ${response.status} — ${response.statusText}`
+                );
             }
 
-            // Type de la réponse attendue
-            const data: PaginatedResponse<Commande> = await response.json();
+            // L'API retourne { commandes, pagination: { page, limit, total, totalPages } }
+            const data = await response.json();
 
             // Mettre à jour le store avec les nouvelles données
             set({
-                commandes: data.data,
+                commandes: data.commandes ?? [],
                 pagination: {
-                    currentPage: data.page,
-                    totalPages: Math.ceil(data.total / limit),
-                    totalItems: data.total,
+                    currentPage: data.pagination?.page ?? 1,
+                    totalPages: data.pagination?.totalPages ?? 1,
+                    totalItems: data.pagination?.total ?? 0,
                     itemsPerPage: limit,
-                    hasMore: data.hasMore,
+                    hasMore: (data.pagination?.page ?? 1) < (data.pagination?.totalPages ?? 1),
                 },
                 isLoading: false,
                 error: null,
@@ -217,7 +242,7 @@ export const useCommandesStore = create<CommandesState>((set, get) => ({
             // Recalculer les statistiques
             get().calculateStats();
 
-            console.log(`✅ ${data.data.length} commandes chargées (page ${data.page}/${Math.ceil(data.total / limit)})`);
+            console.log(`✅ ${data.commandes?.length ?? 0} commandes chargées (page ${data.pagination?.page}/${data.pagination?.totalPages})`);
 
         } catch (error) {
             const errorMessage = error instanceof Error
@@ -247,7 +272,9 @@ export const useCommandesStore = create<CommandesState>((set, get) => ({
 
         try {
             // Appeler l'API pour récupérer la commande complète
-            const response = await fetch(`/api/commandes/${id}`);
+            const response = await fetch(`/api/commandes/${id}`, {
+                headers: getAuthHeaders(),
+            });
 
             if (!response.ok) {
                 throw new Error('Commande introuvable');
@@ -296,9 +323,7 @@ export const useCommandesStore = create<CommandesState>((set, get) => ({
             // Appeler l'API pour mettre à jour le statut
             const response = await fetch(`/api/commandes/${id}/update-status`, {
                 method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: getAuthHeaders(true),
                 body: JSON.stringify({ statut: nouveauStatut }),
             });
 
@@ -307,7 +332,9 @@ export const useCommandesStore = create<CommandesState>((set, get) => ({
                 throw new Error(errorData.message || 'Erreur de mise à jour du statut');
             }
 
-            const commandeMiseAJour: Commande = await response.json();
+            // L'API retourne { message, commande }
+            const result = await response.json();
+            const commandeMiseAJour: Commande = result.commande ?? result;
 
             // Mettre à jour la commande dans la liste locale
             const commandesActuelles = get().commandes;
@@ -361,6 +388,7 @@ export const useCommandesStore = create<CommandesState>((set, get) => ({
         try {
             const response = await fetch(`/api/commandes/${id}/delete`, {
                 method: 'DELETE',
+                headers: getAuthHeaders(),
             });
 
             if (!response.ok) {

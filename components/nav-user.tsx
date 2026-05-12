@@ -21,7 +21,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { useUserStore } from "../lib/stores/user-store"
+import { useAuthStore } from "@/stores/authStore"
 import { logoutAction } from "@/app/login/actions"
 
 export function NavUser({
@@ -34,7 +34,7 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
-  const clearUser = useUserStore((state) => state.clearUser)
+  const reset = useAuthStore((state) => state.reset)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   const handleLogout = async () => {
@@ -42,7 +42,7 @@ export function NavUser({
 
     try {
       await logoutAction()
-      clearUser()
+      reset()
       // Redirection instantanée vers login
       window.location.href = "/login"
     } catch (error) {

@@ -27,7 +27,8 @@ import {
 import { CategoriesTable } from '../../../components/categories/categories-table';
 import { CreateCategorieModal } from '../../../components/categories/create-categorie-modal';
 import { EditCategorieModal } from '../../../components/categories/edit-categorie-modal';
-import { Card, CardHeader, CardDescription, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardDescription, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthStore } from '@/stores/authStore';
 
 export default function CategoriePage() {
@@ -57,8 +58,10 @@ export default function CategoriePage() {
     // CHARGEMENT DES CATEGORIES AU MONTAGE
     // ============================================
 
+    const [isInitialLoading, setIsInitialLoading] = useState(true);
+
     useEffect(() => {
-        fetchCategories();
+        fetchCategories().finally(() => setIsInitialLoading(false));
     }, [fetchCategories]);
 
     // ============================================
@@ -120,6 +123,43 @@ export default function CategoriePage() {
     // ============================================
     // RENDU
     // ============================================
+
+    if (isInitialLoading) {
+        return (
+            <div className="flex flex-col gap-4 p-4 md:gap-6 md:p-6">
+                {/* Skeleton en-tête */}
+                <div className="flex items-center justify-between">
+                    <div className="space-y-2">
+                        <Skeleton className="h-9 w-36" />
+                        <Skeleton className="h-4 w-72" />
+                    </div>
+                    <Skeleton className="h-10 w-48" />
+                </div>
+
+                {/* Skeleton stats x4 */}
+                <div className="grid gap-4 md:grid-cols-4">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                        <Card key={i}>
+                            <CardHeader className="pb-2">
+                                <Skeleton className="h-4 w-36" />
+                                <Skeleton className="h-9 w-16 mt-1" />
+                            </CardHeader>
+                        </Card>
+                    ))}
+                </div>
+
+                {/* Skeleton tableau */}
+                <Card>
+                    <CardContent className="space-y-3 pt-4">
+                        <Skeleton className="h-10 w-full" />
+                        {Array.from({ length: 6 }).map((_, i) => (
+                            <Skeleton key={i} className="h-14 w-full" />
+                        ))}
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col gap-4 p-4 md:gap-6 md:p-6">

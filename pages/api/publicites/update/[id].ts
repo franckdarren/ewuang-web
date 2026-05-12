@@ -32,7 +32,7 @@ import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth
 const updateSchema = z.object({
     titre: z.string().optional(),
     url_image: z.string().url().optional(),
-    lien: z.string().url().optional(),
+    lien: z.string().url().optional().or(z.literal("")),
     description: z.string().optional(),
     date_start: z.string().optional(),
     date_end: z.string().optional(),

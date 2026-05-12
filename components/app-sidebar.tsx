@@ -47,7 +47,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { useUserStore } from "../lib/stores/user-store"
+import { useAuthStore } from "@/stores/authStore"
 
 const data = {
   navMain: [
@@ -140,7 +140,7 @@ const data = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const user = useUserStore((state) => state.user);
+  const user = useAuthStore((state) => state.user);
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -149,7 +149,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              className="data-[slot=sidebar-menu-button]:!p-1.5"
+              className="data-[slot=sidebar-menu-button]:p-1.5!"
             >
               <Link href="/dashboard">
                 <span className="text-base font-semibold">EWUANG Marketplace</span>
@@ -164,7 +164,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         {/* <NavSecondary items={data.navSecondary} className="mt-auto" /> */}
       </SidebarContent>
       <SidebarFooter>
-        {user && <NavUser user={user} />}
+        {user && (
+          <NavUser user={{ name: user.name, email: user.email, avatar: user.url_logo }} />
+        )}
       </SidebarFooter>
     </Sidebar>
   )

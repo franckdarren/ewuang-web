@@ -41,7 +41,7 @@ import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
  */
 
 const addFavoriteSchema = z.object({
-    article_id: z.string().uuid(),
+    article_id: z.string().min(1, "article_id requis"),
 });
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
