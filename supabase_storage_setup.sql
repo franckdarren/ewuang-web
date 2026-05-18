@@ -135,6 +135,50 @@ TO authenticated
 USING (bucket_id = 'categories-images');
 
 -- ============================================
+-- Bucket et politiques RLS pour 'avis-images'
+-- ============================================
+
+-- 16) Créer le bucket 'avis-images' (si n'existe pas déjà)
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+    'avis-images',
+    'avis-images',
+    true,
+    5242880,
+    ARRAY['image/jpeg', 'image/png', 'image/webp']
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- 17) Autoriser les uploads pour les utilisateurs authentifiés
+CREATE POLICY "Allow authenticated uploads to avis-images"
+ON storage.objects
+FOR INSERT
+TO authenticated
+WITH CHECK (bucket_id = 'avis-images');
+
+-- 18) Autoriser la lecture publique
+CREATE POLICY "Allow public read access to avis-images"
+ON storage.objects
+FOR SELECT
+TO public
+USING (bucket_id = 'avis-images');
+
+-- 19) Autoriser les updates pour les utilisateurs authentifiés
+CREATE POLICY "Allow authenticated updates to avis-images"
+ON storage.objects
+FOR UPDATE
+TO authenticated
+USING (bucket_id = 'avis-images')
+WITH CHECK (bucket_id = 'avis-images');
+
+-- 20) Autoriser les suppressions pour les utilisateurs authentifiés
+CREATE POLICY "Allow authenticated deletes from avis-images"
+ON storage.objects
+FOR DELETE
+TO authenticated
+USING (bucket_id = 'avis-images');
+
+-- ============================================
 -- NOTES
 -- ============================================
 --

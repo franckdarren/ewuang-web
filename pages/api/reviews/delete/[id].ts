@@ -2,6 +2,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "../../../../app/lib/supabaseAdmin";
 import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth";
+import { deleteReviewImages } from "../../../../lib/upload";
 
 /**
  * @swagger
@@ -69,6 +70,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(403).json({
                 error: "Vous ne pouvez supprimer que vos propres avis"
             });
+        }
+
+        // Supprimer les images jointes du storage (best-effort)
+        const imagesResult = await deleteReviewImages(review.user_id, id);
+        if (!imagesResult.success) {
+            console.error("Erreur suppression images avis:", imagesResult.error);
         }
 
         // Supprimer l'avis

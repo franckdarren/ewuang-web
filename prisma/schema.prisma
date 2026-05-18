@@ -279,6 +279,7 @@ model avis {
   article_id   String   @db.Uuid
   note         Int // Note sur 5
   commentaire  String?  @db.Text
+  images       String[] @default([]) // URLs des images jointes à l'avis
   is_moderated Boolean  @default(false) // Pour modération admin
   is_visible   Boolean  @default(true) // Visibilité publique
   created_at   DateTime @default(now())

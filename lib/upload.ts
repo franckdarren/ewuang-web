@@ -226,6 +226,102 @@ export async function uploadVariationImage(
 }
 
 /**
+ * Upload une image jointe à un avis
+ */
+export async function uploadReviewImage(
+    file: File,
+    userId: string,
+    reviewId: string,
+    index: number,
+    userToken?: string
+): Promise<UploadResult> {
+    try {
+        const validation = validateImageFile(file);
+        if (!validation.valid) {
+            return { success: false, error: validation.error };
+        }
+
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        const optimizedBuffer = await optimizeImage(buffer);
+
+        const filePath = `${userId}/${reviewId}/img-${index}.webp`;
+
+        const storageClient = getStorageClient(userToken);
+
+        const { error } = await storageClient.storage
+            .from('avis-images')
+            .upload(filePath, optimizedBuffer, {
+                contentType: 'image/webp',
+                upsert: true
+            });
+
+        if (error) {
+            console.error('Erreur upload Supabase:', error);
+            return { success: false, error: error.message };
+        }
+
+        const { data: urlData } = supabase.storage
+            .from('avis-images')
+            .getPublicUrl(filePath);
+
+        return {
+            success: true,
+            url: urlData.publicUrl,
+            path: filePath
+        };
+
+    } catch (error: any) {
+        console.error('Erreur upload review image:', error);
+        return {
+            success: false,
+            error: error.message || 'Erreur lors de l\'upload'
+        };
+    }
+}
+
+/**
+ * Supprime toutes les images d'un avis
+ */
+export async function deleteReviewImages(
+    userId: string,
+    reviewId: string
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        const { data: files, error: listError } = await supabase.storage
+            .from('avis-images')
+            .list(`${userId}/${reviewId}`);
+
+        if (listError) {
+            return { success: false, error: listError.message };
+        }
+
+        if (!files || files.length === 0) {
+            return { success: true };
+        }
+
+        const filePaths = files.map((file: { name: string }) => `${userId}/${reviewId}/${file.name}`);
+
+        const { error: deleteError } = await supabase.storage
+            .from('avis-images')
+            .remove(filePaths);
+
+        if (deleteError) {
+            return { success: false, error: deleteError.message };
+        }
+
+        return { success: true };
+
+    } catch (error: any) {
+        return {
+            success: false,
+            error: error.message || 'Erreur lors de la suppression des images'
+        };
+    }
+}
+
+/**
  * Upload multiple images (galerie article)
  */
 export async function uploadMultipleImages(
@@ -269,7 +365,7 @@ export async function uploadMultipleImages(
  * Supprime une image du storage
  */
 export async function deleteImage(
-    bucket: 'articles-images' | 'variations-images',
+    bucket: 'articles-images' | 'variations-images' | 'avis-images',
     filePath: string
 ): Promise<{ success: boolean; error?: string }> {
     try {

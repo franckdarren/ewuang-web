@@ -1,8 +1,11 @@
 // pages/api/reviews/create.ts
 import type { NextApiRequest, NextApiResponse } from "next";
+import formidable, { File as FormidableFile } from "formidable";
+import fs from "fs";
 import { z, ZodError } from "zod";
 import { supabaseAdmin } from "../../../app/lib/supabaseAdmin";
 import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
+import { uploadReviewImage } from "../../../lib/upload";
 
 /**
  * @swagger
@@ -10,7 +13,8 @@ import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
  *   post:
  *     summary: Crée un avis sur un article
  *     description: >
- *       Permet à un utilisateur de laisser une note et un commentaire sur un article.
+ *       Permet à un utilisateur de laisser une note, un commentaire et
+ *       jusqu'à 5 images sur un article.
  *       Un utilisateur ne peut laisser qu'un seul avis par article.
  *     tags:
  *       - Avis
@@ -19,7 +23,7 @@ import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             required:
@@ -37,6 +41,12 @@ import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
  *               commentaire:
  *                 type: string
  *                 description: Commentaire optionnel
+ *               images:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *                 description: Jusqu'à 5 images (jpeg, png, webp - max 5 Mo chacune)
  *     responses:
  *       201:
  *         description: Avis créé avec succès
@@ -50,11 +60,39 @@ import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
  *         description: Erreur serveur
  */
 
+export const config = {
+    api: { bodyParser: false },
+};
+
+const MAX_REVIEW_IMAGES = 5;
+
 const createReviewSchema = z.object({
     article_id: z.string().uuid(),
-    note: z.number().int().min(1).max(5),
+    note: z.coerce.number().int().min(1).max(5),
     commentaire: z.string().optional(),
 });
+
+function parseForm(req: NextApiRequest) {
+    return new Promise<{ fields: formidable.Fields; files: formidable.Files }>(
+        (resolve, reject) => {
+            const form = formidable({
+                multiples: true,
+                maxFiles: MAX_REVIEW_IMAGES,
+                maxFileSize: 5 * 1024 * 1024, // 5 Mo max
+            });
+
+            form.parse(req, (err, fields, files) => {
+                if (err) reject(err);
+                else resolve({ fields, files });
+            });
+        }
+    );
+}
+
+function firstValue(value: string | string[] | undefined): string | undefined {
+    if (Array.isArray(value)) return value[0];
+    return value;
+}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== "POST") {
@@ -66,7 +104,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (!auth) return;
         const { profile } = auth;
 
-        const body = createReviewSchema.parse(req.body);
+        const token = req.headers.authorization?.replace("Bearer ", "");
+
+        const { fields, files } = await parseForm(req);
+
+        const body = createReviewSchema.parse({
+            article_id: firstValue(fields.article_id),
+            note: firstValue(fields.note),
+            commentaire: firstValue(fields.commentaire),
+        });
 
         // Vérifier que l'article existe
         const { data: article, error: articleError } = await supabaseAdmin
@@ -93,7 +139,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
         }
 
-        // Créer l'avis
+        // Créer l'avis (sans images dans un premier temps)
         const { data: review, error: insertError } = await supabaseAdmin
             .from("avis")
             .insert({
@@ -101,11 +147,63 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 article_id: body.article_id,
                 note: body.note,
                 commentaire: body.commentaire || null,
+                images: [],
                 is_moderated: false,
                 is_visible: true,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
             })
+            .select("id")
+            .single();
+
+        if (insertError || !review) {
+            console.error("Supabase insert error:", insertError);
+            return res.status(500).json({ error: "Impossible de créer l'avis" });
+        }
+
+        // Uploader les images éventuelles
+        const rawImages = files.images;
+        const imageFiles = (
+            rawImages ? (Array.isArray(rawImages) ? rawImages : [rawImages]) : []
+        ) as FormidableFile[];
+
+        const uploadedUrls: string[] = [];
+
+        for (let i = 0; i < imageFiles.length && i < MAX_REVIEW_IMAGES; i++) {
+            const file = imageFiles[i];
+            try {
+                const buffer = fs.readFileSync(file.filepath);
+                const imageFile = new File(
+                    [buffer],
+                    file.originalFilename || `img-${i}.jpg`,
+                    { type: file.mimetype || "image/jpeg" }
+                );
+
+                const result = await uploadReviewImage(
+                    imageFile,
+                    profile.id,
+                    review.id,
+                    i + 1,
+                    token
+                );
+
+                if (result.success && result.url) {
+                    uploadedUrls.push(result.url);
+                }
+            } finally {
+                try {
+                    fs.unlinkSync(file.filepath);
+                } catch {
+                    // fichier temporaire déjà supprimé
+                }
+            }
+        }
+
+        // Mettre à jour l'avis avec les URLs des images
+        const { data: finalReview, error: updateError } = await supabaseAdmin
+            .from("avis")
+            .update({ images: uploadedUrls, updated_at: new Date().toISOString() })
+            .eq("id", review.id)
             .select(`
         *,
         users!inner (id, name),
@@ -113,14 +211,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       `)
             .single();
 
-        if (insertError) {
-            console.error("Supabase insert error:", insertError);
-            return res.status(500).json({ error: "Impossible de créer l'avis" });
+        if (updateError) {
+            console.error("Supabase update error:", updateError);
+            return res.status(500).json({ error: "Avis créé mais impossible d'enregistrer les images" });
         }
 
         return res.status(201).json({
             message: "Avis créé avec succès",
-            review,
+            review: finalReview,
         });
     } catch (err) {
         if (err instanceof ZodError) {
