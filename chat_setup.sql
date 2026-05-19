@@ -239,7 +239,14 @@ CREATE POLICY "chat_messages_update_participants"
 
 
 -- ============================================================
--- 6) REALTIME : diffusion des nouveaux messages / maj des fils
+-- 6) GRANTS : accès aux rôles Supabase
+-- ============================================================
+GRANT ALL ON public.chat_threads  TO postgres, anon, authenticated, service_role;
+GRANT ALL ON public.chat_messages TO postgres, anon, authenticated, service_role;
+
+
+-- ============================================================
+-- 7) REALTIME : diffusion des nouveaux messages / maj des fils
 -- ============================================================
 -- Replica identity FULL : nécessaire pour recevoir l'ancienne valeur
 -- lors des UPDATE (compteurs non-lus du fil).
