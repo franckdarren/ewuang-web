@@ -11,6 +11,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { Badge } from "@/components/ui/badge"
 
 export function NavMain({
   items,
@@ -19,6 +20,7 @@ export function NavMain({
     title: string
     url: string
     icon?: Icon
+    badge?: number
   }[]
 }) {
   const pathname = usePathname()
@@ -80,6 +82,14 @@ export function NavMain({
                     item.icon && <item.icon />
                   )}
                   <span>{item.title}</span>
+                  {item.badge ? (
+                    <Badge
+                      className="ml-auto h-5 min-w-5 justify-center px-1"
+                      variant={isActive ? "secondary" : "default"}
+                    >
+                      {item.badge > 99 ? "99+" : item.badge}
+                    </Badge>
+                  ) : null}
                 </SidebarMenuButton>
               </SidebarMenuItem>
             )

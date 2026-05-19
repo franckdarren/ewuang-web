@@ -21,6 +21,7 @@ import {
   IconBrandPushbullet,
   IconMenuOrder,
   IconMessage,
+  IconMessageCircle,
   IconSocial,
   IconLogs,
   IconTag,
@@ -33,6 +34,10 @@ import {
   IconMoneybag,
   IconBuildingCommunity,
 } from "@tabler/icons-react"
+
+import { useEffect } from "react"
+import { useChatStore } from "@/stores/chatStore"
+import { supabaseBrowser } from "@/app/utils/supabase/clients"
 
 import { NavDocuments } from "@/components/nav-documents"
 import { NavMain } from "@/components/nav-main"
@@ -97,6 +102,11 @@ const data = {
       icon: IconSocial,
     },
     {
+      title: "Messages",
+      url: "/dashboard/messages",
+      icon: IconMessageCircle,
+    },
+    {
       title: "Catégories",
       url: "/dashboard/categories",
       icon: IconTag,
@@ -141,6 +151,32 @@ const data = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const user = useAuthStore((state) => state.user);
+  const chatUnread = useChatStore((s) => s.unreadTotal);
+  const fetchUnread = useChatStore((s) => s.fetchUnread);
+
+  // Badge messagerie : compteur initial + rafraîchissement temps réel
+  useEffect(() => {
+    if (!user) return;
+    fetchUnread();
+    const supabase = supabaseBrowser();
+    const channel = supabase
+      .channel("sidebar-chat-unread")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "chat_threads" },
+        () => fetchUnread()
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, fetchUnread]);
+
+  const navMain = data.navMain.map((item) =>
+    item.url === "/dashboard/messages"
+      ? { ...item, badge: chatUnread }
+      : item
+  );
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -159,7 +195,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain items={navMain} />
         {/* <NavDocuments items={data.documents} /> */}
         {/* <NavSecondary items={data.navSecondary} className="mt-auto" /> */}
       </SidebarContent>

@@ -101,6 +101,7 @@ model commandes {
   paiements         paiements?          @relation(fields: [paiement_id], references: [id])
   livraisons        livraisons[]
   reclamations      reclamations[]
+  chat_threads      chat_threads[]
   users             users?              @relation(fields: [usersId], references: [id])
   usersId           String?             @db.Uuid
 
@@ -175,8 +176,9 @@ model reclamations {
   updated_at  DateTime            @updatedAt
 
   // Relations
-  commandes commandes @relation(fields: [commande_id], references: [id])
-  users     users     @relation(fields: [user_id], references: [id])
+  commandes    commandes      @relation(fields: [commande_id], references: [id])
+  users        users          @relation(fields: [user_id], references: [id])
+  chat_threads chat_threads[]
 
   @@index([commande_id])
   @@index([user_id])
@@ -227,8 +229,9 @@ model users {
   favoris                favoris[]
   avis                   avis[]
   notifications          notifications[]
-  conversations_sent     conversations[] @relation("sender")
-  conversations_received conversations[] @relation("receiver")
+  chat_threads_a         chat_threads[]  @relation("chat_participant_a")
+  chat_threads_b         chat_threads[]  @relation("chat_participant_b")
+  chat_messages          chat_messages[] @relation("chat_sender")
   paniers                paniers[]
   paiements              paiements[]
 
@@ -360,22 +363,52 @@ model notifications {
   @@index([created_at])
 }
 
-model conversations {
-  id          String   @id @default(uuid()) @db.Uuid
-  sender_id   String   @db.Uuid
-  receiver_id String   @db.Uuid
-  message     String   @db.Text
-  is_read     Boolean  @default(false)
-  created_at  DateTime @default(now())
+// Système de chat sécurisé — fil de discussion entre 2 participants.
+// Voir chat_setup.sql pour la RLS, le Storage privé et le Realtime.
+model chat_threads {
+  id                   String    @id @default(uuid()) @db.Uuid
+  type                 String    @db.VarChar(32) // client_boutique | boutique_admin | client_admin | livreur_boutique | livreur_admin
+  participant_a_id     String    @db.Uuid
+  participant_b_id     String    @db.Uuid
+  commande_id          String?   @db.Uuid
+  reclamation_id       String?   @db.Uuid
+  last_message_at      DateTime?
+  last_message_preview String?   @db.VarChar(255)
+  unread_count_a       Int       @default(0)
+  unread_count_b       Int       @default(0)
+  created_at           DateTime  @default(now())
+  updated_at           DateTime  @default(now())
 
   // Relations
-  sender   users @relation("sender", fields: [sender_id], references: [id], onDelete: Cascade)
-  receiver users @relation("receiver", fields: [receiver_id], references: [id], onDelete: Cascade)
+  participant_a users          @relation("chat_participant_a", fields: [participant_a_id], references: [id], onDelete: Cascade)
+  participant_b users          @relation("chat_participant_b", fields: [participant_b_id], references: [id], onDelete: Cascade)
+  commandes     commandes?     @relation(fields: [commande_id], references: [id], onDelete: SetNull)
+  reclamations  reclamations?  @relation(fields: [reclamation_id], references: [id], onDelete: SetNull)
+  messages      chat_messages[]
 
+  @@index([participant_a_id])
+  @@index([participant_b_id])
+  @@index([last_message_at])
+  @@index([commande_id])
+  @@index([reclamation_id])
+}
+
+model chat_messages {
+  id         String   @id @default(uuid()) @db.Uuid
+  thread_id  String   @db.Uuid
+  sender_id  String   @db.Uuid
+  contenu    String?  @db.Text
+  image_url  String?  @db.VarChar(512) // chemin Storage privé (URL signée à la lecture)
+  is_read    Boolean  @default(false)
+  created_at DateTime @default(now())
+
+  // Relations
+  thread chat_threads @relation(fields: [thread_id], references: [id], onDelete: Cascade)
+  sender users        @relation("chat_sender", fields: [sender_id], references: [id], onDelete: Cascade)
+
+  @@index([thread_id, created_at])
   @@index([sender_id])
-  @@index([receiver_id])
-  @@index([is_read])
-  @@index([created_at])
+  @@index([thread_id, is_read])
 }
 
 model paniers {

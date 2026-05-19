@@ -487,3 +487,93 @@ export async function parseFormData(req: any): Promise<{
         files: formData.files || {}
     };
 }
+
+/* ============================================================
+ *  CHAT — bucket privé 'chat-images'
+ *  L'image n'est jamais publique : on stocke le CHEMIN en base
+ *  et on génère une URL signée à la lecture.
+ * ============================================================ */
+
+const CHAT_BUCKET = 'chat-images';
+
+/**
+ * Upload une image jointe à un message de chat.
+ * @returns { success, path } — `path` est à stocker dans chat_messages.image_url
+ */
+export async function uploadChatImage(
+    file: File,
+    threadId: string,
+    messageId: string,
+    userToken?: string
+): Promise<UploadResult> {
+    try {
+        const validation = validateImageFile(file);
+        if (!validation.valid) {
+            return { success: false, error: validation.error };
+        }
+
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        const optimizedBuffer = await optimizeImage(buffer);
+
+        const filePath = `${threadId}/${messageId}.webp`;
+        const storageClient = getStorageClient(userToken);
+
+        const { error } = await storageClient.storage
+            .from(CHAT_BUCKET)
+            .upload(filePath, optimizedBuffer, {
+                contentType: 'image/webp',
+                upsert: true,
+            });
+
+        if (error) {
+            console.error('Erreur upload chat image:', error);
+            return { success: false, error: error.message };
+        }
+
+        // Bucket privé : on renvoie le chemin, pas une URL publique.
+        return { success: true, path: filePath };
+    } catch (error: any) {
+        console.error('Erreur upload chat image:', error);
+        return {
+            success: false,
+            error: error.message || "Erreur lors de l'upload",
+        };
+    }
+}
+
+/**
+ * Génère une URL signée (temporaire) pour afficher une image de chat.
+ * @param path chemin stocké dans chat_messages.image_url
+ * @param expiresIn durée de validité en secondes (défaut 1h)
+ */
+export async function getChatImageSignedUrl(
+    path: string,
+    expiresIn = 3600
+): Promise<string | null> {
+    const { data, error } = await supabase.storage
+        .from(CHAT_BUCKET)
+        .createSignedUrl(path, expiresIn);
+
+    if (error || !data) {
+        console.error('Erreur URL signée chat:', error);
+        return null;
+    }
+    return data.signedUrl;
+}
+
+/**
+ * Supprime une image de chat du storage.
+ */
+export async function deleteChatImage(
+    path: string
+): Promise<{ success: boolean; error?: string }> {
+    const { error } = await supabase.storage
+        .from(CHAT_BUCKET)
+        .remove([path]);
+
+    if (error) {
+        return { success: false, error: error.message };
+    }
+    return { success: true };
+}
