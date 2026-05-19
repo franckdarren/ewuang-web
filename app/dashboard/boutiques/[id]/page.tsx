@@ -130,7 +130,8 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.
 }
 
 export default function BoutiqueDetailPage() {
-  const { id } = useParams<{ id: string }>()
+  const params = useParams<{ id: string }>()
+  const id = params?.id
   const router = useRouter()
   const token = useAuthStore((s) => s.token)
   const isInitialized = useAuthStore((s) => s.isInitialized)
