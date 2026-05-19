@@ -113,12 +113,12 @@ export function PubPremiumFormModal({ open, onClose }: PubPremiumFormModalProps)
 
     return (
         <Dialog open={open} onOpenChange={handleClose}>
-            <DialogContent className="max-w-lg">
+            <DialogContent className="max-w-lg max-h-[90vh] flex flex-col">
                 <DialogHeader>
                     <DialogTitle>Nouvelle publicité premium</DialogTitle>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-4 overflow-y-auto pr-1 flex-1">
                     <div className="space-y-1">
                         <Label>Emplacement *</Label>
                         <Select value={position} onValueChange={(v) => setPosition(v as PublitePosition)}>
