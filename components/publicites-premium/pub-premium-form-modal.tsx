@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { usePublitesPremiumStore, type CreatePublicitePremiumInput, type PublitePosition } from '@/stores/publicitesPremiumStore';
 import { useAuthStore } from '@/stores/authStore';
 import { Upload, Link, X, ImageIcon, Loader2 } from 'lucide-react';
+import { createClient } from '@supabase/supabase-js';
 
 interface Categorie {
     id: string;
@@ -78,18 +79,30 @@ export function PubPremiumFormModal({ open, onClose }: PubPremiumFormModalProps)
 
     async function uploadFile(): Promise<string> {
         if (!selectedFile || !token) throw new Error('Fichier ou token manquant');
-        const formData = new FormData();
-        formData.append('file', selectedFile);
-        const res = await fetch('/api/upload/publicite-premium', {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${token}` },
-            body: formData,
-        });
-        const text = await res.text();
-        let json: Record<string, unknown>;
-        try { json = JSON.parse(text); } catch { throw new Error(`Erreur upload (${res.status})`); }
-        if (!res.ok) throw new Error((json.error as string) ?? `Erreur upload (${res.status})`);
-        return json.url as string;
+
+        const user = useAuthStore.getState().user;
+        if (!user) throw new Error('Non authentifié');
+
+        const supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            {
+                global: { headers: { Authorization: `Bearer ${token}` } },
+                auth: { autoRefreshToken: false, persistSession: false },
+            }
+        );
+
+        const ext = selectedFile.name.split('.').pop()?.toLowerCase() ?? 'jpg';
+        const filePath = `publicites/${user.id}/${Date.now()}.${ext}`;
+
+        const { error } = await supabase.storage
+            .from('publicites')
+            .upload(filePath, selectedFile, { contentType: selectedFile.type, upsert: false });
+
+        if (error) throw new Error(error.message);
+
+        const { data } = supabase.storage.from('publicites').getPublicUrl(filePath);
+        return data.publicUrl;
     }
 
     function reset() {
