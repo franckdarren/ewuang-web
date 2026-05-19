@@ -124,7 +124,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
           <Field>
             <Button
               type="submit"
-              className="w-full h-11 rounded-xl bg-foreground text-muted font-semibold shadow-lg shadow-[#4ade80]/20 cursor-pointer"
+              className="w-full h-11 rounded-xl bg-foreground text-muted font-semibold shadow-lg cursor-pointer"
               disabled={isLoading}
             >
               {isLoading ? (
