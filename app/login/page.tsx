@@ -70,7 +70,7 @@ export default function LoginPage() {
           {/* Mobile logo */}
           <div className="lg:hidden mb-8">
             <Image
-              src="/images/logo1.png"
+              src="/images/logo2.png"
               alt="Ewuang"
               width={120}
               height={120}
