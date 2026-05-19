@@ -192,7 +192,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Image
-              src="/images/logo1.png"
+              src="/images/logo2.png"
               alt="Ewuang"
               width={32}
               height={32}
