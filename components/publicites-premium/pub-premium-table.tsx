@@ -173,7 +173,9 @@ export function PubPremiumTable({
                                                 </>
                                             )}
                                             {pub.statut === 'approuve' && !actif && (
-                                                <Clock className="h-4 w-4 text-muted-foreground" title="Programmée" />
+                                                <span title="Programmée">
+                                                    <Clock className="h-4 w-4 text-muted-foreground" />
+                                                </span>
                                             )}
                                         </div>
                                     </TableCell>
