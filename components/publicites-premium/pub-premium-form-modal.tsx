@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { usePublitesPremiumStore, type CreatePublicitePremiumInput, type PublitePosition } from '@/stores/publicitesPremiumStore';
 import { useAuthStore } from '@/stores/authStore';
 import { Upload, Link, X, ImageIcon, Loader2 } from 'lucide-react';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseBrowser } from '@/app/utils/supabase/clients';
 
 interface Categorie {
     id: string;
@@ -78,20 +78,12 @@ export function PubPremiumFormModal({ open, onClose }: PubPremiumFormModalProps)
     }
 
     async function uploadFile(): Promise<string> {
-        if (!selectedFile || !token) throw new Error('Fichier ou token manquant');
+        if (!selectedFile) throw new Error('Aucun fichier sélectionné');
 
         const user = useAuthStore.getState().user;
         if (!user) throw new Error('Non authentifié');
 
-        const supabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-            {
-                global: { headers: { Authorization: `Bearer ${token}` } },
-                auth: { autoRefreshToken: false, persistSession: false },
-            }
-        );
-
+        const supabase = supabaseBrowser();
         const ext = selectedFile.name.split('.').pop()?.toLowerCase() ?? 'jpg';
         const filePath = `publicites/${user.id}/${Date.now()}.${ext}`;
 
