@@ -295,6 +295,7 @@ export const useUsersStore = create<UsersStore>((set, get) => ({
                 admins: 0,
                 verified: 0,
                 active: 0,
+                certified: 0,
             },
             isLoading: false,
             error: null,
