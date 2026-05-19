@@ -26,6 +26,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const body = schema.parse(req.body);
 
+        const isAdmin = auth.user.role === 'Administrateur';
+        const statut = isAdmin ? 'approuve' : 'en_attente';
+        const approuveFields = isAdmin
+            ? { approuve_par: auth.user.id, approuve_le: new Date().toISOString() }
+            : {};
+
         if (new Date(body.date_end) <= new Date(body.date_start)) {
             return res.status(400).json({ error: "La date de fin doit être après la date de début" });
         }
@@ -47,7 +53,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 date_end: new Date(body.date_end).toISOString(),
                 categorie_id: body.categorie_id ?? null,
                 prix: body.prix ?? null,
-                statut: "en_attente",
+                statut,
+                ...approuveFields,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
             })

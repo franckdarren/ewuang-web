@@ -85,11 +85,10 @@ export function PubPremiumFormModal({ open, onClose }: PubPremiumFormModalProps)
             headers: { Authorization: `Bearer ${token}` },
             body: formData,
         });
-        if (!res.ok) {
-            const json = await res.json();
-            throw new Error(json.error ?? "Erreur lors de l'upload");
-        }
-        const json = await res.json();
+        const text = await res.text();
+        let json: Record<string, unknown>;
+        try { json = JSON.parse(text); } catch { throw new Error(`Erreur upload (${res.status})`); }
+        if (!res.ok) throw new Error((json.error as string) ?? `Erreur upload (${res.status})`);
         return json.url as string;
     }
 
