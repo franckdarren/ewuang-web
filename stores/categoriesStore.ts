@@ -9,6 +9,7 @@
  */
 
 import { createWithEqualityFn } from 'zustand/traditional';
+import { toast } from 'sonner';
 import { useAuthStore } from './authStore';
 
 // ============================================
@@ -449,6 +450,7 @@ export const useCategoriesStore = createWithEqualityFn<CategoriesState>((set, ge
             set({ categoriesTree: tree });
             get().calculateStats();
 
+            toast.success('Catégorie créée', { description: nouvelleCategorie.nom });
             console.log('✅ Catégorie créée:', nouvelleCategorie.nom);
 
             return nouvelleCategorie;
@@ -463,6 +465,7 @@ export const useCategoriesStore = createWithEqualityFn<CategoriesState>((set, ge
                 isLoading: false,
             });
 
+            toast.error('Erreur de création', { description: errorMessage });
             console.error('❌ Erreur createCategorie:', errorMessage);
             throw error;
         }
@@ -514,6 +517,7 @@ export const useCategoriesStore = createWithEqualityFn<CategoriesState>((set, ge
             const tree = buildTree(nouvellesCategories);
             set({ categoriesTree: tree });
 
+            toast.success('Catégorie mise à jour', { description: categorieMiseAJour.nom });
             console.log('✅ Catégorie mise à jour:', categorieMiseAJour.nom);
 
             return categorieMiseAJour;
@@ -528,6 +532,7 @@ export const useCategoriesStore = createWithEqualityFn<CategoriesState>((set, ge
                 isLoading: false,
             });
 
+            toast.error('Erreur de mise à jour', { description: errorMessage });
             throw error;
         }
     },
@@ -568,6 +573,7 @@ export const useCategoriesStore = createWithEqualityFn<CategoriesState>((set, ge
             set({ categoriesTree: tree });
             get().calculateStats();
 
+            toast.success('Catégorie supprimée');
             console.log('✅ Catégorie supprimée');
 
         } catch (error) {
@@ -580,6 +586,7 @@ export const useCategoriesStore = createWithEqualityFn<CategoriesState>((set, ge
                 isLoading: false,
             });
 
+            toast.error('Erreur de suppression', { description: errorMessage });
             throw error;
         }
     },

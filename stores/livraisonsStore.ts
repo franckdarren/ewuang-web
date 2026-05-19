@@ -1,5 +1,6 @@
 // stores/livraisonsStore.ts
 import { createWithEqualityFn } from 'zustand/traditional';
+import { toast } from 'sonner';
 import { useAuthStore } from './authStore';
 
 // ============================================
@@ -192,10 +193,12 @@ export const useLivraisonsStore = createWithEqualityFn<LivraisonsState>((set, ge
                 : get().selectedLivraison;
             set({ livraisons, selectedLivraison, isLoading: false, error: null });
             get().calculateStats();
+            toast.success('Statut mis à jour', { description: `Livraison → ${statut}` });
             console.log(`✅ Statut mis à jour : ${statut}`);
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Erreur de mise à jour';
             set({ error: errorMessage, isLoading: false });
+            toast.error('Erreur', { description: errorMessage });
             throw error;
         }
     },
@@ -217,10 +220,12 @@ export const useLivraisonsStore = createWithEqualityFn<LivraisonsState>((set, ge
                 : get().selectedLivraison;
             set({ livraisons, selectedLivraison, isLoading: false, error: null });
             get().calculateStats();
+            toast.success('Livraison supprimée');
             console.log('✅ Livraison supprimée');
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Erreur de suppression';
             set({ error: errorMessage, isLoading: false });
+            toast.error('Erreur', { description: errorMessage });
             throw error;
         }
     },

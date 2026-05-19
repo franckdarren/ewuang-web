@@ -1,4 +1,5 @@
 import { createWithEqualityFn } from 'zustand/traditional';
+import { toast } from 'sonner';
 import { useAuthStore } from './authStore';
 import { apiFetch } from '@/app/lib/apiFetch';
 
@@ -196,7 +197,12 @@ export const usePublitesPremiumStore = createWithEqualityFn<PublitesPremiumState
                     publicitesPremium: [created, ...state.publicitesPremium],
                 }));
                 set({ stats: get().computeStats() });
+                toast.success('Campagne créée', { description: created.titre });
                 return created;
+            } catch (err: unknown) {
+                const msg = err instanceof Error ? err.message : 'Erreur lors de la création';
+                toast.error('Erreur de création', { description: msg });
+                throw err;
             } finally {
                 set({ isLoading: false });
             }
@@ -212,7 +218,9 @@ export const usePublitesPremiumStore = createWithEqualityFn<PublitesPremiumState
 
             if (!res.ok) {
                 const err = await res.json();
-                throw new Error(err.error ?? 'Erreur lors de l\'approbation');
+                const msg = err.error ?? 'Erreur lors de l\'approbation';
+                toast.error('Erreur', { description: msg });
+                throw new Error(msg);
             }
 
             const json = await res.json();
@@ -223,6 +231,7 @@ export const usePublitesPremiumStore = createWithEqualityFn<PublitesPremiumState
                 ),
             }));
             set({ stats: get().computeStats() });
+            toast.success('Campagne approuvée');
         },
 
         refuserPublite: async (id: string, notes_admin: string) => {
@@ -237,7 +246,9 @@ export const usePublitesPremiumStore = createWithEqualityFn<PublitesPremiumState
 
             if (!res.ok) {
                 const err = await res.json();
-                throw new Error(err.error ?? 'Erreur lors du refus');
+                const msg = err.error ?? 'Erreur lors du refus';
+                toast.error('Erreur', { description: msg });
+                throw new Error(msg);
             }
 
             const json = await res.json();
@@ -248,6 +259,7 @@ export const usePublitesPremiumStore = createWithEqualityFn<PublitesPremiumState
                 ),
             }));
             set({ stats: get().computeStats() });
+            toast.success('Campagne refusée');
         },
 
         annulerPublite: async (id: string) => {
@@ -260,7 +272,9 @@ export const usePublitesPremiumStore = createWithEqualityFn<PublitesPremiumState
 
             if (!res.ok) {
                 const err = await res.json();
-                throw new Error(err.error ?? 'Erreur lors de l\'annulation');
+                const msg = err.error ?? 'Erreur lors de l\'annulation';
+                toast.error('Erreur', { description: msg });
+                throw new Error(msg);
             }
 
             set((state) => ({
@@ -269,6 +283,7 @@ export const usePublitesPremiumStore = createWithEqualityFn<PublitesPremiumState
                 ),
             }));
             set({ stats: get().computeStats() });
+            toast.success('Campagne annulée');
         },
     }),
     Object.is

@@ -1,5 +1,6 @@
 // stores/reclamationsStore.ts
 import { createWithEqualityFn } from 'zustand/traditional';
+import { toast } from 'sonner';
 import { useAuthStore } from './authStore';
 
 // ============================================
@@ -168,10 +169,12 @@ export const useReclamationsStore = createWithEqualityFn<ReclamationsState>((set
                 : get().selectedReclamation;
             set({ reclamations, selectedReclamation, isLoading: false, error: null });
             get().calculateStats();
+            toast.success('Statut mis à jour', { description: statut });
             console.log(`✅ Statut mis à jour : ${statut}`);
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Erreur de mise à jour';
             set({ error: errorMessage, isLoading: false });
+            toast.error('Erreur', { description: errorMessage });
             throw error;
         }
     },
@@ -193,10 +196,12 @@ export const useReclamationsStore = createWithEqualityFn<ReclamationsState>((set
                 : get().selectedReclamation;
             set({ reclamations, selectedReclamation, isLoading: false, error: null });
             get().calculateStats();
+            toast.success('Réclamation supprimée');
             console.log('✅ Réclamation supprimée');
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Erreur de suppression';
             set({ error: errorMessage, isLoading: false });
+            toast.error('Erreur', { description: errorMessage });
             throw error;
         }
     },

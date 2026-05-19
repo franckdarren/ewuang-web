@@ -18,6 +18,7 @@
  */
 
 import { create } from 'zustand';
+import { toast } from 'sonner';
 import { useAuthStore } from './authStore';
 import {
     Commande,
@@ -358,6 +359,7 @@ export const useCommandesStore = create<CommandesState>((set, get) => ({
             // Recalculer les stats car le statut a changé
             get().calculateStats();
 
+            toast.success('Statut mis à jour', { description: `Commande ${commandeMiseAJour.numero} → ${nouveauStatut}` });
             console.log(`✅ Statut de la commande ${commandeMiseAJour.numero} mis à jour:`, nouveauStatut);
 
         } catch (error) {
@@ -370,6 +372,7 @@ export const useCommandesStore = create<CommandesState>((set, get) => ({
                 isLoading: false,
             });
 
+            toast.error('Erreur', { description: errorMessage });
             console.error('❌ Erreur updateStatut:', errorMessage);
             throw error;
         }
@@ -414,6 +417,7 @@ export const useCommandesStore = create<CommandesState>((set, get) => ({
             // Recalculer les stats
             get().calculateStats();
 
+            toast.success('Commande supprimée');
             console.log('✅ Commande supprimée avec succès');
 
         } catch (error) {
@@ -426,6 +430,7 @@ export const useCommandesStore = create<CommandesState>((set, get) => ({
                 isLoading: false,
             });
 
+            toast.error('Erreur', { description: errorMessage });
             console.error('❌ Erreur deleteCommande:', errorMessage);
             throw error;
         }

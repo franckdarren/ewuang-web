@@ -15,6 +15,7 @@
  */
 
 import { createWithEqualityFn } from 'zustand/traditional';
+import { toast } from 'sonner';
 import { useAuthStore } from './authStore';
 import { apiFetch } from '@/app/lib/apiFetch';
 
@@ -464,6 +465,7 @@ export const usePublicitesStore = createWithEqualityFn<PublicitesState>((set, ge
 
             get().calculateStats();
 
+            toast.success('Publicité créée', { description: nouvellePublicite.titre });
             console.log('✅ Publicité créée:', nouvellePublicite.titre);
 
             return nouvellePublicite;
@@ -478,6 +480,7 @@ export const usePublicitesStore = createWithEqualityFn<PublicitesState>((set, ge
                 isLoading: false,
             });
 
+            toast.error('Erreur de création', { description: errorMessage });
             console.error('❌ Erreur createPublicite:', errorMessage);
             throw error;
         }
@@ -537,6 +540,7 @@ export const usePublicitesStore = createWithEqualityFn<PublicitesState>((set, ge
 
             get().calculateStats();
 
+            toast.success('Publicité mise à jour', { description: publiciteMiseAJour.titre });
             console.log('✅ Publicité mise à jour:', publiciteMiseAJour.titre);
 
             return publiciteMiseAJour;
@@ -551,6 +555,7 @@ export const usePublicitesStore = createWithEqualityFn<PublicitesState>((set, ge
                 isLoading: false,
             });
 
+            toast.error('Erreur de mise à jour', { description: errorMessage });
             throw error;
         }
     },
@@ -588,8 +593,9 @@ export const usePublicitesStore = createWithEqualityFn<PublicitesState>((set, ge
 
             get().calculateStats();
 
+            toast.success('Publicité supprimée');
             console.log('✅ Publicité supprimée');
-            
+
         } catch (error) {
             const errorMessage = error instanceof Error
                 ? error.message
@@ -600,6 +606,7 @@ export const usePublicitesStore = createWithEqualityFn<PublicitesState>((set, ge
                 isLoading: false,
             });
 
+            toast.error('Erreur de suppression', { description: errorMessage });
             throw error;
 
         }
