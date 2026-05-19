@@ -68,6 +68,7 @@ const createCommandeSchema = z.object({
     commentaire: z.string().optional().default(""),
     isLivrable: z.boolean(),
     adresse_livraison: z.string().max(255),
+    code_promo: z.string().optional(),
     articles: z
         .array(
             z.object({
@@ -211,7 +212,58 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
         }
 
-        // 3. Calculer les frais de livraison
+        // 3. Valider et appliquer le code promo
+        let remiseAppliquee = 0;
+        let codePromoId: string | null = null;
+
+        if (body.code_promo) {
+            const sousTotal = commandeArticles.reduce(
+                (sum, ca) => sum + ca.prix_unitaire * ca.quantite,
+                0
+            );
+
+            const { data: promo } = await supabaseAdmin
+                .from("codes_promo")
+                .select("*")
+                .eq("code", body.code_promo.toUpperCase())
+                .eq("est_actif", true)
+                .single();
+
+            if (!promo) {
+                return res.status(400).json({ error: "Code promo invalide" });
+            }
+
+            if (promo.date_expiration && new Date(promo.date_expiration) < new Date()) {
+                return res.status(400).json({ error: "Ce code promo a expiré" });
+            }
+
+            if (promo.utilisations_max !== null && promo.utilisations_actuelles >= promo.utilisations_max) {
+                return res.status(400).json({ error: "Ce code promo a atteint sa limite d'utilisation" });
+            }
+
+            if (promo.article_id) {
+                const applicable = body.articles.some((a) => a.article_id === promo.article_id);
+                if (!applicable) {
+                    return res.status(400).json({ error: "Ce code promo ne s'applique pas à vos articles" });
+                }
+            }
+
+            if (sousTotal < promo.montant_min) {
+                return res.status(400).json({
+                    error: `Montant minimum requis pour ce code : ${promo.montant_min} FCFA`
+                });
+            }
+
+            remiseAppliquee = promo.type === "pourcentage"
+                ? Math.round(sousTotal * promo.valeur / 100)
+                : Math.min(promo.valeur, sousTotal);
+
+            codePromoId = promo.id;
+            total -= remiseAppliquee;
+            if (total < 0) total = 0;
+        }
+
+        // 4. Calculer les frais de livraison
         const adresseLower = body.adresse_livraison.toLowerCase();
         let baseLivraison = 3000;
 
@@ -227,7 +279,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const livraison = Math.min(baseLivraison * nombreBoutiques, 8000);
         total += livraison;
 
-        // 4. Début de la transaction (simulation avec try/catch)
+        // 5. Début de la transaction (simulation avec try/catch)
         try {
             // Créer la commande
             const { data: commande, error: commandeError } = await supabaseAdmin
@@ -240,6 +292,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     isLivrable: body.isLivrable,
                     prix: total,
                     adresse_livraison: body.adresse_livraison,
+                    code_promo_id: codePromoId,
+                    remise_appliquee: remiseAppliquee,
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString(),
                 })
@@ -320,6 +374,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 if (adminSoldeError) {
                     throw new Error(`Erreur mise à jour solde admin: ${adminSoldeError.message}`);
                 }
+            }
+
+            // Incrémenter le compteur d'utilisations du code promo
+            if (codePromoId) {
+                await supabaseAdmin.rpc("increment_code_promo_utilisations", {
+                    promo_id: codePromoId,
+                });
             }
 
             // Récupérer la commande complète avec les articles
