@@ -29,6 +29,7 @@ import {
     Package,
     User,
     ShoppingBag,
+    BellRing,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -64,6 +65,7 @@ interface CommandesTableProps {
     onView: (commande: Commande) => void;
     onDelete: (commande: Commande) => void;
     onUpdateStatut: (commande: Commande, statut: string) => void;
+    onAlert?: (commande: Commande) => void;
 }
 
 // ============================================
@@ -168,6 +170,7 @@ const createColumns = (
     onView: (commande: Commande) => void,
     onDelete: (commande: Commande) => void,
     onUpdateStatut: (commande: Commande, statut: string) => void,
+    onAlert?: (commande: Commande) => void,
 ): ColumnDef<Commande>[] => [
     {
         id: "select",
@@ -366,6 +369,18 @@ const createColumns = (
                                 </DropdownMenuItem>
                             );
                         })}
+                        {onAlert && commande.vendeur_id && (
+                            <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                    onClick={() => onAlert(commande)}
+                                    className="text-amber-600 focus:text-amber-600"
+                                >
+                                    <BellRing className="mr-2 h-4 w-4" />
+                                    Alerter la boutique
+                                </DropdownMenuItem>
+                            </>
+                        )}
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                             onClick={() => onDelete(commande)}
@@ -391,6 +406,7 @@ export function CommandesTable({
     onView,
     onDelete,
     onUpdateStatut,
+    onAlert,
 }: CommandesTableProps) {
     const [sorting, setSorting] = React.useState<SortingState>([
         { id: "created_at", desc: true }
@@ -400,8 +416,8 @@ export function CommandesTable({
     const [rowSelection, setRowSelection] = React.useState({});
 
     const columns = React.useMemo(
-        () => createColumns(onView, onDelete, onUpdateStatut),
-        [onView, onDelete, onUpdateStatut]
+        () => createColumns(onView, onDelete, onUpdateStatut, onAlert),
+        [onView, onDelete, onUpdateStatut, onAlert]
     );
 
     const table = useReactTable({

@@ -26,6 +26,7 @@ import {
     Truck,
     RefreshCw,
     Package,
+    BellRing,
 } from "lucide-react";
 import { CommandesTable } from "@/components/commandes/commandes-table";
 import { CommandeViewModal } from "@/components/commandes/commande-view-modal";
@@ -51,6 +52,10 @@ export default function CommandesPage() {
     const [selectedCommande, setSelectedCommande] = React.useState<Commande | undefined>(undefined);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
     const [commandeToDelete, setCommandeToDelete] = React.useState<Commande | undefined>(undefined);
+    const [isAlertDialogOpen, setIsAlertDialogOpen] = React.useState(false);
+    const [commandeToAlert, setCommandeToAlert] = React.useState<Commande | undefined>(undefined);
+    const [isAlertLoading, setIsAlertLoading] = React.useState(false);
+    const [alertFeedback, setAlertFeedback] = React.useState<{ type: 'success' | 'error'; message: string } | null>(null);
     const [isInitialLoading, setIsInitialLoading] = React.useState(true);
 
     // ========== EFFECTS ==========
@@ -90,6 +95,36 @@ export default function CommandesPage() {
 
     const handleUpdateStatut = async (commande: Commande, nouveauStatut: string) => {
         await updateStatut(commande.id, nouveauStatut as any);
+    };
+
+    const handleAlert = (commande: Commande) => {
+        setCommandeToAlert(commande);
+        setAlertFeedback(null);
+        setIsAlertDialogOpen(true);
+    };
+
+    const handleConfirmAlert = async () => {
+        if (!commandeToAlert) return;
+        setIsAlertLoading(true);
+        try {
+            const res = await fetch(`/api/commandes/${commandeToAlert.id}/alert-boutique`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${(await import('@/stores/authStore')).useAuthStore.getState().token}` },
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error ?? 'Erreur inconnue');
+            setAlertFeedback({ type: 'success', message: data.message });
+        } catch (err) {
+            setAlertFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Erreur lors de l\'envoi' });
+        } finally {
+            setIsAlertLoading(false);
+        }
+    };
+
+    const handleCloseAlertDialog = () => {
+        setIsAlertDialogOpen(false);
+        setCommandeToAlert(undefined);
+        setAlertFeedback(null);
     };
 
     // ========== STATS CALCULÉES ==========
@@ -330,6 +365,7 @@ export default function CommandesPage() {
                         onView={handleView}
                         onDelete={handleDelete}
                         onUpdateStatut={handleUpdateStatut}
+                        onAlert={handleAlert}
                     />
                 </CardContent>
             </Card>
@@ -340,6 +376,52 @@ export default function CommandesPage() {
                 onClose={handleCloseViewModal}
                 commande={selectedCommande}
             />
+
+            {/* ========== DIALOG D'ALERTE BOUTIQUE ========== */}
+            <AlertDialog open={isAlertDialogOpen} onOpenChange={(open) => { if (!open) handleCloseAlertDialog(); }}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2">
+                            <BellRing className="h-5 w-5 text-amber-500" />
+                            Alerter la boutique
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Une notification sera envoyée à la boutique pour lui rappeler de traiter la commande{" "}
+                            <span className="font-semibold">#{commandeToAlert?.numero}</span>.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+
+                    {alertFeedback && (
+                        <div className={`rounded-md px-4 py-3 text-sm font-medium ${
+                            alertFeedback.type === 'success'
+                                ? 'bg-green-50 text-green-700 border border-green-200'
+                                : 'bg-red-50 text-red-700 border border-red-200'
+                        }`}>
+                            {alertFeedback.message}
+                        </div>
+                    )}
+
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={handleCloseAlertDialog} disabled={isAlertLoading}>
+                            {alertFeedback ? 'Fermer' : 'Annuler'}
+                        </AlertDialogCancel>
+                        {!alertFeedback && (
+                            <AlertDialogAction
+                                onClick={handleConfirmAlert}
+                                disabled={isAlertLoading}
+                                className="bg-amber-500 hover:bg-amber-600"
+                            >
+                                {isAlertLoading ? (
+                                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                                ) : (
+                                    <BellRing className="mr-2 h-4 w-4" />
+                                )}
+                                Envoyer l'alerte
+                            </AlertDialogAction>
+                        )}
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
 
             {/* ========== DIALOG DE CONFIRMATION DE SUPPRESSION ========== */}
             <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
