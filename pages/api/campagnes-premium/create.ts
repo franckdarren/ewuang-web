@@ -61,7 +61,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             .select()
             .single();
 
-        if (error) return res.status(500).json({ error: "Impossible de créer la demande" });
+        if (error) {
+            console.error("[campagnes-premium/create] insert error:", error);
+            return res.status(500).json({
+                error: "Impossible de créer la publicité premium",
+                detail: error.message,
+            });
+        }
 
         return res.status(201).json({ publicite_premium: data });
     } catch (err) {

@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { usePublitesPremiumStore, type CreatePublicitePremiumInput, type PublitePosition } from '@/stores/publicitesPremiumStore';
-import { useAuthStore } from '@/stores/authStore';
+import { useAuthStore, useIsAdmin } from '@/stores/authStore';
 import { Upload, Link, X, ImageIcon, Loader2 } from 'lucide-react';
 
 interface Categorie {
@@ -31,6 +31,7 @@ const POSITIONS: { value: PublitePosition; label: string }[] = [
 export function PubPremiumFormModal({ open, onClose }: PubPremiumFormModalProps) {
     const createPublitePremium = usePublitesPremiumStore((s) => s.createPublitePremium);
     const token = useAuthStore((s) => s.token);
+    const isAdmin = useIsAdmin();
 
     const [position, setPosition] = React.useState<PublitePosition>('banniere_accueil');
     const [titre, setTitre] = React.useState('');
@@ -175,7 +176,7 @@ export function PubPremiumFormModal({ open, onClose }: PubPremiumFormModalProps)
         <Dialog open={open} onOpenChange={handleClose}>
             <DialogContent className="max-w-lg max-h-[90vh] flex flex-col">
                 <DialogHeader>
-                    <DialogTitle>Nouvelle publicité premium</DialogTitle>
+                    <DialogTitle>{isAdmin ? 'Ajouter une publicité premium' : 'Nouvelle publicité premium'}</DialogTitle>
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="space-y-4 overflow-y-auto pr-1 flex-1">
@@ -331,7 +332,7 @@ export function PubPremiumFormModal({ open, onClose }: PubPremiumFormModalProps)
                         <Button type="submit" disabled={isSubmitting}>
                             {isUploading ? (
                                 <><Loader2 className="h-4 w-4 animate-spin mr-1" />Upload…</>
-                            ) : isSubmitting ? 'Envoi…' : 'Soumettre la demande'}
+                            ) : isSubmitting ? 'Envoi…' : isAdmin ? 'Ajouter' : 'Soumettre la demande'}
                         </Button>
                     </DialogFooter>
                 </form>
