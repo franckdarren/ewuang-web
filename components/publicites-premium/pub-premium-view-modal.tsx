@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink, Calendar, MapPin, Building2, Tag } from 'lucide-react';
 import type { PublicitePremium, PublitePosition, PublitePremiumStatut } from '@/stores/publicitesPremiumStore';
+import { proxiedMediaUrl } from '@/lib/mediaUrl';
 
 const POSITION_LABELS: Record<PublitePosition, string> = {
     banniere_accueil: 'Bannière accueil',
@@ -47,7 +48,7 @@ export function PubPremiumViewModal({ open, onClose, pub }: PubPremiumViewModalP
                 <div className="space-y-4">
                     <div className="rounded-lg overflow-hidden border bg-muted max-h-64">
                         <img
-                            src={pub.url_image}
+                            src={proxiedMediaUrl(pub.url_image)}
                             alt={pub.titre}
                             className="w-full h-full object-cover"
                             onError={(e) => { e.currentTarget.style.display = 'none'; }}

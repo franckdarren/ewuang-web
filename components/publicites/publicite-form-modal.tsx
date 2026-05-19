@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import { type Publicite, usePublicitesStore } from '@/stores/publicitesStore';
 import { useAuthStore } from '@/stores/authStore';
+import { proxiedMediaUrl } from '@/lib/mediaUrl';
 import { toast } from "sonner";
 
 // ============================================
@@ -523,14 +524,14 @@ export function PubliciteFormModal({
                                     <div className="relative aspect-video rounded-md overflow-hidden bg-background">
                                         {isVideoUrl(urlImage) ? (
                                             <video
-                                                src={urlImage}
+                                                src={proxiedMediaUrl(urlImage)}
                                                 className="w-full h-full object-contain"
                                                 controls
                                                 muted
                                             />
                                         ) : (
                                             <img
-                                                src={urlImage}
+                                                src={proxiedMediaUrl(urlImage)}
                                                 alt="Aperçu"
                                                 className="w-full h-full object-contain"
                                                 onError={(e) => {

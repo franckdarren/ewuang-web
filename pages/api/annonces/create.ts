@@ -1,4 +1,4 @@
-// pages/api/publicites/create.ts
+// pages/api/annonces/create.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { z, ZodError } from "zod";
 import { supabaseAdmin } from "../../../app/lib/supabaseAdmin";
@@ -6,7 +6,7 @@ import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
 
 /**
  * @swagger
- * /api/publicites/create:
+ * /api/annonces/create:
  *   post:
  *     summary: Crée une nouvelle publicité
  *     description: >

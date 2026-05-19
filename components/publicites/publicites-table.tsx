@@ -52,6 +52,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { type Publicite } from '@/stores/publicitesStore';
+import { proxiedMediaUrl } from '@/lib/mediaUrl';
 
 // ============================================
 // PROPS
@@ -184,7 +185,7 @@ const createColumns = (
                         <div className="relative h-16 w-24 rounded-md overflow-hidden bg-muted">
                             {mediaType === 'video' ? (
                                 <video
-                                    src={publicite.url_image}
+                                    src={proxiedMediaUrl(publicite.url_image)}
                                     className="h-full w-full object-cover"
                                     muted
                                     loop
@@ -192,7 +193,7 @@ const createColumns = (
                                 />
                             ) : (
                                 <img
-                                    src={publicite.url_image}
+                                    src={proxiedMediaUrl(publicite.url_image)}
                                     alt={publicite.titre}
                                     className="h-full w-full object-cover"
                                     onError={(e) => {

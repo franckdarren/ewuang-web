@@ -5,7 +5,7 @@ import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth
 
 /**
  * @swagger
- * /api/publicites/update/{id}:
+ * /api/annonces/update/{id}:
  *   patch:
  *     summary: Met à jour une publicité
  *     tags: [Publicites]

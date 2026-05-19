@@ -1,11 +1,11 @@
-// pages/api/publicites/[id].ts
+// pages/api/annonces/[id].ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "../../../../app/lib/supabaseAdmin";
 import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth";
 
 /**
  * @swagger
- * /api/publicites/delete/{id}:
+ * /api/annonces/delete/{id}:
  *   delete:
  *     summary: Supprime une publicité
  *     description: Supprime une publicité par son ID.

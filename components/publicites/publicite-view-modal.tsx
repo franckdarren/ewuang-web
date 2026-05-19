@@ -22,6 +22,7 @@ import {
     Image as ImageIcon,
 } from "lucide-react";
 import { type Publicite } from '@/stores/publicitesStore';
+import { proxiedMediaUrl } from '@/lib/mediaUrl';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -251,7 +252,7 @@ export function PubliciteViewModal({
                                     <div className="relative w-full h-full">
                                         <video
                                             ref={videoRef}
-                                            src={publicite.url_image}
+                                            src={proxiedMediaUrl(publicite.url_image)}
                                             className="w-full h-full object-contain"
                                             controls
                                             loop
@@ -261,7 +262,7 @@ export function PubliciteViewModal({
                                     </div>
                                 ) : (
                                     <img
-                                        src={publicite.url_image}
+                                        src={proxiedMediaUrl(publicite.url_image)}
                                         alt={publicite.titre}
                                         className="w-full h-full object-contain"
                                         onError={(e) => {

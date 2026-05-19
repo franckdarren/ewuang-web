@@ -1,10 +1,10 @@
-// pages/api/publicites/index.ts
+// pages/api/annonces/index.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "../../../app/lib/supabaseAdmin";
 
 /**
  * @swagger
- * /api/publicites/list:
+ * /api/annonces/list:
  *   get:
  *     summary: Liste toutes les publicités
  *     description: Récupère toutes les publicités disponibles.

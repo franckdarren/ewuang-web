@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { CheckCircle, XCircle, Eye, Ban, Clock } from 'lucide-react';
 import type { PublicitePremium, PublitePosition, PublitePremiumStatut } from '@/stores/publicitesPremiumStore';
+import { proxiedMediaUrl } from '@/lib/mediaUrl';
 
 // ============================================
 // HELPERS
@@ -100,7 +101,7 @@ export function PubPremiumTable({
                                 <TableCell>
                                     <div className="h-12 w-20 overflow-hidden rounded border bg-muted">
                                         <img
-                                            src={pub.url_image}
+                                            src={proxiedMediaUrl(pub.url_image)}
                                             alt={pub.titre}
                                             className="h-full w-full object-cover"
                                             onError={(e) => { e.currentTarget.style.display = 'none'; }}

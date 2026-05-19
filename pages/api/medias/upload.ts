@@ -68,11 +68,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const filePath = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${ext}`;
 
-        // Client service role : l'upload se fait côté serveur, hors RLS.
+        // Upload en tant qu'utilisateur authentifié (token vérifié ci-dessus) :
+        // c'est le contexte que les logs Supabase prouvent autorisé par la
+        // policy RLS du bucket. On évite ainsi de dépendre de la clé service
+        // role (mal configurée en prod -> rejet RLS).
         const storage = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!,
-            { auth: { autoRefreshToken: false, persistSession: false } }
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY!,
+            {
+                global: { headers: { Authorization: `Bearer ${token}` } },
+                auth: { autoRefreshToken: false, persistSession: false },
+            }
         );
 
         const { error: uploadError } = await storage.storage

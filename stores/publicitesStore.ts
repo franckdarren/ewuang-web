@@ -329,7 +329,7 @@ export const usePublicitesStore = createWithEqualityFn<PublicitesState>((set, ge
         try {
             const token = getAuthToken();
 
-            const response = await fetch('/api/publicites/list', {
+            const response = await fetch('/api/annonces/list', {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -389,7 +389,7 @@ export const usePublicitesStore = createWithEqualityFn<PublicitesState>((set, ge
         try {
             const token = getAuthToken();
 
-            const response = await fetch(`/api/publicites/${id}`, {
+            const response = await fetch(`/api/annonces/${id}`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -457,7 +457,7 @@ export const usePublicitesStore = createWithEqualityFn<PublicitesState>((set, ge
 
             console.log('📤 Création de publicité:', publiciteData);
 
-            const response = await fetch('/api/publicites/create', {
+            const response = await fetch('/api/annonces/create', {
                 method: 'POST',
                 headers: getAuthHeaders(),
                 body: JSON.stringify(publiciteData),
@@ -523,7 +523,7 @@ export const usePublicitesStore = createWithEqualityFn<PublicitesState>((set, ge
 
             console.log('📤 Mise à jour de publicité:', updateData);
 
-            const response = await fetch(`/api/publicites/update/${id}`, {
+            const response = await fetch(`/api/annonces/update/${id}`, {
                 method: 'PATCH',
                 headers: getAuthHeaders(),
                 body: JSON.stringify(updateData),
@@ -581,7 +581,7 @@ export const usePublicitesStore = createWithEqualityFn<PublicitesState>((set, ge
         try {
             checkAdminRole();
 
-            const response = await fetch(`/api/publicites/delete/${id}`, {
+            const response = await fetch(`/api/annonces/delete/${id}`, {
                 method: 'DELETE',
                 headers: getAuthHeaders(),
             });
