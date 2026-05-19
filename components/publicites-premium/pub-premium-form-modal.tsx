@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { usePublitesPremiumStore, type CreatePublicitePremiumInput, type PublitePosition } from '@/stores/publicitesPremiumStore';
 import { useAuthStore } from '@/stores/authStore';
 import { Upload, Link, X, ImageIcon, Loader2 } from 'lucide-react';
-import { supabaseBrowser } from '@/app/utils/supabase/clients';
+import { createClient } from '@supabase/supabase-js';
 
 interface Categorie {
     id: string;
@@ -80,20 +80,28 @@ export function PubPremiumFormModal({ open, onClose }: PubPremiumFormModalProps)
     async function uploadFile(): Promise<string> {
         if (!selectedFile) throw new Error('Aucun fichier sélectionné');
 
-        const user = useAuthStore.getState().user;
-        if (!user) throw new Error('Non authentifié');
+        const token = useAuthStore.getState().token;
+        if (!token) throw new Error('Non authentifié');
 
-        const supabase = supabaseBrowser();
+        const supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            {
+                global: { headers: { Authorization: `Bearer ${token}` } },
+                auth: { autoRefreshToken: false, persistSession: false },
+            }
+        );
+
         const ext = selectedFile.name.split('.').pop()?.toLowerCase() ?? 'jpg';
-        const filePath = `publicites/${user.id}/${Date.now()}.${ext}`;
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${ext}`;
 
         const { error } = await supabase.storage
             .from('publicites')
-            .upload(filePath, selectedFile, { contentType: selectedFile.type, upsert: false });
+            .upload(fileName, selectedFile, { contentType: selectedFile.type, upsert: true });
 
         if (error) throw new Error(error.message);
 
-        const { data } = supabase.storage.from('publicites').getPublicUrl(filePath);
+        const { data } = supabase.storage.from('publicites').getPublicUrl(fileName);
         return data.publicUrl;
     }
 
