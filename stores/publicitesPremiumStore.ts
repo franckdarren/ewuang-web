@@ -1,5 +1,6 @@
 import { createWithEqualityFn } from 'zustand/traditional';
 import { useAuthStore } from './authStore';
+import { apiFetch } from '@/app/lib/apiFetch';
 
 // ============================================
 // TYPES
@@ -138,9 +139,7 @@ export const usePublitesPremiumStore = createWithEqualityFn<PublitesPremiumState
                     ? `/api/campagnes-premium/list?statut=${statut}`
                     : '/api/campagnes-premium/list';
 
-                const res = await fetch(url, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
+                const res = await apiFetch(url);
 
                 if (!res.ok) throw new Error('Erreur lors du chargement');
                 const json = await res.json();
@@ -160,9 +159,7 @@ export const usePublitesPremiumStore = createWithEqualityFn<PublitesPremiumState
 
             set({ isLoading: true, error: null });
             try {
-                const res = await fetch('/api/campagnes-premium/mes-pubs', {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
+                const res = await apiFetch('/api/campagnes-premium/mes-pubs');
 
                 if (!res.ok) throw new Error('Erreur lors du chargement');
                 const json = await res.json();
@@ -182,12 +179,9 @@ export const usePublitesPremiumStore = createWithEqualityFn<PublitesPremiumState
 
             set({ isLoading: true, error: null });
             try {
-                const res = await fetch('/api/campagnes-premium/create', {
+                const res = await apiFetch('/api/campagnes-premium/create', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Bearer ${token}`,
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data),
                 });
 
@@ -212,9 +206,8 @@ export const usePublitesPremiumStore = createWithEqualityFn<PublitesPremiumState
             const token = getToken();
             if (!token) throw new Error('Non authentifié');
 
-            const res = await fetch(`/api/campagnes-premium/${id}/approuver`, {
+            const res = await apiFetch(`/api/campagnes-premium/${id}/approuver`, {
                 method: 'PATCH',
-                headers: { Authorization: `Bearer ${token}` },
             });
 
             if (!res.ok) {
@@ -236,12 +229,9 @@ export const usePublitesPremiumStore = createWithEqualityFn<PublitesPremiumState
             const token = getToken();
             if (!token) throw new Error('Non authentifié');
 
-            const res = await fetch(`/api/campagnes-premium/${id}/refuser`, {
+            const res = await apiFetch(`/api/campagnes-premium/${id}/refuser`, {
                 method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ notes_admin }),
             });
 
@@ -264,9 +254,8 @@ export const usePublitesPremiumStore = createWithEqualityFn<PublitesPremiumState
             const token = getToken();
             if (!token) throw new Error('Non authentifié');
 
-            const res = await fetch(`/api/campagnes-premium/${id}/annuler`, {
+            const res = await apiFetch(`/api/campagnes-premium/${id}/annuler`, {
                 method: 'DELETE',
-                headers: { Authorization: `Bearer ${token}` },
             });
 
             if (!res.ok) {

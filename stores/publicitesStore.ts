@@ -16,6 +16,7 @@
 
 import { createWithEqualityFn } from 'zustand/traditional';
 import { useAuthStore } from './authStore';
+import { apiFetch } from '@/app/lib/apiFetch';
 
 // ============================================
 // TYPES
@@ -142,18 +143,6 @@ function checkAdminRole(): void {
             `Accès refusé. Cette action nécessite les privilèges administrateur. Votre rôle actuel : ${user.role}`
         );
     }
-}
-
-/**
- * Crée les headers HTTP avec authentification
- */
-function getAuthHeaders(): HeadersInit {
-    const token = getAuthToken();
-
-    return {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-    };
 }
 
 /**
@@ -327,13 +316,10 @@ export const usePublicitesStore = createWithEqualityFn<PublicitesState>((set, ge
         }
 
         try {
-            const token = getAuthToken();
+            getAuthToken();
 
-            const response = await fetch('/api/annonces/list', {
+            const response = await apiFetch('/api/annonces/list', {
                 method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
             });
 
             if (!response.ok) {
@@ -387,13 +373,10 @@ export const usePublicitesStore = createWithEqualityFn<PublicitesState>((set, ge
         set({ isLoading: true, error: null });
 
         try {
-            const token = getAuthToken();
+            getAuthToken();
 
-            const response = await fetch(`/api/annonces/${id}`, {
+            const response = await apiFetch(`/api/annonces/${id}`, {
                 method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
             });
 
             if (!response.ok) {
@@ -457,9 +440,9 @@ export const usePublicitesStore = createWithEqualityFn<PublicitesState>((set, ge
 
             console.log('📤 Création de publicité:', publiciteData);
 
-            const response = await fetch('/api/annonces/create', {
+            const response = await apiFetch('/api/annonces/create', {
                 method: 'POST',
-                headers: getAuthHeaders(),
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(publiciteData),
             });
 
@@ -523,9 +506,9 @@ export const usePublicitesStore = createWithEqualityFn<PublicitesState>((set, ge
 
             console.log('📤 Mise à jour de publicité:', updateData);
 
-            const response = await fetch(`/api/annonces/update/${id}`, {
+            const response = await apiFetch(`/api/annonces/update/${id}`, {
                 method: 'PATCH',
-                headers: getAuthHeaders(),
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(updateData),
             });
 
@@ -581,9 +564,8 @@ export const usePublicitesStore = createWithEqualityFn<PublicitesState>((set, ge
         try {
             checkAdminRole();
 
-            const response = await fetch(`/api/annonces/delete/${id}`, {
+            const response = await apiFetch(`/api/annonces/delete/${id}`, {
                 method: 'DELETE',
-                headers: getAuthHeaders(),
             });
 
             if (!response.ok) {

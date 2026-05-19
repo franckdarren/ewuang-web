@@ -87,6 +87,14 @@ interface AuthState {
     refreshUser: () => Promise<void>;
 
     /**
+     * Récupère un access_token frais depuis le serveur (qui rafraîchit la
+     * session via le cookie) et le met à jour dans le store.
+     * Retourne le nouveau token, ou null si la session est définitivement
+     * expirée (auquel cas l'utilisateur est déconnecté).
+     */
+    refreshAccessToken: () => Promise<string | null>;
+
+    /**
      * Efface les erreurs
      */
     clearError: () => void;
@@ -100,6 +108,9 @@ interface AuthState {
 // ============================================
 // CRÉATION DU STORE
 // ============================================
+
+// Promesse partagée pour dédupliquer les rafraîchissements concurrents
+let inFlightRefresh: Promise<string | null> | null = null;
 
 export const useAuthStore = create<AuthState>()(
     persist(
@@ -296,6 +307,52 @@ export const useAuthStore = create<AuthState>()(
                         isLoading: false,
                     });
                 }
+            },
+
+            /**
+             * REFRESH ACCESS TOKEN - Obtenir un token frais depuis le serveur
+             *
+             * Les appels concurrents (ex: plusieurs requêtes qui prennent un
+             * 401 en même temps) sont dédupliqués via une promesse partagée.
+             */
+            refreshAccessToken: async () => {
+                if (inFlightRefresh) return inFlightRefresh;
+
+                inFlightRefresh = (async () => {
+                    try {
+                        const res = await fetch('/api/auth/session', {
+                            method: 'GET',
+                            cache: 'no-store',
+                        });
+
+                        if (!res.ok) {
+                            // Session définitivement morte → déconnexion propre
+                            if (res.status === 401) {
+                                set({
+                                    user: null,
+                                    token: null,
+                                    isAuthenticated: false,
+                                });
+                                if (typeof window !== 'undefined') {
+                                    window.location.href = '/login';
+                                }
+                            }
+                            return null;
+                        }
+
+                        const { access_token } = await res.json();
+                        if (!access_token) return null;
+
+                        set({ token: access_token, isAuthenticated: true });
+                        return access_token as string;
+                    } catch {
+                        return null;
+                    } finally {
+                        inFlightRefresh = null;
+                    }
+                })();
+
+                return inFlightRefresh;
             },
 
             /**

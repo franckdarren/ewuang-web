@@ -15,9 +15,12 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuthStore, User } from '@/stores/authStore';
 import { InactivityGuard } from '@/components/inactivity-guard';
+
+// L'access token Supabase expire ~1h. On le rafraîchit bien avant.
+const REFRESH_INTERVAL_MS = 20 * 60 * 1000; // 20 min
 
 interface AuthProviderProps {
     children: React.ReactNode;
@@ -36,6 +39,29 @@ export function AuthProvider({
     useState(() => {
         useAuthStore.getState().initializeAuth(initialUser, initialToken);
     });
+
+    // Rafraîchissement proactif du token : périodiquement et au retour sur
+    // l'onglet (après une mise en veille / longue inactivité). Évite que le
+    // token persistant dans le store expire pendant une session SPA.
+    useEffect(() => {
+        const refresh = () => {
+            void useAuthStore.getState().refreshAccessToken();
+        };
+
+        const interval = setInterval(refresh, REFRESH_INTERVAL_MS);
+
+        const onVisible = () => {
+            if (document.visibilityState === 'visible') refresh();
+        };
+        document.addEventListener('visibilitychange', onVisible);
+        window.addEventListener('focus', refresh);
+
+        return () => {
+            clearInterval(interval);
+            document.removeEventListener('visibilitychange', onVisible);
+            window.removeEventListener('focus', refresh);
+        };
+    }, []);
 
     return <InactivityGuard>{children}</InactivityGuard>;
 }
