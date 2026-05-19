@@ -82,6 +82,11 @@ const data = {
       icon: IconDeviceTv,
     },
     {
+      title: "Pubs Premium",
+      url: "/dashboard/publicites-premium",
+      icon: IconTarget,
+    },
+    {
       title: "Réclamations",
       url: "/dashboard/reclamations",
       icon: IconMessage,

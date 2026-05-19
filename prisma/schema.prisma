@@ -169,6 +169,36 @@ model publicites {
   updated_at  DateTime @default(now())
 }
 
+model publicites_premium {
+  id           String                   @id @default(uuid()) @db.Uuid
+  boutique_id  String                   @db.Uuid
+  position     publicite_position
+  categorie_id String?                  @db.Uuid
+  titre        String                   @db.VarChar(255)
+  url_image    String                   @db.VarChar(500)
+  lien         String?                  @db.VarChar(500)
+  description  String?
+  date_start   DateTime
+  date_end     DateTime
+  statut       publicite_premium_statut @default(en_attente)
+  prix         Int?
+  notes_admin  String?
+  approuve_par String?                  @db.Uuid
+  approuve_le  DateTime?
+  created_at   DateTime                 @default(now())
+  updated_at   DateTime                 @default(now()) @updatedAt
+
+  boutique  users       @relation("BoutiquePublicitesPremium", fields: [boutique_id], references: [id], onDelete: Cascade)
+  categorie categories? @relation("CategoriePublicitesPremium", fields: [categorie_id], references: [id], onDelete: SetNull)
+  admin     users?      @relation("AdminPublicitesPremium", fields: [approuve_par], references: [id], onDelete: SetNull)
+
+  @@index([boutique_id])
+  @@index([position])
+  @@index([statut])
+  @@index([date_start])
+  @@index([date_end])
+}
+
 model reclamations {
   id          String              @id @default(uuid()) @db.Uuid
   description String              @db.VarChar(255)
@@ -243,6 +273,9 @@ model users {
   commandes_achetees commandes[]   @relation("CommandeAcheteur")
   commandes_vendues  commandes[]   @relation("CommandeVendeur")
   codes_promo        codes_promo[]
+
+  publicites_premium_boutique publicites_premium[] @relation("BoutiquePublicitesPremium")
+  publicites_premium_admin    publicites_premium[] @relation("AdminPublicitesPremium")
 
   @@index([email])
   @@index([role])
@@ -324,6 +357,7 @@ model categories {
   parent   categories?  @relation("CategoryHierarchy", fields: [parent_id], references: [id])
   children categories[] @relation("CategoryHierarchy")
   articles articles[]
+  publicites_premium publicites_premium[] @relation("CategoriePublicitesPremium")
 
   @@index([parent_id])
   @@index([slug])
@@ -511,4 +545,17 @@ enum notification_type {
   alerte_stock @map("Alerte stock")
   avis         @map("Avis")
   systeme      @map("Système")
+}
+
+enum publicite_position {
+  banniere_accueil   @map("banniere_accueil")
+  banniere_categorie @map("banniere_categorie")
+  banniere_boutique  @map("banniere_boutique")
+}
+
+enum publicite_premium_statut {
+  en_attente @map("en_attente")
+  approuve   @map("approuve")
+  refuse     @map("refuse")
+  annule     @map("annule")
 }
