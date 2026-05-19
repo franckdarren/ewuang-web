@@ -10,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { usePublitesPremiumStore, type CreatePublicitePremiumInput, type PublitePosition } from '@/stores/publicitesPremiumStore';
 import { useAuthStore } from '@/stores/authStore';
 import { Upload, Link, X, ImageIcon, Loader2 } from 'lucide-react';
-import { createClient } from '@supabase/supabase-js';
 
 interface Categorie {
     id: string;
@@ -83,26 +82,25 @@ export function PubPremiumFormModal({ open, onClose }: PubPremiumFormModalProps)
         const token = useAuthStore.getState().token;
         if (!token) throw new Error('Non authentifié');
 
-        const supabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-            {
-                global: { headers: { Authorization: `Bearer ${token}` } },
-                auth: { autoRefreshToken: false, persistSession: false },
-            }
-        );
+        // Upload via endpoint serveur same-origin au nom neutre : un appel
+        // direct navigateur -> supabase.co/.../publicites/... est bloqué par
+        // les bloqueurs de pub. Voir mémoire [[adblock-route-naming]].
+        const fd = new FormData();
+        fd.append('file', selectedFile);
 
-        const ext = selectedFile.name.split('.').pop()?.toLowerCase() ?? 'jpg';
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${ext}`;
+        const res = await fetch('/api/medias/upload', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
+            body: fd,
+        });
 
-        const { error } = await supabase.storage
-            .from('publicites')
-            .upload(fileName, selectedFile, { contentType: selectedFile.type, upsert: true });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error ?? "Erreur lors de l'upload de l'image");
+        }
 
-        if (error) throw new Error(error.message);
-
-        const { data } = supabase.storage.from('publicites').getPublicUrl(fileName);
-        return data.publicUrl;
+        const { url } = await res.json();
+        return url as string;
     }
 
     function reset() {
