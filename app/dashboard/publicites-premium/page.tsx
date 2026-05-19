@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { usePublitesPremiumStore, type PublicitePremium } from '@/stores/publicitesPremiumStore';
+import { useIsAdmin } from '@/stores/authStore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -28,6 +29,7 @@ import {
     XCircle,
     Star,
     Activity,
+    Trash2,
 } from 'lucide-react';
 import { PubPremiumTable } from '@/components/publicites-premium/pub-premium-table';
 import { PubPremiumViewModal } from '@/components/publicites-premium/pub-premium-view-modal';
@@ -45,7 +47,10 @@ export default function PublitesPremiumPage() {
         fetchPublitesPremium,
         approuverPublite,
         refuserPublite,
+        deletePublitePremium,
     } = usePublitesPremiumStore();
+
+    const isAdmin = useIsAdmin();
 
     const [isInitialLoading, setIsInitialLoading] = React.useState(true);
     const [selectedPub, setSelectedPub] = React.useState<PublicitePremium | undefined>();
@@ -62,8 +67,14 @@ export default function PublitesPremiumPage() {
     const [motifRefus, setMotifRefus] = React.useState('');
     const [isRefusLoading, setIsRefusLoading] = React.useState(false);
 
-    // Modal création
-    const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
+    // Modal création / édition
+    const [formModalPub, setFormModalPub] = React.useState<PublicitePremium | undefined>();
+    const [isFormModalOpen, setIsFormModalOpen] = React.useState(false);
+
+    // Dialog suppression
+    const [pubASupprimer, setPubASupprimer] = React.useState<PublicitePremium | undefined>();
+    const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
+    const [isDeleteLoading, setIsDeleteLoading] = React.useState(false);
 
     // Filtre statut
     const [filtreStatut, setFiltreStatut] = React.useState<string>('tous');
@@ -120,6 +131,28 @@ export default function PublitesPremiumPage() {
         }
     }
 
+    function handleEdit(pub: PublicitePremium) {
+        setFormModalPub(pub);
+        setIsFormModalOpen(true);
+    }
+
+    function handleDelete(pub: PublicitePremium) {
+        setPubASupprimer(pub);
+        setIsDeleteOpen(true);
+    }
+
+    async function confirmDelete() {
+        if (!pubASupprimer) return;
+        setIsDeleteLoading(true);
+        try {
+            await deletePublitePremium(pubASupprimer.id);
+        } finally {
+            setIsDeleteLoading(false);
+            setIsDeleteOpen(false);
+            setPubASupprimer(undefined);
+        }
+    }
+
     // ========== SKELETON ==========
 
     if (isInitialLoading) {
@@ -170,7 +203,7 @@ export default function PublitesPremiumPage() {
                         Gérez les demandes de publicités premium des boutiques
                     </p>
                 </div>
-                <Button onClick={() => setIsCreateModalOpen(true)}>
+                <Button onClick={() => { setFormModalPub(undefined); setIsFormModalOpen(true); }}>
                     Nouvelle publicité premium
                 </Button>
             </div>
@@ -263,14 +296,17 @@ export default function PublitesPremiumPage() {
                         onView={handleView}
                         onApprouver={handleApprouver}
                         onRefuser={handleRefuser}
+                        onEdit={isAdmin ? handleEdit : undefined}
+                        onDelete={isAdmin ? handleDelete : undefined}
                     />
                 </CardContent>
             </Card>
 
-            {/* MODAL CRÉATION */}
+            {/* MODAL CRÉATION / ÉDITION */}
             <PubPremiumFormModal
-                open={isCreateModalOpen}
-                onClose={() => setIsCreateModalOpen(false)}
+                open={isFormModalOpen}
+                onClose={() => { setIsFormModalOpen(false); setFormModalPub(undefined); }}
+                pub={formModalPub}
             />
 
             {/* MODAL VISUALISATION */}
@@ -341,6 +377,35 @@ export default function PublitesPremiumPage() {
                             disabled={isRefusLoading || !motifRefus.trim()}
                         >
                             {isRefusLoading ? 'Refus…' : 'Refuser la demande'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* DIALOG SUPPRESSION */}
+            <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Trash2 className="h-5 w-5 text-red-500" />
+                            Supprimer la publicité
+                        </DialogTitle>
+                    </DialogHeader>
+                    <p className="text-sm text-muted-foreground">
+                        Supprimer définitivement{' '}
+                        <span className="font-semibold text-foreground">{pubASupprimer?.titre}</span>{' '}
+                        ? Cette action est irréversible.
+                    </p>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsDeleteOpen(false)} disabled={isDeleteLoading}>
+                            Annuler
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={confirmDelete}
+                            disabled={isDeleteLoading}
+                        >
+                            {isDeleteLoading ? 'Suppression…' : 'Supprimer'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

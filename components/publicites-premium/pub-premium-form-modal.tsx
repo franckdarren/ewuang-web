@@ -7,7 +7,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { usePublitesPremiumStore, type CreatePublicitePremiumInput, type PublitePosition } from '@/stores/publicitesPremiumStore';
+import {
+    usePublitesPremiumStore,
+    type CreatePublicitePremiumInput,
+    type UpdatePublicitePremiumInput,
+    type PublitePosition,
+    type PublicitePremium,
+} from '@/stores/publicitesPremiumStore';
 import { useAuthStore, useIsAdmin } from '@/stores/authStore';
 import { Upload, Link, X, ImageIcon, Loader2 } from 'lucide-react';
 
@@ -20,6 +26,7 @@ interface Categorie {
 interface PubPremiumFormModalProps {
     open: boolean;
     onClose: () => void;
+    pub?: PublicitePremium;
 }
 
 const POSITIONS: { value: PublitePosition; label: string }[] = [
@@ -28,10 +35,18 @@ const POSITIONS: { value: PublitePosition; label: string }[] = [
     { value: 'banniere_boutique', label: 'Bannière boutique' },
 ];
 
-export function PubPremiumFormModal({ open, onClose }: PubPremiumFormModalProps) {
+function isoToDatetimeLocal(iso: string): string {
+    const d = new Date(iso);
+    const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+    return local.toISOString().slice(0, 16);
+}
+
+export function PubPremiumFormModal({ open, onClose, pub }: PubPremiumFormModalProps) {
     const createPublitePremium = usePublitesPremiumStore((s) => s.createPublitePremium);
+    const updatePublitePremium = usePublitesPremiumStore((s) => s.updatePublitePremium);
     const token = useAuthStore((s) => s.token);
     const isAdmin = useIsAdmin();
+    const isEdit = !!pub;
 
     const [position, setPosition] = React.useState<PublitePosition>('banniere_accueil');
     const [titre, setTitre] = React.useState('');
@@ -52,6 +67,7 @@ export function PubPremiumFormModal({ open, onClose }: PubPremiumFormModalProps)
 
     const fileInputRef = React.useRef<HTMLInputElement>(null);
 
+    // Charger les catégories
     React.useEffect(() => {
         if (!open || !token) return;
         fetch('/api/categories/list', {
@@ -61,6 +77,26 @@ export function PubPremiumFormModal({ open, onClose }: PubPremiumFormModalProps)
             .then((j) => setCategories(j.categories ?? []))
             .catch(() => {});
     }, [open, token]);
+
+    // Initialiser depuis pub (mode édition) ou reset (mode création)
+    React.useEffect(() => {
+        if (!open) return;
+        if (pub) {
+            setPosition(pub.position);
+            setTitre(pub.titre);
+            setImageMode('url');
+            setUrlImage(pub.url_image);
+            setLien(pub.lien ?? '');
+            setDescription(pub.description ?? '');
+            setDateStart(isoToDatetimeLocal(pub.date_start));
+            setDateEnd(isoToDatetimeLocal(pub.date_end));
+            setCategorieId(pub.categorie_id ?? '');
+            setPrix(pub.prix != null ? String(pub.prix) : '');
+            setError(null);
+        } else {
+            resetFields();
+        }
+    }, [open, pub]);
 
     function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
         const file = e.target.files?.[0];
@@ -80,8 +116,8 @@ export function PubPremiumFormModal({ open, onClose }: PubPremiumFormModalProps)
     async function uploadFile(): Promise<string> {
         if (!selectedFile) throw new Error('Aucun fichier sélectionné');
 
-        const token = useAuthStore.getState().token;
-        if (!token) throw new Error('Non authentifié');
+        const t = useAuthStore.getState().token;
+        if (!t) throw new Error('Non authentifié');
 
         // Upload via endpoint serveur same-origin au nom neutre : un appel
         // direct navigateur -> supabase.co/.../publicites/... est bloqué par
@@ -91,7 +127,7 @@ export function PubPremiumFormModal({ open, onClose }: PubPremiumFormModalProps)
 
         const res = await fetch('/api/medias/upload', {
             method: 'POST',
-            headers: { Authorization: `Bearer ${token}` },
+            headers: { Authorization: `Bearer ${t}` },
             body: fd,
         });
 
@@ -104,7 +140,7 @@ export function PubPremiumFormModal({ open, onClose }: PubPremiumFormModalProps)
         return url as string;
     }
 
-    function reset() {
+    function resetFields() {
         setPosition('banniere_accueil');
         setTitre('');
         setUrlImage('');
@@ -120,7 +156,7 @@ export function PubPremiumFormModal({ open, onClose }: PubPremiumFormModalProps)
     }
 
     function handleClose() {
-        reset();
+        resetFields();
         onClose();
     }
 
@@ -130,7 +166,7 @@ export function PubPremiumFormModal({ open, onClose }: PubPremiumFormModalProps)
 
         if (!titre.trim()) { setError('Le titre est requis'); return; }
         if (imageMode === 'url' && !urlImage.trim()) { setError("L'URL de l'image est requise"); return; }
-        if (imageMode === 'file' && !selectedFile) { setError('Veuillez choisir un fichier image'); return; }
+        if (imageMode === 'file' && !selectedFile && !isEdit) { setError('Veuillez choisir un fichier image'); return; }
         if (!dateStart || !dateEnd) { setError('Les dates sont requises'); return; }
         if (new Date(dateEnd) <= new Date(dateStart)) {
             setError('La date de fin doit être après la date de début');
@@ -144,25 +180,40 @@ export function PubPremiumFormModal({ open, onClose }: PubPremiumFormModalProps)
         setIsSubmitting(true);
         try {
             let finalUrlImage = urlImage.trim();
-            if (imageMode === 'file') {
+            if (imageMode === 'file' && selectedFile) {
                 setIsUploading(true);
                 finalUrlImage = await uploadFile();
                 setIsUploading(false);
             }
 
-            const payload: CreatePublicitePremiumInput = {
-                position,
-                titre: titre.trim(),
-                url_image: finalUrlImage,
-                lien: lien.trim() || null,
-                description: description.trim() || null,
-                date_start: new Date(dateStart).toISOString(),
-                date_end: new Date(dateEnd).toISOString(),
-                categorie_id: position === 'banniere_categorie' ? categorieId : null,
-                prix: prix ? parseInt(prix, 10) : null,
-            };
+            if (isEdit && pub) {
+                const payload: UpdatePublicitePremiumInput = {
+                    position,
+                    titre: titre.trim(),
+                    url_image: finalUrlImage || pub.url_image,
+                    lien: lien.trim() || null,
+                    description: description.trim() || null,
+                    date_start: new Date(dateStart).toISOString(),
+                    date_end: new Date(dateEnd).toISOString(),
+                    categorie_id: position === 'banniere_categorie' ? categorieId : null,
+                    prix: prix ? parseInt(prix, 10) : null,
+                };
+                await updatePublitePremium(pub.id, payload);
+            } else {
+                const payload: CreatePublicitePremiumInput = {
+                    position,
+                    titre: titre.trim(),
+                    url_image: finalUrlImage,
+                    lien: lien.trim() || null,
+                    description: description.trim() || null,
+                    date_start: new Date(dateStart).toISOString(),
+                    date_end: new Date(dateEnd).toISOString(),
+                    categorie_id: position === 'banniere_categorie' ? categorieId : null,
+                    prix: prix ? parseInt(prix, 10) : null,
+                };
+                await createPublitePremium(payload);
+            }
 
-            await createPublitePremium(payload);
             handleClose();
         } catch (err: unknown) {
             setIsUploading(false);
@@ -172,11 +223,19 @@ export function PubPremiumFormModal({ open, onClose }: PubPremiumFormModalProps)
         }
     }
 
+    const modalTitle = isEdit
+        ? 'Modifier la publicité premium'
+        : isAdmin ? 'Ajouter une publicité premium' : 'Nouvelle publicité premium';
+
+    const submitLabel = isEdit
+        ? 'Enregistrer les modifications'
+        : isAdmin ? 'Ajouter' : 'Soumettre la demande';
+
     return (
         <Dialog open={open} onOpenChange={handleClose}>
             <DialogContent className="max-w-lg max-h-[90vh] flex flex-col">
                 <DialogHeader>
-                    <DialogTitle>{isAdmin ? 'Ajouter une publicité premium' : 'Nouvelle publicité premium'}</DialogTitle>
+                    <DialogTitle>{modalTitle}</DialogTitle>
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="space-y-4 overflow-y-auto pr-1 flex-1">
@@ -332,7 +391,9 @@ export function PubPremiumFormModal({ open, onClose }: PubPremiumFormModalProps)
                         <Button type="submit" disabled={isSubmitting}>
                             {isUploading ? (
                                 <><Loader2 className="h-4 w-4 animate-spin mr-1" />Upload…</>
-                            ) : isSubmitting ? 'Envoi…' : isAdmin ? 'Ajouter' : 'Soumettre la demande'}
+                            ) : isSubmitting ? (
+                                <><Loader2 className="h-4 w-4 animate-spin mr-1" />{isEdit ? 'Enregistrement…' : 'Envoi…'}</>
+                            ) : submitLabel}
                         </Button>
                     </DialogFooter>
                 </form>

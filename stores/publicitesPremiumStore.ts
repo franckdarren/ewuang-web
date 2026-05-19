@@ -57,6 +57,18 @@ export interface CreatePublicitePremiumInput {
     prix?: number | null;
 }
 
+export interface UpdatePublicitePremiumInput {
+    position?: PublitePosition;
+    titre?: string;
+    url_image?: string;
+    lien?: string | null;
+    description?: string | null;
+    date_start?: string;
+    date_end?: string;
+    categorie_id?: string | null;
+    prix?: number | null;
+}
+
 export interface PublicitePremiumStats {
     total: number;
     en_attente: number;
@@ -79,6 +91,8 @@ interface PublitesPremiumState extends LoadingState {
     fetchPublitesPremium: (statut?: string) => Promise<void>;
     fetchMesPubs: () => Promise<void>;
     createPublitePremium: (data: CreatePublicitePremiumInput) => Promise<PublicitePremium>;
+    updatePublitePremium: (id: string, data: UpdatePublicitePremiumInput) => Promise<PublicitePremium>;
+    deletePublitePremium: (id: string) => Promise<void>;
     approuverPublite: (id: string) => Promise<void>;
     refuserPublite: (id: string, notes_admin: string) => Promise<void>;
     annulerPublite: (id: string) => Promise<void>;
@@ -202,6 +216,71 @@ export const usePublitesPremiumStore = createWithEqualityFn<PublitesPremiumState
             } catch (err: unknown) {
                 const msg = err instanceof Error ? err.message : 'Erreur lors de la création';
                 toast.error('Erreur de création', { description: msg });
+                throw err;
+            } finally {
+                set({ isLoading: false });
+            }
+        },
+
+        updatePublitePremium: async (id: string, data: UpdatePublicitePremiumInput) => {
+            const token = getToken();
+            if (!token) throw new Error('Non authentifié');
+
+            set({ isLoading: true, error: null });
+            try {
+                const res = await apiFetch(`/api/campagnes-premium/${id}/update`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data),
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error ?? 'Erreur lors de la modification');
+                }
+
+                const json = await res.json();
+                const updated: PublicitePremium = json.publicite_premium;
+                set((state) => ({
+                    publicitesPremium: state.publicitesPremium.map((p) =>
+                        p.id === id ? { ...p, ...updated } : p
+                    ),
+                }));
+                set({ stats: get().computeStats() });
+                toast.success('Publicité mise à jour', { description: updated.titre });
+                return updated;
+            } catch (err: unknown) {
+                const msg = err instanceof Error ? err.message : 'Erreur lors de la modification';
+                toast.error('Erreur de modification', { description: msg });
+                throw err;
+            } finally {
+                set({ isLoading: false });
+            }
+        },
+
+        deletePublitePremium: async (id: string) => {
+            const token = getToken();
+            if (!token) throw new Error('Non authentifié');
+
+            set({ isLoading: true, error: null });
+            try {
+                const res = await apiFetch(`/api/campagnes-premium/${id}/delete`, {
+                    method: 'DELETE',
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error ?? 'Erreur lors de la suppression');
+                }
+
+                set((state) => ({
+                    publicitesPremium: state.publicitesPremium.filter((p) => p.id !== id),
+                }));
+                set({ stats: get().computeStats() });
+                toast.success('Publicité supprimée');
+            } catch (err: unknown) {
+                const msg = err instanceof Error ? err.message : 'Erreur lors de la suppression';
+                toast.error('Erreur de suppression', { description: msg });
                 throw err;
             } finally {
                 set({ isLoading: false });

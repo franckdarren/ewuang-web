@@ -4,7 +4,7 @@ import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CheckCircle, XCircle, Eye, Ban, Clock } from 'lucide-react';
+import { CheckCircle, XCircle, Eye, Ban, Clock, Pencil, Trash2 } from 'lucide-react';
 import type { PublicitePremium, PublitePosition, PublitePremiumStatut } from '@/stores/publicitesPremiumStore';
 import { proxiedMediaUrl } from '@/lib/mediaUrl';
 
@@ -45,6 +45,8 @@ interface PubPremiumTableProps {
     onApprouver: (pub: PublicitePremium) => void;
     onRefuser: (pub: PublicitePremium) => void;
     onAnnuler?: (pub: PublicitePremium) => void;
+    onEdit?: (pub: PublicitePremium) => void;
+    onDelete?: (pub: PublicitePremium) => void;
     showActions?: boolean;
 }
 
@@ -59,6 +61,8 @@ export function PubPremiumTable({
     onApprouver,
     onRefuser,
     onAnnuler,
+    onEdit,
+    onDelete,
     showActions = true,
 }: PubPremiumTableProps) {
     if (isLoading) {
@@ -140,6 +144,19 @@ export function PubPremiumTable({
                                             <Button variant="ghost" size="icon" title="Voir" onClick={() => onView(pub)}>
                                                 <Eye className="h-4 w-4" />
                                             </Button>
+
+                                            {onEdit && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    title="Modifier"
+                                                    className="text-blue-600 hover:text-blue-700"
+                                                    onClick={() => onEdit(pub)}
+                                                >
+                                                    <Pencil className="h-4 w-4" />
+                                                </Button>
+                                            )}
+
                                             {pub.statut === 'en_attente' && (
                                                 <>
                                                     <Button
@@ -173,10 +190,23 @@ export function PubPremiumTable({
                                                     )}
                                                 </>
                                             )}
+
                                             {pub.statut === 'approuve' && !actif && (
                                                 <span title="Programmée">
                                                     <Clock className="h-4 w-4 text-muted-foreground" />
                                                 </span>
+                                            )}
+
+                                            {onDelete && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    title="Supprimer"
+                                                    className="text-red-500 hover:text-red-600"
+                                                    onClick={() => onDelete(pub)}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
                                             )}
                                         </div>
                                     </TableCell>
