@@ -26,6 +26,7 @@ import {
     ShieldCheck,
     Wallet,
     EyeIcon,
+    BadgeCheck,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -93,7 +94,8 @@ const createColumns = (
     onDelete: (u: User) => void,
     onToggleActive: (u: User) => void,
     onToggleVerified?: (u: User) => void,
-    onUpdateSolde?: (u: User) => void
+    onUpdateSolde?: (u: User) => void,
+    onToggleCertified?: (u: User) => void
 ): ColumnDef<User>[] => [
         {
             id: "select",
@@ -173,6 +175,23 @@ const createColumns = (
                 ),
         },
         {
+            accessorKey: "is_certified",
+            header: "Certifiée",
+            cell: ({ row }) => {
+                const user = row.original;
+                if (user.role !== "Boutique") {
+                    return <span className="text-muted-foreground">—</span>;
+                }
+                return user.is_certified ? (
+                    <Badge className="bg-emerald-600 hover:bg-emerald-600">
+                        <BadgeCheck className="mr-1 h-3 w-3" /> Certifiée
+                    </Badge>
+                ) : (
+                    <Badge variant="secondary">Non certifiée</Badge>
+                );
+            },
+        },
+        {
             id: "actions",
             cell: ({ row }) => {
                 const user = row.original;
@@ -188,6 +207,12 @@ const createColumns = (
                             <DropdownMenuItem onClick={() => onEdit(user)}>
                                 <EyeIcon className="mr-2 h-4 w-4" /> Voir
                             </DropdownMenuItem>
+                            {onToggleCertified && user.role === "Boutique" && (
+                                <DropdownMenuItem onClick={() => onToggleCertified(user)}>
+                                    <BadgeCheck className="mr-2 h-4 w-4" />
+                                    {user.is_certified ? "Retirer la certification" : "Certifier la boutique"}
+                                </DropdownMenuItem>
+                            )}
                             {/* {onUpdateSolde && (
                             <DropdownMenuItem onClick={() => onUpdateSolde(user)}>
                                 <Wallet className="mr-2 h-4 w-4" /> Solde
@@ -228,6 +253,7 @@ export function UsersTable(props: any) {
         onToggleActive,
         onToggleVerified,
         onUpdateSolde,
+        onToggleCertified,
     } = props;
 
     // console.log("[UsersTable] users:", users.length);
@@ -236,8 +262,8 @@ export function UsersTable(props: any) {
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
 
     const columns = React.useMemo(
-        () => createColumns(onEdit, onDelete, onToggleActive, onToggleVerified, onUpdateSolde),
-        [onEdit, onDelete, onToggleActive, onToggleVerified, onUpdateSolde]
+        () => createColumns(onEdit, onDelete, onToggleActive, onToggleVerified, onUpdateSolde, onToggleCertified),
+        [onEdit, onDelete, onToggleActive, onToggleVerified, onUpdateSolde, onToggleCertified]
     );
 
     const table = useReactTable({

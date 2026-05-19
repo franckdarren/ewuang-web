@@ -29,7 +29,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         *,
         variations(*),
         image_articles(*),
-        commande_articles(*)
+        commande_articles(*),
+        users!user_id(id, name, url_logo, is_certified)
         `)
             .eq("id", id)
             .single();
@@ -38,7 +39,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             if (error) console.error("Supabase get article:", error);
             return res.status(404).json({ error: "Article introuvable" });
         }
-        return res.status(200).json(article);
+        return res.status(200).json({ ...article, vendeur: (article as any).users ?? null });
     } catch (err) {
         if (err instanceof ZodError) return res.status(400).json({ errors: err.issues });
         console.error("Error /api/articles/[id]:", err);

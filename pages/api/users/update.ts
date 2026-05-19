@@ -13,9 +13,12 @@ const updateSchema = z.object({
     heure_ouverture: z.string().optional(),
     heure_fermeture: z.string().optional(),
     description: z.string().optional(),
-    is_verified: z.boolean().optional(),
-    is_active: z.boolean().optional(),
 });
+// NOTE: is_verified, is_active et is_certified sont volontairement EXCLUS de ce schéma :
+// ce sont des statuts/labels gérés par un administrateur, jamais en self-service
+// (sinon escalade de privilèges : un utilisateur pourrait s'auto-vérifier,
+// se réactiver, ou se certifier via `...body`).
+// La certification se gère via PATCH /api/boutiques/{id}/certify (admin only).
 
 /**
  * @swagger

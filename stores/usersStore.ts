@@ -22,6 +22,9 @@ export interface User {
     solde: number;
     is_verified: boolean;
     is_active: boolean;
+    is_certified: boolean;
+    certified_at: string | null;
+    certified_by: string | null;
     created_at: string;
     updated_at: string;
 }
@@ -34,6 +37,7 @@ export interface UserStats {
     admins: number;
     verified: number;
     active: number;
+    certified: number;
 }
 
 export interface CreateUserPayload {
@@ -54,6 +58,7 @@ interface UsersStore {
     fetchUsers: () => Promise<void>;
     createUser: (payload: CreateUserPayload) => Promise<User | null>;
     deleteUser: (id: string) => Promise<boolean>;
+    certifyShop: (id: string, isCertified: boolean) => Promise<boolean>;
     reset: () => void;
 }
 
@@ -72,6 +77,7 @@ function computeStats(users: User[]): UserStats {
         admins: users.filter(u => u.role === 'Administrateur').length,
         verified: users.filter(u => u.is_verified).length,
         active: users.filter(u => u.is_active).length,
+        certified: users.filter(u => u.is_certified).length,
     };
 }
 
@@ -89,6 +95,7 @@ export const useUsersStore = create<UsersStore>((set, get) => ({
         admins: 0,
         verified: 0,
         active: 0,
+        certified: 0,
     },
     isLoading: false,
     error: null,
@@ -226,6 +233,49 @@ export const useUsersStore = create<UsersStore>((set, get) => ({
         } catch (err) {
             console.error('[deleteUser] Erreur:', err);
             toast.error('Erreur suppression utilisateur');
+            return false;
+        }
+    },
+
+    // ========================================
+    // CERTIFY SHOP
+    // ========================================
+    certifyShop: async (id, isCertified) => {
+        try {
+            const token = useAuthStore.getState().token;
+
+            const res = await fetch(`/api/boutiques/${id}/certify`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ is_certified: isCertified }),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                const message = data.error || data.errors?.map((e: any) => e.message).join(', ') || 'Erreur inconnue';
+                toast.error('Erreur certification', { description: message });
+                return false;
+            }
+
+            const updatedUsers = get().users.map(u =>
+                u.id === id ? { ...u, ...(data.user as Partial<User>) } : u
+            );
+            const stats = computeStats(updatedUsers);
+
+            set({ users: updatedUsers, stats });
+
+            toast.success(
+                isCertified ? 'Boutique certifiée' : 'Certification retirée'
+            );
+
+            return true;
+        } catch (err) {
+            console.error('[certifyShop] Erreur:', err);
+            toast.error('Erreur certification boutique');
             return false;
         }
     },

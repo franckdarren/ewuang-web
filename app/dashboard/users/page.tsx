@@ -53,6 +53,7 @@ export default function UsersPage() {
         stats,
         fetchUsers,
         deleteUser,
+        certifyShop,
     } = useUsersStore();
 
     // ========== STATE LOCAL ==========
@@ -143,6 +144,13 @@ export default function UsersPage() {
     //     const newStatus = !user.is_verified;
     //     await toggleUserVerified(user.id, newStatus);
     // };
+
+    /**
+     * Certifie ou retire la certification d'une boutique
+     */
+    const handleToggleCertified = async (user: User) => {
+        await certifyShop(user.id, !user.is_certified);
+    };
 
     /**
      * Gère la mise à jour du solde (placeholder pour l'instant)
@@ -252,9 +260,12 @@ export default function UsersPage() {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-xs text-muted-foreground">
-                            Vendeurs sur la plateforme
-                        </p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <Badge variant="outline" className="text-xs">
+                                {stats.certified} certifiées
+                            </Badge>
+                            <span>sur la plateforme</span>
+                        </div>
                     </CardContent>
                 </Card>
 
@@ -309,6 +320,7 @@ export default function UsersPage() {
                         isLoading={isLoading}
                         onEdit={handleEdit}
                         onDelete={handleDelete}
+                        onToggleCertified={handleToggleCertified}
                     // onToggleActive={handleToggleActive}
                     // onToggleVerified={handleToggleVerified}
                     // onUpdateSolde={handleUpdateSolde}

@@ -213,6 +213,9 @@ model users {
   solde           Int      @default(0)
   is_verified     Boolean  @default(false) // Nouveau : compte vérifié
   is_active       Boolean  @default(true) // Nouveau : compte actif
+  is_certified    Boolean  @default(false) // Boutique certifiée (label de confiance accordé par un admin)
+  certified_at    DateTime? // Date de certification
+  certified_by    String?  @db.Uuid // Admin ayant accordé la certification
   created_at      DateTime @default(now())
   updated_at      DateTime @default(now())
 
@@ -235,6 +238,7 @@ model users {
   @@index([email])
   @@index([role])
   @@index([is_active])
+  @@index([is_certified])
 }
 
 model variations {

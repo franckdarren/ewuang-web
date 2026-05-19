@@ -24,6 +24,7 @@ import {
 import { type Article } from '@/stores/articlesStore';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
+import { CertifiedBadge } from "@/components/certified-badge";
 
 // ============================================
 // PROPS
@@ -256,9 +257,12 @@ export function ArticleViewModal({
                                     <Store className="h-5 w-5 text-muted-foreground" />
                                     <div>
                                         <p className="text-sm text-muted-foreground">Vendeur</p>
-                                        <p className="font-medium">
-                                            {article.users?.name || "Non défini"}
-                                        </p>
+                                        <div className="flex items-center gap-2">
+                                            <p className="font-medium">
+                                                {article.users?.name || "Non défini"}
+                                            </p>
+                                            <CertifiedBadge certified={article.users?.is_certified} />
+                                        </div>
                                     </div>
                                 </div>
                             </CardContent>

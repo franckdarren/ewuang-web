@@ -51,9 +51,10 @@ const createSchema = z.object({
     heure_fermeture: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).optional().or(z.literal("")),
     is_verified: z.boolean().optional(),
     is_active: z.boolean().optional(),
+    is_certified: z.boolean().optional(),
 });
 
-type FormValues = z.infer<typeof createSchema> & { is_verified?: boolean; is_active?: boolean };
+type FormValues = z.infer<typeof createSchema> & { is_verified?: boolean; is_active?: boolean; is_certified?: boolean };
 
 // ============================================
 // PROPS
@@ -93,6 +94,7 @@ export function UserFormModal({
             heure_fermeture: user?.heure_fermeture || "",
             is_verified: user?.is_verified || false,
             is_active: user?.is_active ?? true,
+            is_certified: user?.is_certified || false,
         },
     });
 
@@ -115,6 +117,7 @@ export function UserFormModal({
                 heure_fermeture: user?.heure_fermeture || "",
                 is_verified: user?.is_verified || false,
                 is_active: user?.is_active ?? true,
+                is_certified: user?.is_certified || false,
             });
             setCreatedCredentials(null);
             setCopied(false);
@@ -386,6 +389,20 @@ export function UserFormModal({
                                         </FormControl>
                                     </FormItem>
                                 )} />
+
+                                {showBoutiqueFields && (
+                                    <FormField control={form.control} name="is_certified" render={({ field }) => (
+                                        <FormItem className="flex flex-row items-center justify-between border p-4 rounded-lg">
+                                            <div>
+                                                <FormLabel>Boutique certifiée</FormLabel>
+                                                <FormDescription>Label de confiance accordé par l&apos;administration</FormDescription>
+                                            </div>
+                                            <FormControl>
+                                                <Switch checked={field.value} onCheckedChange={field.onChange} disabled />
+                                            </FormControl>
+                                        </FormItem>
+                                    )} />
+                                )}
 
                                 <FormField control={form.control} name="is_active" render={({ field }) => (
                                     <FormItem className="flex flex-row items-center justify-between border p-4 rounded-lg">

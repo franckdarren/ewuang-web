@@ -51,6 +51,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { type Article } from '@/stores/articlesStore';
+import { CertifiedBadge } from "@/components/certified-badge";
 
 // ============================================
 // PROPS
@@ -198,6 +199,7 @@ const createColumns = (
                     <div className="flex items-center gap-2">
                         <Store className="h-3 w-3 text-muted-foreground" />
                         <span className="text-sm">{user.name}</span>
+                        <CertifiedBadge certified={user.is_certified} iconOnly />
                     </div>
                 );
             },

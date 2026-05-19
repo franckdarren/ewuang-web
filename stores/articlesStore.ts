@@ -31,9 +31,10 @@ export interface Article {
     users?: {
         id: string;
         name: string;
-        email: string;
-        role: string;
+        email?: string;
+        role?: string;
         url_logo: string | null;
+        is_certified?: boolean;
     };
     categories?: {
         id: string;

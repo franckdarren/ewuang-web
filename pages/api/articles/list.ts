@@ -40,7 +40,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         *,
         variations(*),
         image_articles(*),
-        users!user_id(id, name),
+        users!user_id(id, name, url_logo, is_certified),
         categories!categorie_id(id, nom)
         `)
             .order("created_at", { ascending: false })
