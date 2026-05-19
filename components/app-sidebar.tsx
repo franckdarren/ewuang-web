@@ -82,7 +82,7 @@ const data = {
       icon: IconDeviceTv,
     },
     {
-      title: "Pubs Premium",
+      title: "Publicités Premium",
       url: "/dashboard/publicites-premium",
       icon: IconTarget,
     },

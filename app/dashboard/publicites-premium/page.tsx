@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { PubPremiumTable } from '@/components/publicites-premium/pub-premium-table';
 import { PubPremiumViewModal } from '@/components/publicites-premium/pub-premium-view-modal';
+import { PubPremiumFormModal } from '@/components/publicites-premium/pub-premium-form-modal';
 
 // ============================================
 // COMPOSANT PRINCIPAL
@@ -60,6 +61,9 @@ export default function PublitesPremiumPage() {
     const [isRefuserOpen, setIsRefuserOpen] = React.useState(false);
     const [motifRefus, setMotifRefus] = React.useState('');
     const [isRefusLoading, setIsRefusLoading] = React.useState(false);
+
+    // Modal création
+    const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
 
     // Filtre statut
     const [filtreStatut, setFiltreStatut] = React.useState<string>('tous');
@@ -159,11 +163,16 @@ export default function PublitesPremiumPage() {
     return (
         <div className="flex flex-col gap-6 p-6">
             {/* EN-TÊTE */}
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight">Publicités Premium</h1>
-                <p className="text-muted-foreground">
-                    Gérez les demandes de publicités premium des boutiques
-                </p>
+            <div className="flex items-start justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight">Publicités Premium</h1>
+                    <p className="text-muted-foreground">
+                        Gérez les demandes de publicités premium des boutiques
+                    </p>
+                </div>
+                <Button onClick={() => setIsCreateModalOpen(true)}>
+                    Nouvelle publicité premium
+                </Button>
             </div>
 
             {/* STATISTIQUES */}
@@ -257,6 +266,12 @@ export default function PublitesPremiumPage() {
                     />
                 </CardContent>
             </Card>
+
+            {/* MODAL CRÉATION */}
+            <PubPremiumFormModal
+                open={isCreateModalOpen}
+                onClose={() => setIsCreateModalOpen(false)}
+            />
 
             {/* MODAL VISUALISATION */}
             <PubPremiumViewModal
