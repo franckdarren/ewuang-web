@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { usePublitesPremiumStore, type CreatePublicitePremiumInput, type PublitePosition } from '@/stores/publicitesPremiumStore';
 import { useAuthStore } from '@/stores/authStore';
+import { Upload, Link, X, ImageIcon, Loader2 } from 'lucide-react';
 
 interface Categorie {
     id: string;
@@ -34,6 +35,10 @@ export function PubPremiumFormModal({ open, onClose }: PubPremiumFormModalProps)
     const [position, setPosition] = React.useState<PublitePosition>('banniere_accueil');
     const [titre, setTitre] = React.useState('');
     const [urlImage, setUrlImage] = React.useState('');
+    const [imageMode, setImageMode] = React.useState<'url' | 'file'>('file');
+    const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
+    const [filePreview, setFilePreview] = React.useState<string | null>(null);
+    const [isUploading, setIsUploading] = React.useState(false);
     const [lien, setLien] = React.useState('');
     const [description, setDescription] = React.useState('');
     const [dateStart, setDateStart] = React.useState('');
@@ -43,6 +48,8 @@ export function PubPremiumFormModal({ open, onClose }: PubPremiumFormModalProps)
     const [categories, setCategories] = React.useState<Categorie[]>([]);
     const [isSubmitting, setIsSubmitting] = React.useState(false);
     const [error, setError] = React.useState<string | null>(null);
+
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
 
     React.useEffect(() => {
         if (!open || !token) return;
@@ -54,10 +61,44 @@ export function PubPremiumFormModal({ open, onClose }: PubPremiumFormModalProps)
             .catch(() => {});
     }, [open, token]);
 
+    function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setSelectedFile(file);
+        setFilePreview(URL.createObjectURL(file));
+        setError(null);
+    }
+
+    function clearFile() {
+        setSelectedFile(null);
+        if (filePreview) URL.revokeObjectURL(filePreview);
+        setFilePreview(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+
+    async function uploadFile(): Promise<string> {
+        if (!selectedFile || !token) throw new Error('Fichier ou token manquant');
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        const res = await fetch('/api/upload/publicite-premium', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
+            body: formData,
+        });
+        if (!res.ok) {
+            const json = await res.json();
+            throw new Error(json.error ?? "Erreur lors de l'upload");
+        }
+        const json = await res.json();
+        return json.url as string;
+    }
+
     function reset() {
         setPosition('banniere_accueil');
         setTitre('');
         setUrlImage('');
+        setImageMode('file');
+        clearFile();
         setLien('');
         setDescription('');
         setDateStart('');
@@ -77,7 +118,8 @@ export function PubPremiumFormModal({ open, onClose }: PubPremiumFormModalProps)
         setError(null);
 
         if (!titre.trim()) { setError('Le titre est requis'); return; }
-        if (!urlImage.trim()) { setError("L'URL de l'image est requise"); return; }
+        if (imageMode === 'url' && !urlImage.trim()) { setError("L'URL de l'image est requise"); return; }
+        if (imageMode === 'file' && !selectedFile) { setError('Veuillez choisir un fichier image'); return; }
         if (!dateStart || !dateEnd) { setError('Les dates sont requises'); return; }
         if (new Date(dateEnd) <= new Date(dateStart)) {
             setError('La date de fin doit être après la date de début');
@@ -88,23 +130,31 @@ export function PubPremiumFormModal({ open, onClose }: PubPremiumFormModalProps)
             return;
         }
 
-        const payload: CreatePublicitePremiumInput = {
-            position,
-            titre: titre.trim(),
-            url_image: urlImage.trim(),
-            lien: lien.trim() || null,
-            description: description.trim() || null,
-            date_start: new Date(dateStart).toISOString(),
-            date_end: new Date(dateEnd).toISOString(),
-            categorie_id: position === 'banniere_categorie' ? categorieId : null,
-            prix: prix ? parseInt(prix, 10) : null,
-        };
-
         setIsSubmitting(true);
         try {
+            let finalUrlImage = urlImage.trim();
+            if (imageMode === 'file') {
+                setIsUploading(true);
+                finalUrlImage = await uploadFile();
+                setIsUploading(false);
+            }
+
+            const payload: CreatePublicitePremiumInput = {
+                position,
+                titre: titre.trim(),
+                url_image: finalUrlImage,
+                lien: lien.trim() || null,
+                description: description.trim() || null,
+                date_start: new Date(dateStart).toISOString(),
+                date_end: new Date(dateEnd).toISOString(),
+                categorie_id: position === 'banniere_categorie' ? categorieId : null,
+                prix: prix ? parseInt(prix, 10) : null,
+            };
+
             await createPublitePremium(payload);
             handleClose();
         } catch (err: unknown) {
+            setIsUploading(false);
             setError(err instanceof Error ? err.message : 'Erreur lors de la soumission');
         } finally {
             setIsSubmitting(false);
@@ -154,9 +204,73 @@ export function PubPremiumFormModal({ open, onClose }: PubPremiumFormModalProps)
                         <Input value={titre} onChange={(e) => setTitre(e.target.value)} placeholder="Titre de la publicité" />
                     </div>
 
-                    <div className="space-y-1">
-                        <Label>URL de l'image *</Label>
-                        <Input value={urlImage} onChange={(e) => setUrlImage(e.target.value)} placeholder="https://..." />
+                    {/* IMAGE */}
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <Label>Image *</Label>
+                            <div className="flex rounded-md border text-xs overflow-hidden">
+                                <button
+                                    type="button"
+                                    onClick={() => { setImageMode('file'); setUrlImage(''); }}
+                                    className={`flex items-center gap-1 px-3 py-1.5 transition-colors ${imageMode === 'file' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+                                >
+                                    <Upload className="h-3 w-3" />
+                                    Fichier
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => { setImageMode('url'); clearFile(); }}
+                                    className={`flex items-center gap-1 px-3 py-1.5 transition-colors ${imageMode === 'url' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+                                >
+                                    <Link className="h-3 w-3" />
+                                    URL
+                                </button>
+                            </div>
+                        </div>
+
+                        {imageMode === 'file' ? (
+                            <div>
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp,image/gif"
+                                    className="hidden"
+                                    onChange={handleFileChange}
+                                />
+                                {filePreview ? (
+                                    <div className="relative rounded-md border overflow-hidden">
+                                        <img
+                                            src={filePreview}
+                                            alt="Aperçu"
+                                            className="w-full h-32 object-cover"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={clearFile}
+                                            className="absolute top-1.5 right-1.5 bg-black/60 hover:bg-black/80 text-white rounded-full p-0.5"
+                                        >
+                                            <X className="h-3.5 w-3.5" />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="w-full flex flex-col items-center justify-center gap-2 rounded-md border border-dashed py-6 text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                                    >
+                                        <ImageIcon className="h-8 w-8" />
+                                        <span className="text-sm">Cliquer pour choisir un fichier</span>
+                                        <span className="text-xs">JPG, PNG, WebP, GIF — max 5 Mo</span>
+                                    </button>
+                                )}
+                            </div>
+                        ) : (
+                            <Input
+                                value={urlImage}
+                                onChange={(e) => setUrlImage(e.target.value)}
+                                placeholder="https://..."
+                            />
+                        )}
                     </div>
 
                     <div className="space-y-1">
@@ -205,7 +319,9 @@ export function PubPremiumFormModal({ open, onClose }: PubPremiumFormModalProps)
                             Annuler
                         </Button>
                         <Button type="submit" disabled={isSubmitting}>
-                            {isSubmitting ? 'Envoi…' : 'Soumettre la demande'}
+                            {isUploading ? (
+                                <><Loader2 className="h-4 w-4 animate-spin mr-1" />Upload…</>
+                            ) : isSubmitting ? 'Envoi…' : 'Soumettre la demande'}
                         </Button>
                     </DialogFooter>
                 </form>
