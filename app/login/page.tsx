@@ -24,7 +24,7 @@ export default function LoginPage() {
         {/* Center - Logo & text */}
         <div className="relative z-10 flex flex-col items-center text-center">
           <Image
-            src="/images/logo1.png"
+            src="/images/logo2.png"
             alt="Ewuang"
             width={180}
             height={180}
