@@ -135,8 +135,8 @@ export const usePublitesPremiumStore = createWithEqualityFn<PublitesPremiumState
             set({ isLoading: true, error: null });
             try {
                 const url = statut
-                    ? `/api/publicites-premium/list?statut=${statut}`
-                    : '/api/publicites-premium/list';
+                    ? `/api/campagnes-premium/list?statut=${statut}`
+                    : '/api/campagnes-premium/list';
 
                 const res = await fetch(url, {
                     headers: { Authorization: `Bearer ${token}` },
@@ -160,7 +160,7 @@ export const usePublitesPremiumStore = createWithEqualityFn<PublitesPremiumState
 
             set({ isLoading: true, error: null });
             try {
-                const res = await fetch('/api/publicites-premium/mes-pubs', {
+                const res = await fetch('/api/campagnes-premium/mes-pubs', {
                     headers: { Authorization: `Bearer ${token}` },
                 });
 
@@ -182,7 +182,7 @@ export const usePublitesPremiumStore = createWithEqualityFn<PublitesPremiumState
 
             set({ isLoading: true, error: null });
             try {
-                const res = await fetch('/api/publicites-premium/create', {
+                const res = await fetch('/api/campagnes-premium/create', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -212,7 +212,7 @@ export const usePublitesPremiumStore = createWithEqualityFn<PublitesPremiumState
             const token = getToken();
             if (!token) throw new Error('Non authentifié');
 
-            const res = await fetch(`/api/publicites-premium/${id}/approuver`, {
+            const res = await fetch(`/api/campagnes-premium/${id}/approuver`, {
                 method: 'PATCH',
                 headers: { Authorization: `Bearer ${token}` },
             });
@@ -236,7 +236,7 @@ export const usePublitesPremiumStore = createWithEqualityFn<PublitesPremiumState
             const token = getToken();
             if (!token) throw new Error('Non authentifié');
 
-            const res = await fetch(`/api/publicites-premium/${id}/refuser`, {
+            const res = await fetch(`/api/campagnes-premium/${id}/refuser`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
@@ -264,7 +264,7 @@ export const usePublitesPremiumStore = createWithEqualityFn<PublitesPremiumState
             const token = getToken();
             if (!token) throw new Error('Non authentifié');
 
-            const res = await fetch(`/api/publicites-premium/${id}/annuler`, {
+            const res = await fetch(`/api/campagnes-premium/${id}/annuler`, {
                 method: 'DELETE',
                 headers: { Authorization: `Bearer ${token}` },
             });
