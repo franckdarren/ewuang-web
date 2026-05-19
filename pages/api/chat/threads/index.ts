@@ -61,7 +61,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         if (error) {
             console.error("Erreur liste fils:", error);
-            return res.status(500).json({ error: "Impossible de charger les discussions" });
+            return res.status(500).json({ error: `[DEBUG] ${error.message} | code: ${error.code} | hint: ${error.hint ?? ""}` });
         }
 
         const others = (threads ?? []).map((t) =>

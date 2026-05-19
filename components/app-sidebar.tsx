@@ -111,6 +111,11 @@ const data = {
       url: "/dashboard/categories",
       icon: IconTag,
     },
+    {
+      title: "Boutiques",
+      url: "/dashboard/boutiques",
+      icon: IconBuildingCommunity,
+    },
 
   ],
   navSecondary: [
