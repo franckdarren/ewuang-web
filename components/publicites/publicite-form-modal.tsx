@@ -5,7 +5,6 @@ import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { createClient } from "@supabase/supabase-js";
 import {
     Dialog,
     DialogContent,
@@ -46,7 +45,6 @@ import { toast } from "sonner";
 // CONSTANTES
 // ============================================
 
-const BUCKET_NAME = "publicites";
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"];
 const ACCEPTED_VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime", "video/x-msvideo"];
@@ -196,33 +194,29 @@ export function PubliciteFormModal({
     const uploadToSupabase = async (file: File): Promise<string> => {
         const token = useAuthStore.getState().token;
 
-        const storageClient = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-            token
-                ? { global: { headers: { Authorization: `Bearer ${token}` } }, auth: { autoRefreshToken: false, persistSession: false } }
-                : undefined
-        );
-
-        const ext = file.name.split('.').pop()?.toLowerCase() || 'bin';
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${ext}`;
-        const filePath = fileName;
+        // Upload via endpoint serveur same-origin au nom neutre : un appel
+        // direct navigateur -> supabase.co/.../publicites/... est bloqué par
+        // les bloqueurs de pub. Voir mémoire [[adblock-route-naming]].
+        const fd = new FormData();
+        fd.append('file', file);
 
         setUploadProgress(20);
 
-        const { error } = await storageClient.storage
-            .from(BUCKET_NAME)
-            .upload(filePath, file, { upsert: true, contentType: file.type });
+        const res = await fetch('/api/medias/upload', {
+            method: 'POST',
+            headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+            body: fd,
+        });
 
-        if (error) throw new Error(error.message);
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error ?? "Erreur lors de l'upload");
+        }
 
         setUploadProgress(90);
 
-        const { data: urlData } = storageClient.storage
-            .from(BUCKET_NAME)
-            .getPublicUrl(filePath);
-
-        return urlData.publicUrl;
+        const { url } = await res.json();
+        return url as string;
     };
 
     const handleFileSelect = async (file: File) => {
