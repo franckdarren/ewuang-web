@@ -19,6 +19,7 @@ export interface Article {
     prix_promotion: number | null;
     is_promotion: boolean;
     pourcentage_reduction: number;
+    stock: number;
     made_in_gabon: boolean;
     user_id: string;
     categorie_id: string | null;
@@ -61,7 +62,6 @@ export interface Variation {
     couleur: string | null;
     taille: string | null;
     stock: number;
-    prix: number | null;
     image: string | null;
     created_at: string;
     updated_at: string;
@@ -89,6 +89,7 @@ export interface ArticleFormData {
     prix_promotion?: number | null;
     is_promotion?: boolean;
     pourcentage_reduction?: number;
+    stock?: number;
     made_in_gabon?: boolean;
     user_id?: string; // ID du vendeur/boutique
     categorie_id?: string | null;
@@ -236,13 +237,15 @@ const initialFilters: ArticleFilters = {};
  * Calcule les statistiques à partir d'une liste d'articles
  */
 function computeStats(articles: Article[]): ArticleStats {
-    const totalStock = articles.reduce((sum, article) => {
-        const stock = article.variations?.reduce((s, v) => s + v.stock, 0) || 0;
-        return sum + stock;
-    }, 0);
+    const stockOf = (article: Article) =>
+        article.variations?.length
+            ? article.variations.reduce((s, v) => s + v.stock, 0)
+            : (article.stock ?? 0);
+
+    const totalStock = articles.reduce((sum, article) => sum + stockOf(article), 0);
 
     const valeurTotale = articles.reduce((sum, article) => {
-        const stock = article.variations?.reduce((s, v) => s + v.stock, 0) || 0;
+        const stock = stockOf(article);
         const prix = article.is_promotion && article.prix_promotion
             ? article.prix_promotion
             : article.prix;

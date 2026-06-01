@@ -123,6 +123,7 @@ export interface Article {
     prix_promotion: number | null;
     is_promotion: boolean;
     pourcentage_reduction: number;
+    stock: number;
     made_in_gabon: boolean;
     user_id: string;
     categorie_id: string | null;
@@ -147,7 +148,6 @@ export interface Variation {
     couleur: string | null;
     taille: string | null;
     stock: number;
-    prix: number | null;
     image: string | null;
     created_at: string;
     updated_at: string;

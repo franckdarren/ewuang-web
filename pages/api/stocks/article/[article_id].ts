@@ -60,7 +60,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         couleur,
         taille,
         stock,
-        prix,
         stocks (id, quantite, updated_at)
       `)
             .eq("article_id", article_id);
@@ -78,7 +77,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 couleur: v.couleur,
                 taille: v.taille,
                 stock: stockQuantity,
-                prix: v.prix,
                 status:
                     stockQuantity === 0
                         ? "rupture"

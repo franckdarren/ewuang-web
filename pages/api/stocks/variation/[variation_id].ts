@@ -47,7 +47,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         couleur,
         taille,
         stock,
-        prix,
         image,
         articles!inner (id, nom, image_principale),
         stocks (id, quantite, updated_at)
@@ -67,7 +66,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 id: variation.id,
                 couleur: variation.couleur,
                 taille: variation.taille,
-                prix: variation.prix,
                 image: variation.image,
             },
             article: {

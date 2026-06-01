@@ -43,6 +43,9 @@ import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth
  *                 type: boolean
  *               pourcentage_reduction:
  *                 type: integer
+ *               stock:
+ *                 type: integer
+ *                 description: Stock pour les articles sans variation
  *               made_in_gabon:
  *                 type: boolean
  *               categorie_id:
@@ -68,6 +71,7 @@ const updateSchema = z.object({
     prix_promotion: z.number().int().nonnegative().optional(),
     is_promotion: z.boolean().optional(),
     pourcentage_reduction: z.number().int().min(0).max(100).optional(),
+    stock: z.number().int().nonnegative().optional(),
     made_in_gabon: z.boolean().optional(),
     categorie_id: z.string().uuid("L'ID de catégorie doit être un UUID valide").optional(),
     image_principale: z.string().url("L'URL de l'image doit être valide").optional(),

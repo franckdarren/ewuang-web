@@ -86,7 +86,10 @@ const formatMontant = (montant: number) => {
  * Calcule le stock total d'un article
  */
 const getTotalStock = (article: Article) => {
-    return article.variations?.reduce((sum, v) => sum + v.stock, 0) || 0;
+    if (article.variations?.length) {
+        return article.variations.reduce((sum, v) => sum + v.stock, 0);
+    }
+    return article.stock ?? 0;
 };
 
 // ============================================

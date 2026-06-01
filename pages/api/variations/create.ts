@@ -41,9 +41,6 @@ import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
  *                 type: integer
  *                 default: 0
  *                 description: Quantité en stock
- *               prix:
- *                 type: integer
- *                 description: Prix spécifique (optionnel, sinon prix de l'article)
  *               image:
  *                 type: string
  *                 maxLength: 255
@@ -68,7 +65,6 @@ const createVariationSchema = z.object({
     couleur: z.string().max(255).optional(),
     taille: z.string().max(255).optional(),
     stock: z.number().int().nonnegative().optional().default(0),
-    prix: z.number().int().nonnegative().optional(),
     image: z.string().max(255).optional(),
 });
 
@@ -120,7 +116,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 couleur: body.couleur || null,
                 taille: body.taille || null,
                 stock: body.stock,
-                prix: body.prix || null,
                 image: body.image || null,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),

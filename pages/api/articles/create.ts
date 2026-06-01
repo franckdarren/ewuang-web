@@ -10,8 +10,8 @@ import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
  *   post:
  *     summary: Crée un nouvel article
  *     description: >
- *       Crée un article lié à l'utilisateur connecté.  
- *       Le body peut contenir un tableau "variations" (couleur, taille, prix, stock)  
+ *       Crée un article lié à l'utilisateur connecté.
+ *       Le body peut contenir un tableau "variations" (couleur, taille, stock)
  *       et un tableau "images" pour les images supplémentaires.
  *     tags:
  *       - Articles
@@ -40,6 +40,9 @@ import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
  *                 type: boolean
  *               pourcentage_reduction:
  *                 type: integer
+ *               stock:
+ *                 type: integer
+ *                 description: Stock pour les articles sans variation
  *               made_in_gabon:
  *                 type: boolean
  *               categorie_id:
@@ -57,8 +60,6 @@ import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
  *                       type: string
  *                     taille:
  *                       type: string
- *                     prix:
- *                       type: integer
  *                     stock:
  *                       type: integer
  *               images:
@@ -86,6 +87,7 @@ const createSchema = z.object({
     prix_promotion: z.number().int().nonnegative().optional(),
     is_promotion: z.boolean().optional(),
     pourcentage_reduction: z.number().int().min(0).max(100).optional(),
+    stock: z.number().int().nonnegative().optional(),
     made_in_gabon: z.boolean().optional(),
     categorie_id: z.string().uuid("L'ID de catégorie doit être un UUID valide"),
     image_principale: z.string().url().optional(),
@@ -93,7 +95,6 @@ const createSchema = z.object({
         z.object({
             couleur: z.string().optional(),
             taille: z.string().optional(),
-            prix: z.number().int().nonnegative().optional(),
             stock: z.number().int().nonnegative().optional(),
         })
     ).optional(),
@@ -147,6 +148,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 prix_promotion: body.prix_promotion ?? null,
                 is_promotion: body.is_promotion ?? false,
                 pourcentage_reduction: body.pourcentage_reduction ?? 0,
+                stock: body.stock ?? 0,
                 made_in_gabon: body.made_in_gabon ?? false,
                 user_id: profile.id,
                 categorie_id: body.categorie_id, // ✅ UUID vérifié
@@ -169,7 +171,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 article_id: article.id,
                 couleur: v.couleur ?? null,
                 taille: v.taille ?? null,
-                prix: v.prix ?? null,
                 stock: v.stock ?? 0,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),

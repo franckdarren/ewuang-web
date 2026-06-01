@@ -32,6 +32,7 @@ model articles {
   prix_promotion        Int?
   is_promotion          Boolean   @default(false)
   pourcentage_reduction Int       @default(0)
+  stock                 Int       @default(0)
   made_in_gabon         Boolean   @default(false)
   user_id               String    @db.Uuid
   categorie_id          String?   @db.Uuid
@@ -289,7 +290,6 @@ model variations {
   couleur    String?   @db.VarChar(255)
   taille     String?   @db.VarChar(255)
   stock      Int       @default(0)
-  prix       Int?
   image      String?   @db.VarChar(255)
   created_at DateTime? @default(now())
   updated_at DateTime? @updatedAt

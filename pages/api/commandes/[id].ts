@@ -70,7 +70,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             categorie,
             users!articles_user_id_fkey (id, name, email, phone, url_logo)
             ),
-            variations (id, couleur, taille, prix, image)
+            variations (id, couleur, taille, image)
         ),
         livraisons (*),
         reclamations (*)

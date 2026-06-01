@@ -39,8 +39,6 @@ import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth
  *                 maxLength: 255
  *               stock:
  *                 type: integer
- *               prix:
- *                 type: integer
  *               image:
  *                 type: string
  *                 maxLength: 255
@@ -63,7 +61,6 @@ const updateVariationSchema = z.object({
     couleur: z.string().max(255).optional(),
     taille: z.string().max(255).optional(),
     stock: z.number().int().nonnegative().optional(),
-    prix: z.number().int().nonnegative().optional(),
     image: z.string().max(255).optional(),
 });
 
@@ -124,7 +121,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (body.couleur !== undefined) updateData.couleur = body.couleur;
         if (body.taille !== undefined) updateData.taille = body.taille;
         if (body.stock !== undefined) updateData.stock = body.stock;
-        if (body.prix !== undefined) updateData.prix = body.prix;
         if (body.image !== undefined) updateData.image = body.image;
 
         // Mettre à jour la variation

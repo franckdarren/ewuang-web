@@ -57,7 +57,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         couleur,
         taille,
         stock,
-        prix,
         image,
         article_id,
         articles!inner (
@@ -112,7 +111,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     couleur: v.couleur,
                     taille: v.taille,
                     stock: stockQuantity,
-                    prix: v.prix,
                     status: stockQuantity === 0 ? "rupture" : "faible",
                 };
             })

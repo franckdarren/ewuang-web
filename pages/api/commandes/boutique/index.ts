@@ -152,7 +152,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     .select(`
             *,
             articles (id, nom, prix, image_principale, categorie_id),
-            variations (id, couleur, taille, prix)
+            variations (id, couleur, taille)
             `)
                     .eq("commande_id", commande.id)
                     .in("article_id", articleIds);

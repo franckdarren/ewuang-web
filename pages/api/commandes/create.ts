@@ -145,7 +145,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             prix_promotion,
             is_promotion,
             user_id,
-            variations (id, prix, stock)
+            variations (id, stock)
         `)
                 .eq("id", item.article_id)
                 .single();
@@ -178,9 +178,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     });
                 }
 
-                prixUnitaire = article.is_promotion
-                    ? article.prix_promotion
-                    : (variation.prix !== 0 ? variation.prix : article.prix);
+                prixUnitaire = article.is_promotion ? article.prix_promotion : article.prix;
             } else {
                 prixUnitaire = article.is_promotion ? article.prix_promotion : article.prix;
             }

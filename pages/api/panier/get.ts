@@ -68,10 +68,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         // Calculer le total
         const total = items?.reduce((sum, item) => {
-            const prix = item.variations?.prix || item.articles.prix;
             const prixFinal = item.articles.is_promotion && item.articles.prix_promotion
                 ? item.articles.prix_promotion
-                : prix;
+                : item.articles.prix;
             return sum + (prixFinal * item.quantite);
         }, 0) || 0;
 

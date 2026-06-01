@@ -69,7 +69,10 @@ const formatDate = (dateString: string) => {
  * Calcule le stock total
  */
 const getTotalStock = (article: Article) => {
-    return article.variations?.reduce((sum, v) => sum + v.stock, 0) || 0;
+    if (article.variations?.length) {
+        return article.variations.reduce((sum, v) => sum + v.stock, 0);
+    }
+    return article.stock ?? 0;
 };
 
 // ============================================
@@ -328,12 +331,6 @@ export function ArticleViewModal({
                                                             {variation.stock} unités
                                                         </Badge>
                                                     </div>
-
-                                                    {variation.prix && (
-                                                        <div className="text-sm font-bold text-primary">
-                                                            {formatMontant(variation.prix)}
-                                                        </div>
-                                                    )}
                                                 </div>
                                             </div>
                                         </CardContent>
