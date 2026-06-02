@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Image from 'next/image'
 import Link from "next/link"
 import {
   IconChartBar,
@@ -198,6 +199,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               className="data-[slot=sidebar-menu-button]:p-1.5!"
             >
               <Link href="/dashboard">
+              <Image
+                src="/images/logo2.png"
+                width={35}
+                height={35}
+                alt="logo"
+              />
                 <span className="text-base font-semibold">EWUANG Marketplace</span>
               </Link>
             </SidebarMenuButton>

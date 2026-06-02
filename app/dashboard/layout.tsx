@@ -144,6 +144,7 @@ export default async function DashboardLayout({
      * 3. Le reste de l'UI
      */
     return (
+        <div data-admin="true" className="contents">
         <AuthProvider initialUser={userData} initialToken={token}>
             <SidebarProvider
                 style={
@@ -169,6 +170,7 @@ export default async function DashboardLayout({
                 </SidebarInset>
             </SidebarProvider>
         </AuthProvider>
+        </div>
     );
 }
 

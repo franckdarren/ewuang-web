@@ -49,7 +49,7 @@ export function NavMain({
                   tooltip={item.title}
                   className={
                     isActive
-                      ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-white"
+                      ? "bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90 hover:text-sidebar-primary-foreground"
                       : ""
                   }
                   onClick={() => {
