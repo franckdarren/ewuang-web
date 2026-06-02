@@ -581,12 +581,12 @@ export function ArticlesTable({
             </div>
 
             {/* Pagination */}
-            <div className="flex items-center justify-end space-x-2 py-4">
-                <div className="text-muted-foreground flex-1 text-sm">
+            <div className="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:justify-end">
+                <div className="text-muted-foreground text-sm sm:flex-1">
                     {table.getFilteredSelectedRowModel().rows.length} sur{" "}
                     {table.getFilteredRowModel().rows.length} ligne(s) sélectionnée(s).
                 </div>
-                <div className="space-x-2">
+                <div className="flex items-center gap-2">
                     <Button
                         variant="outline"
                         size="sm"
