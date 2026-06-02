@@ -162,14 +162,14 @@ export default function NotificationsPage() {
     return (
         <div className="flex flex-col gap-6 p-6">
             {/* ========== EN-TÊTE ========== */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Notifications</h1>
                     <p className="text-muted-foreground">
                         Gérez et envoyez des notifications aux utilisateurs
                     </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                     {stats.non_lues > 0 && (
                         <Button variant="outline" onClick={handleMarkAllAsRead} disabled={isLoading}>
                             <CheckCheck className="mr-2 h-4 w-4" />
