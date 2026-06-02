@@ -7,7 +7,7 @@
  */
 
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 
 // ============================================
 // TYPES
@@ -378,6 +378,18 @@ export const useAuthStore = create<AuthState>()(
         }),
         {
             name: 'auth-storage',
+
+            // Storage SSR-safe : no-op côté serveur, localStorage côté client
+            storage: createJSONStorage(() => {
+                if (typeof window === 'undefined') {
+                    return {
+                        getItem: () => null,
+                        setItem: () => {},
+                        removeItem: () => {},
+                    };
+                }
+                return localStorage;
+            }),
 
             // Ne persister que les données essentielles
             partialize: (state) => ({
