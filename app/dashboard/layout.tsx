@@ -7,6 +7,7 @@ import {
 import { createClient } from "@/app/utils/supabase/serveur";
 import { redirect } from "next/navigation";
 import { AuthProvider } from "@/components/providers/auth-provider";
+import { AdminThemeSync } from "@/components/providers/admin-theme-sync";
 import { User } from "@/stores/authStore";
 import { supabaseAdmin } from "../lib/supabaseAdmin";
 
@@ -144,6 +145,8 @@ export default async function DashboardLayout({
      * 3. Le reste de l'UI
      */
     return (
+        <>
+        <AdminThemeSync />
         <div data-admin="true" className="contents">
         <AuthProvider initialUser={userData} initialToken={token}>
             <SidebarProvider
@@ -171,6 +174,7 @@ export default async function DashboardLayout({
             </SidebarProvider>
         </AuthProvider>
         </div>
+        </>
     );
 }
 

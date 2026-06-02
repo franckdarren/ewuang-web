@@ -86,7 +86,7 @@ const getStatutConfig = (statut: string) => {
         case 'Annulée':
             return { icon: XCircle, className: 'text-red-600 border-red-300 bg-red-50' };
         default:
-            return { icon: Clock, className: 'text-gray-600 border-gray-300 bg-gray-50' };
+            return { icon: Clock, className: 'text-muted-foreground border-border bg-muted' };
     }
 };
 

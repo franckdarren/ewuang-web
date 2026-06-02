@@ -192,13 +192,13 @@ export function UserFormModal({
                     </DialogHeader>
 
                     <div className="space-y-4 py-4">
-                        <div className="bg-gray-50 border rounded-lg p-4 space-y-3">
+                        <div className="bg-muted border rounded-lg p-4 space-y-3">
                             <div>
-                                <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Email</p>
+                                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Email</p>
                                 <p className="text-sm font-mono mt-1">{createdCredentials.email}</p>
                             </div>
                             <div>
-                                <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Mot de passe</p>
+                                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Mot de passe</p>
                                 <p className="text-sm font-mono mt-1">{createdCredentials.password}</p>
                             </div>
                         </div>
@@ -285,7 +285,7 @@ export function UserFormModal({
                                                 <button
                                                     type="button"
                                                     onClick={() => setShowPassword(!showPassword)}
-                                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                                                     tabIndex={-1}
                                                 >
                                                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}

@@ -23,7 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Send, ImagePlus, Loader2, X, MessageSquare } from "lucide-react";
+import { Send, ImagePlus, Loader2, X, MessageSquare, ChevronLeft } from "lucide-react";
 import { toast } from "sonner";
 
 function initials(name?: string | null) {
@@ -77,8 +77,14 @@ export function ChatPanel({
 
     const [text, setText] = useState("");
     const [image, setImage] = useState<File | null>(null);
+    const [showList, setShowList] = useState(true);
     const scrollRef = useRef<HTMLDivElement>(null);
     const fileRef = useRef<HTMLInputElement>(null);
+
+    function handleSelectThread(id: string) {
+        selectThread(id);
+        setShowList(false);
+    }
 
     const activeMessages = activeThreadId
         ? messagesByThread[activeThreadId] ?? []
@@ -93,6 +99,7 @@ export function ChatPanel({
                 try {
                     const id = await openThread(startWith);
                     await selectThread(id);
+                    setShowList(false);
                 } catch {
                     /* l'erreur est déjà dans le store */
                 }
@@ -191,7 +198,7 @@ export function ChatPanel({
     return (
         <div className="flex h-[calc(100vh-10rem)] overflow-hidden rounded-lg border bg-card">
             {/* ---- Liste des fils ---- */}
-            <aside className="flex w-72 shrink-0 flex-col border-r">
+            <aside className={`${showList ? "flex" : "hidden"} md:flex w-full md:w-72 shrink-0 flex-col border-r`}>
                 <div className="border-b px-4 py-3 font-semibold">{title}</div>
                 <div className="flex-1 overflow-y-auto">
                     {isLoadingThreads ? (
@@ -208,7 +215,7 @@ export function ChatPanel({
                         threads.map((t) => (
                             <button
                                 key={t.id}
-                                onClick={() => selectThread(t.id)}
+                                onClick={() => handleSelectThread(t.id)}
                                 className={`flex w-full items-center gap-3 border-b px-4 py-3 text-left transition hover:bg-accent ${
                                     t.id === activeThreadId ? "bg-accent" : ""
                                 }`}
@@ -243,7 +250,7 @@ export function ChatPanel({
             </aside>
 
             {/* ---- Conversation active ---- */}
-            <section className="flex flex-1 flex-col">
+            <section className={`${!showList ? "flex" : "hidden"} md:flex flex-1 flex-col`}>
                 {!activeThread ? (
                     <div className="flex flex-1 flex-col items-center justify-center text-muted-foreground">
                         <MessageSquare className="mb-2 h-10 w-10" />
@@ -254,6 +261,13 @@ export function ChatPanel({
                 ) : (
                     <>
                         <header className="flex items-center gap-3 border-b px-4 py-3">
+                            <button
+                                onClick={() => setShowList(true)}
+                                className="md:hidden -ml-1 mr-1 rounded p-1 hover:bg-accent"
+                                aria-label="Retour à la liste"
+                            >
+                                <ChevronLeft className="h-5 w-5" />
+                            </button>
                             <Avatar className="h-8 w-8">
                                 <AvatarImage
                                     src={activeThread.interlocuteur?.url_logo ?? undefined}

@@ -101,8 +101,8 @@ const getPubliciteStatus = (publicite: Publicite) => {
             label: 'Inactive',
             variant: 'secondary' as const,
             icon: XCircle,
-            color: 'text-gray-600',
-            bgColor: 'bg-gray-100',
+            color: 'text-muted-foreground',
+            bgColor: 'bg-muted',
         };
     }
 
