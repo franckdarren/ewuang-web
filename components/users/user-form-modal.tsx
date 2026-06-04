@@ -32,7 +32,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Eye, EyeOff, Copy, Check } from "lucide-react";
+import { Loader2, Eye, EyeOff, Copy, Check, BadgeCheck } from "lucide-react";
 import { type User, useUsersStore } from '@/stores/usersStore';
 
 // ============================================
@@ -79,6 +79,8 @@ export function UserFormModal({
 }: UserFormModalProps) {
     const isEditing = !!user;
     const createUser = useUsersStore((s) => s.createUser);
+    const certifyShop = useUsersStore((s) => s.certifyShop);
+    const [isCertifying, setIsCertifying] = React.useState(false);
 
     const form = useForm<FormValues>({
         resolver: zodResolver(createSchema),
@@ -392,13 +394,31 @@ export function UserFormModal({
 
                                 {showBoutiqueFields && (
                                     <FormField control={form.control} name="is_certified" render={({ field }) => (
-                                        <FormItem className="flex flex-row items-center justify-between border p-4 rounded-lg">
-                                            <div>
-                                                <FormLabel>Boutique certifiée</FormLabel>
-                                                <FormDescription>Label de confiance accordé par l&apos;administration</FormDescription>
+                                        <FormItem className="flex flex-row items-center justify-between border p-4 rounded-lg bg-emerald-50/50 border-emerald-100">
+                                            <div className="flex items-start gap-3">
+                                                <BadgeCheck className={`h-5 w-5 mt-0.5 ${field.value ? "text-emerald-600" : "text-muted-foreground"}`} />
+                                                <div>
+                                                    <FormLabel>Boutique certifiée</FormLabel>
+                                                    <FormDescription>
+                                                        Label de confiance accordé par l&apos;administration. Le changement est appliqué immédiatement.
+                                                    </FormDescription>
+                                                </div>
                                             </div>
                                             <FormControl>
-                                                <Switch checked={field.value} onCheckedChange={field.onChange} disabled />
+                                                <div className="flex items-center gap-2">
+                                                    {isCertifying && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                                                    <Switch
+                                                        checked={field.value}
+                                                        disabled={isCertifying || !user}
+                                                        onCheckedChange={async (next) => {
+                                                            if (!user) return;
+                                                            setIsCertifying(true);
+                                                            const ok = await certifyShop(user.id, next);
+                                                            if (ok) field.onChange(next);
+                                                            setIsCertifying(false);
+                                                        }}
+                                                    />
+                                                </div>
                                             </FormControl>
                                         </FormItem>
                                     )} />

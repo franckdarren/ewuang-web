@@ -39,6 +39,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useAuthStore } from '@/stores/authStore'
+import { ContactButton } from '@/components/chat/contact-button'
 
 interface BoutiqueDetail {
   period: string
@@ -225,6 +226,13 @@ export default function BoutiqueDetailPage() {
               >
                 {boutique.is_active ? 'Active' : 'Inactive'}
               </Badge>
+            )}
+            {boutique && (
+              <ContactButton
+                targetUserId={boutique.id}
+                label="Contacter la boutique"
+                variant="outline"
+              />
             )}
             <Select value={period} onValueChange={(v) => setPeriod(v as Period)}>
               <SelectTrigger className="w-44">

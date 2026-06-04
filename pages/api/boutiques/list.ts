@@ -30,19 +30,23 @@ import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== "GET") return res.status(405).json({ error: "Méthode non autorisée" });
 
-    const auth = await requireUserAuth(req, res);
-    if (!auth) return;
+    // Auth optionnelle : un invité reçoit les infos publiques uniquement (sans authUser/email)
+    const hasBearer = !!req.headers.authorization;
+    const auth = hasBearer ? await requireUserAuth(req, res) : null;
+    if (hasBearer && !auth) return;
 
     try {
-        // 1️⃣ Récupère tous les users de public.users avec role = 'Boutique'
         const { data: users, error } = await supabaseAdmin
             .from("users")
             .select("*")
-            .eq("role", "Boutique"); // ← filtre ici
+            .eq("role", "Boutique");
 
         if (error) return res.status(500).json({ error: error.message });
 
-        // 2️⃣ Pour chaque utilisateur, récupère auth.users
+        if (!auth) {
+            return res.status(200).json(users);
+        }
+
         const usersWithAuth = await Promise.all(
             users.map(async (user) => {
                 let authUser = null;

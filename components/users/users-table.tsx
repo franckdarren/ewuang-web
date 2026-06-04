@@ -42,6 +42,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import {
     Table,
     TableBody,
     TableCell,
@@ -52,6 +59,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User } from "@/stores/usersStore";
+
+type CertificationFilter = "all" | "certified" | "not_certified";
 
 // ============================================
 // HELPERS
@@ -260,14 +269,27 @@ export function UsersTable(props: any) {
 
     const [sorting, setSorting] = React.useState<SortingState>([]);
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+    const [certificationFilter, setCertificationFilter] =
+        React.useState<CertificationFilter>("all");
 
     const columns = React.useMemo(
         () => createColumns(onEdit, onDelete, onToggleActive, onToggleVerified, onUpdateSolde, onToggleCertified),
         [onEdit, onDelete, onToggleActive, onToggleVerified, onUpdateSolde, onToggleCertified]
     );
 
+    const filteredUsers = React.useMemo(() => {
+        if (certificationFilter === "all") return users;
+        // Les filtres "certified"/"not_certified" ne concernent que les boutiques
+        return (users as User[]).filter((u) => {
+            if (u.role !== "Boutique") return false;
+            return certificationFilter === "certified"
+                ? u.is_certified
+                : !u.is_certified;
+        });
+    }, [users, certificationFilter]);
+
     const table = useReactTable({
-        data: users,
+        data: filteredUsers,
         columns,
         state: { sorting, columnFilters },
         onSortingChange: setSorting,
@@ -280,14 +302,31 @@ export function UsersTable(props: any) {
 
     return (
         <div>
-            <Input
-                placeholder="Rechercher nom ou email..."
-                value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
-                onChange={e =>
-                    table.getColumn("name")?.setFilterValue(e.target.value)
-                }
-                className="max-w-sm mb-4"
-            />
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+                <Input
+                    placeholder="Rechercher nom ou email..."
+                    value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
+                    onChange={e =>
+                        table.getColumn("name")?.setFilterValue(e.target.value)
+                    }
+                    className="max-w-sm"
+                />
+
+                <Select
+                    value={certificationFilter}
+                    onValueChange={(v) => setCertificationFilter(v as CertificationFilter)}
+                >
+                    <SelectTrigger className="w-full sm:w-[260px]">
+                        <BadgeCheck className="mr-2 h-4 w-4 text-emerald-600" />
+                        <SelectValue placeholder="Filtrer la certification" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">Tous les utilisateurs</SelectItem>
+                        <SelectItem value="certified">Boutiques certifiées uniquement</SelectItem>
+                        <SelectItem value="not_certified">Boutiques non certifiées</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
 
             <Table>
                 <TableHeader>
@@ -306,6 +345,12 @@ export function UsersTable(props: any) {
                         <TableRow>
                             <TableCell colSpan={columns.length} className="text-center">
                                 Chargement...
+                            </TableCell>
+                        </TableRow>
+                    ) : table.getRowModel().rows.length === 0 ? (
+                        <TableRow>
+                            <TableCell colSpan={columns.length} className="text-center text-muted-foreground py-8">
+                                Aucun utilisateur ne correspond aux filtres.
                             </TableCell>
                         </TableRow>
                     ) : (
