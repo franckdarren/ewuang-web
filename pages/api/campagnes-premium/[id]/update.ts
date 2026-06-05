@@ -49,7 +49,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             .from("publicites_premium")
             .update(updateData)
             .eq("id", id)
-            .select("*, boutique:users(id, name, email, url_logo), categorie:categories(id, nom, slug)")
+            .select("*, boutique:boutique_id(id, name, email, url_logo), categorie:categorie_id(id, nom, slug)")
             .single();
 
         if (error) {
