@@ -98,6 +98,8 @@ export default function BoutiquesStatsPage() {
   const [period, setPeriod] = useState<Period>('month')
   const [sort, setSort] = useState<SortKey>('chiffre_affaires')
   const [search, setSearch] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const PAGE_SIZE = 15
 
   useEffect(() => {
     if (isInitialized && !isAuthenticated) {
@@ -135,6 +137,10 @@ export default function BoutiquesStatsPage() {
     b.name.toLowerCase().includes(search.toLowerCase()) ||
     b.email.toLowerCase().includes(search.toLowerCase())
   ) ?? []
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const safePage = Math.min(currentPage, totalPages)
+  const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
 
   const totalCA = filtered.reduce((sum, b) => sum + b.finances.chiffre_affaires, 0)
   const totalCommandes = filtered.reduce((sum, b) => sum + b.commandes.total, 0)
@@ -234,7 +240,7 @@ export default function BoutiquesStatsPage() {
             <Input
               placeholder="Rechercher une boutique…"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
               className="pl-9"
             />
           </div>
@@ -276,7 +282,7 @@ export default function BoutiquesStatsPage() {
                         </td>
                       </tr>
                     )
-                    : filtered.map((b) => (
+                    : paginated.map((b) => (
                       <tr key={b.id} className="hover:bg-muted/30 transition-colors">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
@@ -338,6 +344,31 @@ export default function BoutiquesStatsPage() {
                     ))}
               </tbody>
             </table>
+          </div>
+        </div>
+
+        {/* Pagination */}
+        <div className="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:justify-end">
+          <div className="text-muted-foreground text-sm sm:flex-1">
+            {filtered.length} boutique{filtered.length !== 1 ? 's' : ''} — page {safePage} sur {totalPages}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={safePage <= 1}
+            >
+              Précédent
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={safePage >= totalPages}
+            >
+              Suivant
+            </Button>
           </div>
         </div>
       </div>

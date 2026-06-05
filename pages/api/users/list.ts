@@ -47,7 +47,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 const { data, error } = await supabaseAdmin.auth.admin.getUserById(user.auth_id);
                 if (!error) authUser = data.user;
             }
-            return { ...user, authUser };
+            const url_logo =
+                user.url_logo ||
+                authUser?.user_metadata?.avatar_url ||
+                authUser?.user_metadata?.picture ||
+                null;
+            return { ...user, url_logo, authUser };
         }));
 
         res.status(200).json(usersWithAuth);

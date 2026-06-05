@@ -81,7 +81,10 @@ export default async function DashboardLayout({
         role: profile.role as 'Client' | 'Boutique' | 'Livreur' | 'Administrateur',
 
         // Informations complémentaires
-        url_logo: profile.url_logo,
+        url_logo: profile.url_logo
+            ?? authUser.user_metadata?.avatar_url
+            ?? authUser.user_metadata?.picture
+            ?? null,
         phone: profile.phone,
         address: profile.address,
         description: profile.description,

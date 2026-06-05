@@ -40,14 +40,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (!auth) return;
 
         const { id } = req.query;
-        const authenticatedUserId = auth.profile.id;
+        const targetId = (id as string) || auth.profile.id;
 
-        //console.log("param.id:", id);
-        //console.log("authenticatedUserId:", authenticatedUserId);
         const { data: user, error: userError } = await supabaseAdmin
             .from("users")
             .select("*")
-            .eq("id", authenticatedUserId)
+            .eq("id", targetId)
             .single();
 
         if (userError || !user) {
@@ -62,7 +60,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             }
         }
 
-        return res.status(200).json({ ...user, authUser });
+        const url_logo =
+            user.url_logo ||
+            authUser?.user_metadata?.avatar_url ||
+            authUser?.user_metadata?.picture ||
+            null;
+
+        return res.status(200).json({ ...user, url_logo, authUser });
     } catch (err) {
         console.error(err);
         return res.status(500).json({ error: "Erreur serveur" });

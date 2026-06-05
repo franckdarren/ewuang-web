@@ -40,6 +40,7 @@ export async function requireUserAuth(req: NextApiRequest, res: NextApiResponse)
                 email: user.email ?? "",
                 name: user.user_metadata?.name ?? user.email?.split("@")[0] ?? "Utilisateur",
                 role: user.user_metadata?.role ?? "Client",
+                url_logo: user.user_metadata?.avatar_url ?? user.user_metadata?.picture ?? null,
                 phone: null,
                 solde: 0,
                 created_at: new Date().toISOString(),

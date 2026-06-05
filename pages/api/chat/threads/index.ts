@@ -72,9 +72,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (others.length > 0) {
             const { data: users } = await supabaseAdmin
                 .from("users")
-                .select("id, name, url_logo, role")
+                .select("id, name, url_logo, role, auth_id")
                 .in("id", others);
-            usersById = Object.fromEntries((users ?? []).map((u) => [u.id, u]));
+            usersById = Object.fromEntries(
+                await Promise.all(
+                    (users ?? []).map(async (u) => {
+                        let url_logo = u.url_logo;
+                        if (!url_logo && u.auth_id) {
+                            const { data } = await supabaseAdmin.auth.admin.getUserById(u.auth_id);
+                            url_logo =
+                                data?.user?.user_metadata?.avatar_url ||
+                                data?.user?.user_metadata?.picture ||
+                                null;
+                        }
+                        return [u.id, { ...u, url_logo }];
+                    })
+                )
+            );
         }
 
         const result = (threads ?? []).map((t) => {

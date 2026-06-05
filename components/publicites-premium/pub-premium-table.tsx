@@ -1,9 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+
+const PAGE_SIZE = 10;
 import { CheckCircle, XCircle, Eye, Ban, Clock, Pencil, Trash2 } from 'lucide-react';
 import type { PublicitePremium, PublitePosition, PublitePremiumStatut } from '@/stores/publicitesPremiumStore';
 import { proxiedMediaUrl } from '@/lib/mediaUrl';
@@ -65,6 +67,12 @@ export function PubPremiumTable({
     onDelete,
     showActions = true,
 }: PubPremiumTableProps) {
+    const [currentPage, setCurrentPage] = useState(1);
+
+    const totalPages = Math.max(1, Math.ceil(publicites.length / PAGE_SIZE));
+    const safePage = Math.min(currentPage, totalPages);
+    const paginated = publicites.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
     if (isLoading) {
         return (
             <div className="flex items-center justify-center py-12 text-muted-foreground">
@@ -82,7 +90,8 @@ export function PubPremiumTable({
     }
 
     return (
-        <div className="overflow-x-auto">
+        <div>
+            <div className="overflow-x-auto">
             <Table>
                 <TableHeader>
                     <TableRow>
@@ -97,7 +106,7 @@ export function PubPremiumTable({
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {publicites.map((pub) => {
+                    {paginated.map((pub) => {
                         const cfg = STATUT_CONFIG[pub.statut];
                         const actif = isActifMaintenant(pub);
                         return (
@@ -216,6 +225,32 @@ export function PubPremiumTable({
                     })}
                 </TableBody>
             </Table>
+            </div>
+
+            {/* Pagination */}
+            <div className="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:justify-end">
+                <div className="text-muted-foreground text-sm sm:flex-1">
+                    {publicites.length} résultat{publicites.length !== 1 ? 's' : ''} — page {safePage} sur {totalPages}
+                </div>
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                        disabled={safePage <= 1}
+                    >
+                        Précédent
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                        disabled={safePage >= totalPages}
+                    >
+                        Suivant
+                    </Button>
+                </div>
+            </div>
         </div>
     );
 }
