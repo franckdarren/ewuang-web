@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import {
   IconBuildingStore,
   IconShoppingCart,
@@ -288,7 +287,7 @@ export default function BoutiquesStatsPage() {
                           <div className="flex items-center gap-3">
                             <div className="size-9 rounded-full overflow-hidden bg-muted flex items-center justify-center shrink-0">
                               {b.url_logo
-                                ? <Image src={b.url_logo} alt={b.name} width={36} height={36} className="object-cover" />
+                                ? <img src={b.url_logo} alt={b.name} className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                                 : <IconBuildingStore className="size-5 text-muted-foreground" />
                               }
                             </div>
