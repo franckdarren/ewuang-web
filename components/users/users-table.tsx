@@ -366,6 +366,32 @@ export function UsersTable(props: any) {
                     )}
                 </TableBody>
             </Table>
+
+            {/* Pagination */}
+            <div className="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:justify-end">
+                <div className="text-muted-foreground text-sm sm:flex-1">
+                    {table.getFilteredSelectedRowModel().rows.length} sur{" "}
+                    {table.getFilteredRowModel().rows.length} ligne(s) sélectionnée(s).
+                </div>
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => table.previousPage()}
+                        disabled={!table.getCanPreviousPage()}
+                    >
+                        Précédent
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => table.nextPage()}
+                        disabled={!table.getCanNextPage()}
+                    >
+                        Suivant
+                    </Button>
+                </div>
+            </div>
         </div>
     );
 }
