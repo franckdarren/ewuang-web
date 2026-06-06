@@ -14,6 +14,7 @@ const schema = z.object({
     date_start: z.string().refine((v) => !isNaN(Date.parse(v)), "Date invalide"),
     date_end: z.string().refine((v) => !isNaN(Date.parse(v)), "Date invalide"),
     categorie_id: z.string().uuid().optional().nullable(),
+    boutique_id: z.string().uuid().optional().nullable(),
     prix: z.number().int().positive().optional().nullable(),
 });
 
@@ -40,10 +41,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(400).json({ error: "categorie_id requis pour la position banniere_categorie" });
         }
 
+        if (isAdmin && body.position === "banniere_boutique" && !body.boutique_id) {
+            return res.status(400).json({ error: "boutique_id requis pour la position banniere_boutique" });
+        }
+
+        const boutiqueId = isAdmin && body.boutique_id ? body.boutique_id : auth.user.id;
+
         const { data, error } = await supabaseAdmin
             .from("publicites_premium")
             .insert({
-                boutique_id: auth.user.id,
+                boutique_id: boutiqueId,
                 position: body.position,
                 titre: body.titre,
                 url_image: body.url_image,

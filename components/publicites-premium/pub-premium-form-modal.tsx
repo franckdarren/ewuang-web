@@ -60,8 +60,10 @@ export function PubPremiumFormModal({ open, onClose, pub }: PubPremiumFormModalP
     const [dateStart, setDateStart] = React.useState('');
     const [dateEnd, setDateEnd] = React.useState('');
     const [categorieId, setCategorieId] = React.useState('');
+    const [boutiqueId, setBoutiqueId] = React.useState('');
     const [prix, setPrix] = React.useState('');
     const [categories, setCategories] = React.useState<Categorie[]>([]);
+    const [boutiques, setBoutiques] = React.useState<{ id: string; name: string }[]>([]);
     const [isSubmitting, setIsSubmitting] = React.useState(false);
     const [error, setError] = React.useState<string | null>(null);
 
@@ -78,6 +80,19 @@ export function PubPremiumFormModal({ open, onClose, pub }: PubPremiumFormModalP
             .catch(() => {});
     }, [open, token]);
 
+    // Charger les boutiques (admin uniquement, pour banniere_boutique)
+    React.useEffect(() => {
+        if (!open || !token || !isAdmin || position !== 'banniere_boutique') return;
+        fetch('/api/users/list', {
+            headers: { Authorization: `Bearer ${token}` },
+        })
+            .then((r) => r.json())
+            .then((data: { id: string; name: string; role: string }[]) =>
+                setBoutiques((data ?? []).filter((u) => u.role === 'Boutique'))
+            )
+            .catch(() => {});
+    }, [open, token, isAdmin, position]);
+
     // Initialiser depuis pub (mode édition) ou reset (mode création)
     React.useEffect(() => {
         if (!open) return;
@@ -91,6 +106,7 @@ export function PubPremiumFormModal({ open, onClose, pub }: PubPremiumFormModalP
             setDateStart(isoToDatetimeLocal(pub.date_start));
             setDateEnd(isoToDatetimeLocal(pub.date_end));
             setCategorieId(pub.categorie_id ?? '');
+            setBoutiqueId(pub.boutique_id ?? '');
             setPrix(pub.prix != null ? String(pub.prix) : '');
             setError(null);
         } else {
@@ -151,6 +167,7 @@ export function PubPremiumFormModal({ open, onClose, pub }: PubPremiumFormModalP
         setDateStart('');
         setDateEnd('');
         setCategorieId('');
+        setBoutiqueId('');
         setPrix('');
         setError(null);
     }
@@ -174,6 +191,10 @@ export function PubPremiumFormModal({ open, onClose, pub }: PubPremiumFormModalP
         }
         if (position === 'banniere_categorie' && !categorieId) {
             setError('Veuillez sélectionner une catégorie');
+            return;
+        }
+        if (isAdmin && position === 'banniere_boutique' && !boutiqueId) {
+            setError('Veuillez sélectionner une boutique');
             return;
         }
 
@@ -209,6 +230,7 @@ export function PubPremiumFormModal({ open, onClose, pub }: PubPremiumFormModalP
                     date_start: new Date(dateStart).toISOString(),
                     date_end: new Date(dateEnd).toISOString(),
                     categorie_id: position === 'banniere_categorie' ? categorieId : null,
+                    boutique_id: isAdmin && position === 'banniere_boutique' ? boutiqueId : null,
                     prix: prix ? parseInt(prix, 10) : null,
                 };
                 await createPublitePremium(payload);
@@ -263,6 +285,22 @@ export function PubPremiumFormModal({ open, onClose, pub }: PubPremiumFormModalP
                                 <SelectContent>
                                     {categories.map((c) => (
                                         <SelectItem key={c.id} value={c.id}>{c.nom}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
+
+                    {isAdmin && position === 'banniere_boutique' && (
+                        <div className="space-y-1">
+                            <Label>Boutique *</Label>
+                            <Select value={boutiqueId} onValueChange={setBoutiqueId}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Choisir une boutique" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {boutiques.map((b) => (
+                                        <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
