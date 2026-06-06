@@ -14,6 +14,7 @@ const schema = z.object({
     date_start: z.string().refine((v) => !isNaN(Date.parse(v)), "Date invalide").optional(),
     date_end: z.string().refine((v) => !isNaN(Date.parse(v)), "Date invalide").optional(),
     categorie_id: z.string().uuid().optional().nullable(),
+    boutique_id: z.string().uuid().optional().nullable(),
     prix: z.number().int().positive().optional().nullable(),
 });
 
@@ -43,6 +44,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (body.date_start) updateData.date_start = new Date(body.date_start).toISOString();
         if (body.date_end) updateData.date_end = new Date(body.date_end).toISOString();
         if ("categorie_id" in body) updateData.categorie_id = body.categorie_id ?? null;
+        if ("boutique_id" in body) updateData.boutique_id = body.boutique_id ?? null;
         if ("prix" in body) updateData.prix = body.prix ?? null;
 
         const { data, error } = await supabaseAdmin

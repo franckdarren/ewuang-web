@@ -217,6 +217,7 @@ export function PubPremiumFormModal({ open, onClose, pub }: PubPremiumFormModalP
                     date_start: new Date(dateStart).toISOString(),
                     date_end: new Date(dateEnd).toISOString(),
                     categorie_id: position === 'banniere_categorie' ? categorieId : null,
+                    boutique_id: isAdmin && position === 'banniere_boutique' ? boutiqueId : undefined,
                     prix: prix ? parseInt(prix, 10) : null,
                 };
                 await updatePublitePremium(pub.id, payload);

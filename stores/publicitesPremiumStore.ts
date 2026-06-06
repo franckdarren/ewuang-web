@@ -67,6 +67,7 @@ export interface UpdatePublicitePremiumInput {
     date_start?: string;
     date_end?: string;
     categorie_id?: string | null;
+    boutique_id?: string | null;
     prix?: number | null;
 }
 
