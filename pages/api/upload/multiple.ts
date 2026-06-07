@@ -138,7 +138,7 @@ export default async function handler(
             );
 
             if (result.success && result.url) {
-                uploadedUrls.push(result.url);
+                uploadedUrls.push(`${result.url}?t=${Date.now()}`);
             }
 
             // Supprimer le fichier temporaire

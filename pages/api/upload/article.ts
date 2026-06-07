@@ -138,7 +138,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             success: true,
             message: 'Image uploadée avec succès',
             data: {
-                url: uploadResult.url,
+                url: `${uploadResult.url}?t=${Date.now()}`,
                 path: uploadResult.path,
                 type
             }
