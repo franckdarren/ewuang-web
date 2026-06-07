@@ -66,6 +66,7 @@ interface NotificationsState extends LoadingState {
     markAsRead: (id: string) => Promise<void>;
     markAllAsRead: () => Promise<void>;
     deleteNotification: (id: string) => Promise<void>;
+    receiveNotification: (notification: Notification) => void;
     calculateStats: () => void;
     clearError: () => void;
     refresh: () => Promise<void>;
@@ -271,6 +272,13 @@ export const useNotificationsStore = createWithEqualityFn<NotificationsState>((s
                 par_type,
             },
         });
+    },
+
+    receiveNotification: (notification: Notification) => {
+        set(state => ({
+            notifications: [notification, ...state.notifications],
+        }));
+        get().calculateStats();
     },
 
     clearError: () => set({ error: null }),

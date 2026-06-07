@@ -8,6 +8,7 @@ import { createClient } from "@/app/utils/supabase/serveur";
 import { redirect } from "next/navigation";
 import { AuthProvider } from "@/components/providers/auth-provider";
 import { AdminThemeSync } from "@/components/providers/admin-theme-sync";
+import { RealtimeNotificationsProvider } from "@/components/providers/realtime-notifications-provider";
 import { User } from "@/stores/authStore";
 import { supabaseAdmin } from "../lib/supabaseAdmin";
 
@@ -152,6 +153,7 @@ export default async function DashboardLayout({
         <AdminThemeSync />
         <div data-admin="true" className="contents">
         <AuthProvider initialUser={userData} initialToken={token}>
+            <RealtimeNotificationsProvider />
             <SidebarProvider
                 style={
                     {
