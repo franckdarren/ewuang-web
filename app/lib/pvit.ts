@@ -145,6 +145,7 @@ export async function pvitInitiatePaiement(
   }
 
   const body: Record<string, unknown> = {
+    service: "REST",
     amount: payload.amount,
     callback_url_code: CALLBACK_URL_CODE,
     customer_account_number: payload.customerAccountNumber,
