@@ -68,7 +68,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Si déjà dans un état terminal, retourner sans appeler PVIT
-    if (paiement.statut === "valide" || paiement.statut === "echoue") {
+    if (paiement.statut === "Validé" || paiement.statut === "Echoué") {
       return res.status(200).json({
         paiement_id: paiement.id,
         statut: paiement.statut,
@@ -85,10 +85,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const statutMapped =
           pvitStatus.status === "completed"
-            ? "valide"
+            ? "Validé"
             : pvitStatus.status === "failed" || pvitStatus.status === "cancelled"
-            ? "echoue"
-            : "en_attente";
+            ? "Echoué"
+            : "En attente";
 
         // Mettre à jour localement si le statut a changé
         if (statutMapped !== paiement.statut) {

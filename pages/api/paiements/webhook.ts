@@ -88,7 +88,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   // Idempotence : ignorer si déjà terminal
-  if (paiement.statut === "valide" || paiement.statut === "echoue") {
+  if (paiement.statut === "Validé" || paiement.statut === "Echoué") {
     const ack: PvitWebhookAck = { transactionId, responseCode: code ?? 200 };
     return res.status(200).json(ack);
   }
@@ -96,7 +96,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // -------------------------------------------------------------------------
   // 4. Mapper statut PVIT → statut Ewuang
   // -------------------------------------------------------------------------
-  const statutPaiement = status === "SUCCESS" ? "valide" : "echoue";
+  const statutPaiement = status === "SUCCESS" ? "Validé" : "Echoué";
 
   await supabaseAdmin
     .from("paiements")
@@ -119,7 +119,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // -------------------------------------------------------------------------
   // 5a. SUCCESS → confirmer la commande + redistribuer les soldes
   // -------------------------------------------------------------------------
-  if (statutPaiement === "valide" && commandeId) {
+  if (statutPaiement === "Validé" && commandeId) {
     const { data: commande } = await supabaseAdmin
       .from("commandes")
       .select("id, numero, user_id")
@@ -166,7 +166,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // -------------------------------------------------------------------------
   // 5b. FAILED → annuler la commande + restaurer le stock
   // -------------------------------------------------------------------------
-  if (statutPaiement === "echoue" && commandeId) {
+  if (statutPaiement === "Echoué" && commandeId) {
     const { data: commande } = await supabaseAdmin
       .from("commandes")
       .select("id, numero, user_id")

@@ -276,7 +276,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       user_id: profile.id,
       montant: total,
       methode: "mobile_money",
-      statut: "en_attente",
+      statut: "En attente",
       reference,
       details: {
         commande_id: null, // mis à jour après création de la commande
