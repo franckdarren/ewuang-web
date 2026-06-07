@@ -255,7 +255,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     total += Math.min(baseLivraison * nombreBoutiques, 8000);
 
     // -----------------------------------------------------------------------
-    // 4. Créer la commande (En attente)
+    // 4. Créer l'enregistrement paiement en premier (requis par la FK commandes.paiement_id)
     // -----------------------------------------------------------------------
     const paiementId = uuidv4();
     const numeroCommande = await generateOrderNumber();
@@ -263,6 +263,41 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Référence unique envoyée à PVIT — MAX 15 CARACTÈRES (contrainte PVIT)
     const reference = randomBytes(8).toString("hex").toUpperCase().slice(0, 15);
 
+    const boutiqueBenefices = commandeArticles.reduce(
+      (acc, ca) => {
+        acc[ca.boutique_user_id] = (acc[ca.boutique_user_id] ?? 0) + ca.benefice;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
+
+    const { error: paiementError } = await supabaseAdmin.from("paiements").insert({
+      id: paiementId,
+      user_id: profile.id,
+      montant: total,
+      methode: "mobile_money",
+      statut: "en_attente",
+      reference,
+      details: {
+        commande_id: null, // mis à jour après création de la commande
+        operateur: body.operateur,
+        telephone: body.telephone,
+        admin_id: admin?.id ?? null,
+        admin_frais: adminFrais,
+        boutique_benefices: boutiqueBenefices,
+      },
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    });
+
+    if (paiementError) {
+      console.error("[paiements/initiate] paiement insert:", paiementError);
+      return res.status(500).json({ error: "Impossible de créer le paiement" });
+    }
+
+    // -----------------------------------------------------------------------
+    // 5. Créer la commande (En attente) — paiement_id existe maintenant
+    // -----------------------------------------------------------------------
     const { data: commande, error: commandeError } = await supabaseAdmin
       .from("commandes")
       .insert({
@@ -284,11 +319,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (commandeError) {
       console.error("[paiements/initiate] commande insert:", commandeError);
+      await supabaseAdmin.from("paiements").delete().eq("id", paiementId);
       return res.status(500).json({ error: "Impossible de créer la commande" });
     }
 
+    // Mettre à jour commande_id dans les détails du paiement
+    await supabaseAdmin
+      .from("paiements")
+      .update({ details: { commande_id: commande.id, operateur: body.operateur, telephone: body.telephone, admin_id: admin?.id ?? null, admin_frais: adminFrais, boutique_benefices: boutiqueBenefices } })
+      .eq("id", paiementId);
+
     // -----------------------------------------------------------------------
-    // 5. Articles + réservation de stock
+    // 6. Articles + réservation de stock
     // -----------------------------------------------------------------------
     const { error: articlesError } = await supabaseAdmin
       .from("commande_articles")
@@ -304,6 +346,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (articlesError) {
       await supabaseAdmin.from("commandes").delete().eq("id", commande.id);
+      await supabaseAdmin.from("paiements").delete().eq("id", paiementId);
       return res.status(500).json({ error: "Impossible d'insérer les articles" });
     }
 
@@ -319,42 +362,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           quantity: ca.article_to_update.quantite,
         });
       }
-    }
-
-    // -----------------------------------------------------------------------
-    // 6. Créer l'enregistrement paiement
-    //    → on stocke dans "details" tout ce dont le webhook aura besoin
-    // -----------------------------------------------------------------------
-    const boutiqueBenefices = commandeArticles.reduce(
-      (acc, ca) => {
-        acc[ca.boutique_user_id] = (acc[ca.boutique_user_id] ?? 0) + ca.benefice;
-        return acc;
-      },
-      {} as Record<string, number>
-    );
-
-    const { error: paiementError } = await supabaseAdmin.from("paiements").insert({
-      id: paiementId,
-      user_id: profile.id,
-      montant: total,
-      methode: "mobile_money",
-      statut: "en_attente",
-      reference,
-      details: {
-        commande_id: commande.id,
-        operateur: body.operateur,
-        telephone: body.telephone,
-        admin_id: admin?.id ?? null,
-        admin_frais: adminFrais,
-        boutique_benefices: boutiqueBenefices,
-      },
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    });
-
-    if (paiementError) {
-      console.error("[paiements/initiate] paiement insert:", paiementError);
-      return res.status(500).json({ error: "Impossible de créer le paiement" });
     }
 
     if (codePromoId) {
