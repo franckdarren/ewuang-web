@@ -134,6 +134,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       boutique_user_id: string;
       benefice: number;
       variation_to_update: { id: string; quantite: number } | null;
+      article_to_update: { id: string; quantite: number } | null;
     }[] = [];
 
     const { data: admin } = await supabaseAdmin
