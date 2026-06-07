@@ -148,5 +148,41 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- 7. Fonction pour décrémenter le stock d'un article (sans variation)
+CREATE OR REPLACE FUNCTION decrement_article_stock(
+  article_id UUID,
+  quantity INTEGER
+)
+RETURNS VOID AS $$
+BEGIN
+  UPDATE articles
+  SET stock = stock - quantity,
+      updated_at = NOW()
+  WHERE id = article_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Article non trouvé: %', article_id;
+  END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 8. Fonction pour incrémenter le stock d'un article (annulations / échec paiement)
+CREATE OR REPLACE FUNCTION increment_article_stock(
+  article_id UUID,
+  quantity INTEGER
+)
+RETURNS VOID AS $$
+BEGIN
+  UPDATE articles
+  SET stock = stock + quantity,
+      updated_at = NOW()
+  WHERE id = article_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Article non trouvé: %', article_id;
+  END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 -- Note: Pour utiliser ces fonctions, exécutez ce script SQL dans votre base Supabase
 -- via le SQL Editor ou via les migrations Prisma

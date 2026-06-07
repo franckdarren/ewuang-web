@@ -182,16 +182,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Restaurer le stock des variations réservées
       const { data: articles } = await supabaseAdmin
         .from("commande_articles")
-        .select("variation_id, quantite")
-        .eq("commande_id", commande.id)
-        .not("variation_id", "is", null);
+        .select("article_id, variation_id, quantite")
+        .eq("commande_id", commande.id);
 
       if (articles) {
         for (const ca of articles) {
-          await supabaseAdmin.rpc("increment_variation_stock", {
-            variation_id: ca.variation_id,
-            quantity: ca.quantite,
-          });
+          if (ca.variation_id) {
+            await supabaseAdmin.rpc("increment_variation_stock", {
+              variation_id: ca.variation_id,
+              quantity: ca.quantite,
+            });
+          } else {
+            await supabaseAdmin.rpc("increment_article_stock", {
+              article_id: ca.article_id,
+              quantity: ca.quantite,
+            });
+          }
         }
       }
 

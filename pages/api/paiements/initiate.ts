@@ -145,7 +145,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     for (const item of body.articles) {
       const { data: article, error: articleError } = await supabaseAdmin
         .from("articles")
-        .select("id, prix, prix_promotion, is_promotion, user_id, variations(id, stock)")
+        .select("id, prix, prix_promotion, is_promotion, stock, user_id, variations(id, stock)")
         .eq("id", item.article_id)
         .single();
 
@@ -165,6 +165,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
         if (variation.stock < item.quantite) {
           return res.status(400).json({ error: `Stock insuffisant pour la variation ${variation.id}` });
+        }
+      } else {
+        // Article sans variation : vérifier le stock au niveau article
+        if (article.stock < item.quantite) {
+          return res.status(400).json({ error: `Stock insuffisant pour l'article ${item.article_id}` });
         }
       }
 
@@ -186,6 +191,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         boutique_user_id: article.user_id,
         benefice: sousTotal - frais,
         variation_to_update: variation ? { id: variation.id, quantite: item.quantite } : null,
+        article_to_update: !variation ? { id: item.article_id, quantite: item.quantite } : null,
       });
     }
 
@@ -305,6 +311,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         await supabaseAdmin.rpc("decrement_variation_stock", {
           variation_id: ca.variation_to_update.id,
           quantity: ca.variation_to_update.quantite,
+        });
+      } else if (ca.article_to_update) {
+        await supabaseAdmin.rpc("decrement_article_stock", {
+          article_id: ca.article_to_update.id,
+          quantity: ca.article_to_update.quantite,
         });
       }
     }

@@ -144,6 +144,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             prix,
             prix_promotion,
             is_promotion,
+            stock,
             user_id,
             variations (id, stock)
         `)
@@ -180,6 +181,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
                 prixUnitaire = article.is_promotion ? article.prix_promotion : article.prix;
             } else {
+                // Article sans variation : vérifier le stock au niveau article
+                if (article.stock < item.quantite) {
+                    return res.status(400).json({
+                        error: `Stock insuffisant pour l'article ${item.article_id}`
+                    });
+                }
                 prixUnitaire = article.is_promotion ? article.prix_promotion : article.prix;
             }
 
@@ -207,6 +214,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 boutique_user_id: article.user_id,
                 benefice,
                 variation_to_update: variation ? { id: variation.id, quantite: item.quantite } : null,
+                article_to_update: !variation ? { id: item.article_id, quantite: item.quantite } : null,
             });
         }
 
@@ -319,7 +327,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 throw new Error(`Erreur insertion articles: ${insertArticlesError.message}`);
             }
 
-            // Mettre à jour les stocks des variations
+            // Mettre à jour les stocks
             for (const ca of commandeArticles) {
                 if (ca.variation_to_update) {
                     const { error: stockError } = await supabaseAdmin.rpc(
@@ -329,9 +337,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                             quantity: ca.variation_to_update.quantite,
                         }
                     );
-
                     if (stockError) {
-                        throw new Error(`Erreur mise à jour stock: ${stockError.message}`);
+                        throw new Error(`Erreur mise à jour stock variation: ${stockError.message}`);
+                    }
+                } else if (ca.article_to_update) {
+                    const { error: stockError } = await supabaseAdmin.rpc(
+                        "decrement_article_stock",
+                        {
+                            article_id: ca.article_to_update.id,
+                            quantity: ca.article_to_update.quantite,
+                        }
+                    );
+                    if (stockError) {
+                        throw new Error(`Erreur mise à jour stock article: ${stockError.message}`);
                     }
                 }
             }

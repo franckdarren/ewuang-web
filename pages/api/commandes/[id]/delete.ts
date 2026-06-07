@@ -108,7 +108,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             if (commande.statut === "en_attente") {
                 const { data: commandeArticles } = await supabaseAdmin
                     .from("commande_articles")
-                    .select("variation_id, quantite")
+                    .select("article_id, variation_id, quantite")
                     .eq("commande_id", id);
 
                 if (commandeArticles) {
@@ -116,6 +116,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                         if (ca.variation_id) {
                             await supabaseAdmin.rpc("increment_variation_stock", {
                                 variation_id: ca.variation_id,
+                                quantity: ca.quantite,
+                            });
+                        } else {
+                            await supabaseAdmin.rpc("increment_article_stock", {
+                                article_id: ca.article_id,
                                 quantity: ca.quantite,
                             });
                         }
