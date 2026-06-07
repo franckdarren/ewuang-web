@@ -144,8 +144,11 @@ export async function pvitInitiatePaiement(
     );
   }
 
+  const service =
+    payload.operatorCode === "VISA_MASTERCARD" ? "VISA_MASTERCARD" : "RESTFUL";
+
   const body: Record<string, unknown> = {
-    service: "REST",
+    service,
     amount: payload.amount,
     callback_url_code: CALLBACK_URL_CODE,
     customer_account_number: payload.customerAccountNumber,
