@@ -1,4 +1,4 @@
-// pages/api/annonces/[id].ts
+// pages/api/annonces/delete/[id].ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "../../../../app/lib/supabaseAdmin";
 import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth";
@@ -8,23 +8,22 @@ import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth
  * /api/annonces/delete/{id}:
  *   delete:
  *     summary: Supprime une publicité
- *     description: Supprime une publicité par son ID.
+ *     description: Un non-administrateur ne peut supprimer que ses propres publicités.
  *     tags:
  *       - Publicites
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: string
- *       - in: header
- *         name: Authorization
- *         required: true
- *     security:
- *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Publicité supprimée
+ *       403:
+ *         description: Accès interdit
  *       404:
  *         description: Introuvable
  */
@@ -40,6 +39,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const { id } = req.query;
         if (typeof id !== "string") return res.status(400).json({ error: "ID invalide" });
 
+        // Vérifier l'appartenance avant la suppression
+        const isAdmin = auth.profile.role === "Administrateur";
+        if (!isAdmin) {
+            const { data: existing } = await supabaseAdmin
+                .from("publicites")
+                .select("user_id")
+                .eq("id", id)
+                .single();
+
+            if (!existing) return res.status(404).json({ error: "Publicité introuvable" });
+            if (existing.user_id !== auth.authUser.id) {
+                return res.status(403).json({ error: "Accès interdit" });
+            }
+        }
+
         const { data, error } = await supabaseAdmin
             .from("publicites")
             .delete()
@@ -48,7 +62,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         if (error) {
             console.error("Supabase delete error:", error);
-            return res.status(404).json({ error: "Publicité introuvable" });
+            return res.status(500).json({ error: "Impossible de supprimer la publicité" });
         }
 
         return res.status(200).json({ message: "Supprimée avec succès", deleted: data });

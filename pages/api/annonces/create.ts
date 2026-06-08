@@ -70,6 +70,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const { data, error } = await supabaseAdmin
             .from("publicites")
             .insert({
+                user_id: auth.authUser.id,
                 titre: body.titre,
                 description: body.description,
                 url_image: body.url_image,

@@ -8,7 +8,10 @@ import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth
  * /api/annonces/update/{id}:
  *   patch:
  *     summary: Met à jour une publicité
+ *     description: Un non-administrateur ne peut modifier que ses propres publicités.
  *     tags: [Publicites]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -16,15 +19,14 @@ import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth
  *         schema:
  *           type: string
  *         description: ID de la publicité
- *       - in: header
- *         name: Authorization
- *         required: true
  *     requestBody:
  *       required: true
  *       description: Champs à modifier
  *     responses:
  *       200:
  *         description: Mise à jour réussie
+ *       403:
+ *         description: Accès interdit
  *       404:
  *         description: Publicité introuvable
  */
@@ -40,36 +42,40 @@ const updateSchema = z.object({
 });
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-
     if (req.method !== "PATCH")
         return res.status(405).json({ error: "Méthode non autorisée" });
 
     try {
-        // Auth obligatoire
         const auth = await requireUserAuth(req, res);
         if (!auth) return;
 
-        // Lire l'id depuis l'URL
         const id = req.query.id;
         if (!id || typeof id !== "string") {
             return res.status(400).json({ error: "ID invalide ou manquant" });
         }
 
-        // Valider body
+        // Vérifier l'appartenance avant la mise à jour
+        const isAdmin = auth.profile.role === "Administrateur";
+        if (!isAdmin) {
+            const { data: existing } = await supabaseAdmin
+                .from("publicites")
+                .select("user_id")
+                .eq("id", id)
+                .single();
+
+            if (!existing) return res.status(404).json({ error: "Publicité introuvable" });
+            if (existing.user_id !== auth.authUser.id) {
+                return res.status(403).json({ error: "Accès interdit" });
+            }
+        }
+
         const body = updateSchema.parse(req.body);
 
-        // Construire l'objet de mise à jour
-        const toUpdate: Record<string, any> = {
-            updated_at: new Date().toISOString(),
-        };
-
+        const toUpdate: Record<string, unknown> = { updated_at: new Date().toISOString() };
         Object.entries(body).forEach(([key, value]) => {
-            if (value !== undefined) {
-                toUpdate[key] = value;
-            }
+            if (value !== undefined) toUpdate[key] = value;
         });
 
-        // Mise à jour Supabase
         const { data, error } = await supabaseAdmin
             .from("publicites")
             .update(toUpdate)
@@ -80,10 +86,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (error || !data)
             return res.status(404).json({ error: "Publicité introuvable" });
 
-        return res.status(200).json({
-            message: "Mise à jour réussie",
-            publicite: data,
-        });
+        return res.status(200).json({ message: "Mise à jour réussie", publicite: data });
     } catch (err) {
         if (err instanceof ZodError) {
             return res.status(400).json({ errors: err.flatten() });

@@ -25,6 +25,7 @@ import { apiFetch } from '@/app/lib/apiFetch';
 
 export interface Publicite {
     id: string;
+    user_id: string | null;
     date_start: string;
     date_end: string;
     titre: string;
