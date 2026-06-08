@@ -110,7 +110,7 @@ function TransactionViewModal({ open, onClose, transaction }: TransactionViewMod
                     <div className="flex items-center justify-between rounded-lg bg-muted/50 p-4">
                         <div>
                             <p className="text-sm text-muted-foreground">Montant</p>
-                            <p className={`text-2xl font-bold ${transaction.statut === 'valide' ? 'text-green-600' : ''}`}>
+                            <p className={`text-2xl font-bold ${transaction.statut === 'Validé' ? 'text-green-600' : ''}`}>
                                 {formatMontant(transaction.montant)}
                             </p>
                         </div>
