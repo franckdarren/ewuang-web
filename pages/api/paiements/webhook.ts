@@ -150,9 +150,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         type: "Commande",
         titre: "Paiement confirmé",
         message: `Votre commande ${commande.numero} a été payée avec succès. Elle est en cours de préparation.`,
-        lu: false,
+        is_read: false,
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
       });
     }
 
@@ -219,9 +218,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         type: "Commande",
         titre: "Paiement échoué",
         message: `Le paiement de votre commande ${commande.numero} a échoué. Veuillez réessayer.`,
-        lu: false,
+        is_read: false,
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
       });
     }
   }
