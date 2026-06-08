@@ -83,10 +83,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       try {
         const pvitStatus = await pvitGetStatus(paiement.transaction_id);
 
+        const pvitStatusUpper = String(pvitStatus.status).toUpperCase();
         const statutMapped =
-          pvitStatus.status === "completed"
+          pvitStatusUpper === "SUCCESS" || pvitStatusUpper === "COMPLETED"
             ? "Validé"
-            : pvitStatus.status === "failed" || pvitStatus.status === "cancelled"
+            : pvitStatusUpper === "FAILED" ||
+              pvitStatusUpper === "CANCELED" ||
+              pvitStatusUpper === "CANCELLED"
             ? "Echoué"
             : "En attente";
 

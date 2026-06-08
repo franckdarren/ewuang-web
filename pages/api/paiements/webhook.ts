@@ -95,8 +95,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   // -------------------------------------------------------------------------
   // 4. Mapper statut PVIT → statut Ewuang
+  //    - SUCCESS         → Validé
+  //    - FAILED/CANCELED → Echoué
+  //    - autres (PENDING, etc.) → on ne change rien, on attend un webhook final
   // -------------------------------------------------------------------------
-  const statutPaiement = status === "SUCCESS" ? "Validé" : "Echoué";
+  const statusUpper = String(status).toUpperCase();
+  let statutPaiement: "Validé" | "Echoué" | null = null;
+  if (statusUpper === "SUCCESS") statutPaiement = "Validé";
+  else if (statusUpper === "FAILED" || statusUpper === "CANCELED" || statusUpper === "CANCELLED")
+    statutPaiement = "Echoué";
+
+  if (!statutPaiement) {
+    console.warn("[webhook] statut PVIT non terminal — ignoré:", status);
+    const ack: PvitWebhookAck = { transactionId, responseCode: code ?? 200 };
+    return res.status(200).json(ack);
+  }
 
   await supabaseAdmin
     .from("paiements")
