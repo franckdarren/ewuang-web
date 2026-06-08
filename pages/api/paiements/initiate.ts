@@ -433,12 +433,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // -----------------------------------------------------------------------
     // 7. Appeler PVIT
     // -----------------------------------------------------------------------
+    console.log("[paiements/initiate] PVIT request:", {
+      amount: total,
+      customerAccountNumber: telephonePvit,
+      operatorCode: toOperateurCode(body.operateur),
+      reference,
+    });
+
     const pvitResponse = await pvitInitiatePaiement({
       amount: total,
       customerAccountNumber: telephonePvit,
       operatorCode: toOperateurCode(body.operateur),
       reference,
     });
+
+    console.log("[paiements/initiate] PVIT response:", JSON.stringify(pvitResponse, null, 2));
 
     // Stocker le reference_id PVIT pour le check-status ultérieur
     await supabaseAdmin

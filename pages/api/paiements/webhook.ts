@@ -57,12 +57,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // -------------------------------------------------------------------------
   // 2. Parser le payload PVIT
   // -------------------------------------------------------------------------
+  console.log("[webhook] raw body PVIT:", rawBody);
+
   let payload: PvitWebhookPayload;
   try {
     payload = JSON.parse(rawBody);
   } catch {
     return res.status(400).json({ error: "Payload JSON invalide" });
   }
+
+  console.log("[webhook] payload PVIT parsed:", JSON.stringify(payload, null, 2));
 
   const { transactionId, merchantReferenceId, status, code } = payload;
 
