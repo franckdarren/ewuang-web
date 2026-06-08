@@ -204,6 +204,12 @@ export const usePublitesPremiumStore = createWithEqualityFn<PublitesPremiumState
 
                 if (!res.ok) {
                     const err = await res.json();
+                    if (res.status === 409 && err.conflict) {
+                        const fmt = (d: string) => new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+                        toast.error('Emplacement déjà occupé', {
+                            description: `« ${err.conflict.titre} » du ${fmt(err.conflict.date_start)} au ${fmt(err.conflict.date_end)}`,
+                        });
+                    }
                     throw new Error(err.error ?? 'Erreur lors de la création');
                 }
 
@@ -217,7 +223,9 @@ export const usePublitesPremiumStore = createWithEqualityFn<PublitesPremiumState
                 return created;
             } catch (err: unknown) {
                 const msg = err instanceof Error ? err.message : 'Erreur lors de la création';
-                toast.error('Erreur de création', { description: msg });
+                if (!msg.includes('déjà occupé')) {
+                    toast.error('Erreur de création', { description: msg });
+                }
                 throw err;
             } finally {
                 set({ isLoading: false });
@@ -299,9 +307,15 @@ export const usePublitesPremiumStore = createWithEqualityFn<PublitesPremiumState
 
             if (!res.ok) {
                 const err = await res.json();
-                const msg = err.error ?? 'Erreur lors de l\'approbation';
-                toast.error('Erreur', { description: msg });
-                throw new Error(msg);
+                if (res.status === 409 && err.conflict) {
+                    const fmt = (d: string) => new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+                    toast.error('Conflit d\'emplacement', {
+                        description: `« ${err.conflict.titre} » occupe déjà cet emplacement du ${fmt(err.conflict.date_start)} au ${fmt(err.conflict.date_end)}`,
+                    });
+                } else {
+                    toast.error('Erreur', { description: err.error ?? 'Erreur lors de l\'approbation' });
+                }
+                throw new Error(err.error ?? 'Erreur lors de l\'approbation');
             }
 
             const json = await res.json();

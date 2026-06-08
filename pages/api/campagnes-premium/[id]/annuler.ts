@@ -6,7 +6,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method !== "DELETE") return res.status(405).json({ error: "Méthode non autorisée" });
 
     try {
-        const auth = await requireUserRole(["Boutique", "Administrateur"])(req, res);
+        const auth = await requireUserRole(["Administrateur"])(req, res);
         if (!auth) return;
 
         const { id } = req.query;
@@ -14,16 +14,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const { data: existing, error: fetchError } = await supabaseAdmin
             .from("publicites_premium")
-            .select("id, statut, boutique_id")
+            .select("id, statut")
             .eq("id", id)
             .single();
 
         if (fetchError || !existing) return res.status(404).json({ error: "Publicité premium introuvable" });
-
-        const isBoutique = auth.user.role === "Boutique";
-        if (isBoutique && existing.boutique_id !== auth.user.id) {
-            return res.status(403).json({ error: "Accès interdit" });
-        }
 
         if (existing.statut !== "en_attente") {
             return res.status(400).json({ error: "Seules les demandes en attente peuvent être annulées" });

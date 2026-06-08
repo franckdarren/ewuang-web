@@ -18,17 +18,48 @@ const schema = z.object({
     prix: z.number().int().positive().optional().nullable(),
 });
 
+async function findConflict(
+    position: string,
+    dateStart: string,
+    dateEnd: string,
+    categorieId: string | null | undefined,
+    boutiqueId: string,
+    excludeId?: string
+): Promise<{ id: string; titre: string; date_start: string; date_end: string } | null> {
+    let query = supabaseAdmin
+        .from("publicites_premium")
+        .select("id, titre, date_start, date_end")
+        .eq("position", position)
+        .eq("statut", "approuve")
+        // chevauchement : start existant < fin nouvelle ET fin existant > start nouvelle
+        .lt("date_start", dateEnd)
+        .gt("date_end", dateStart);
+
+    if (position === "banniere_categorie") {
+        query = query.eq("categorie_id", categorieId);
+    } else if (position === "banniere_boutique") {
+        query = query.eq("boutique_id", boutiqueId);
+    }
+
+    if (excludeId) {
+        query = query.neq("id", excludeId);
+    }
+
+    const { data } = await query.limit(1).maybeSingle();
+    return data ?? null;
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== "POST") return res.status(405).json({ error: "Méthode non autorisée" });
 
     try {
-        const auth = await requireUserRole(["Boutique", "Administrateur"])(req, res);
+        const auth = await requireUserRole(["Administrateur"])(req, res);
         if (!auth) return;
 
         const body = schema.parse(req.body);
 
-        const isAdmin = auth.user.role === 'Administrateur';
-        const statut = isAdmin ? 'approuve' : 'en_attente';
+        const isAdmin = auth.user.role === "Administrateur";
+        const statut = isAdmin ? "approuve" : "en_attente";
         const approuveFields = isAdmin
             ? { approuve_par: auth.user.id, approuve_le: new Date().toISOString() }
             : {};
@@ -46,6 +77,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         const boutiqueId = isAdmin && body.boutique_id ? body.boutique_id : auth.user.id;
+
+        // Vérifier qu'aucune publicité approuvée n'occupe déjà cet emplacement sur ces dates
+        const conflict = await findConflict(
+            body.position,
+            new Date(body.date_start).toISOString(),
+            new Date(body.date_end).toISOString(),
+            body.categorie_id,
+            boutiqueId
+        );
+
+        if (conflict) {
+            return res.status(409).json({
+                error: "Cet emplacement est déjà occupé sur cette période",
+                conflict: {
+                    id: conflict.id,
+                    titre: conflict.titre,
+                    date_start: conflict.date_start,
+                    date_end: conflict.date_end,
+                },
+            });
+        }
 
         const { data, error } = await supabaseAdmin
             .from("publicites_premium")

@@ -14,7 +14,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const { data: existing, error: fetchError } = await supabaseAdmin
             .from("publicites_premium")
-            .select("id, statut")
+            .select("id, statut, position, date_start, date_end, categorie_id, boutique_id, titre")
             .eq("id", id)
             .single();
 
@@ -22,6 +22,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         if (existing.statut !== "en_attente") {
             return res.status(400).json({ error: "Seules les demandes en attente peuvent être approuvées" });
+        }
+
+        // Vérifier qu'aucune publicité déjà approuvée n'occupe le même emplacement sur ces dates
+        let conflictQuery = supabaseAdmin
+            .from("publicites_premium")
+            .select("id, titre, date_start, date_end")
+            .eq("position", existing.position)
+            .eq("statut", "approuve")
+            .lt("date_start", existing.date_end)
+            .gt("date_end", existing.date_start)
+            .neq("id", id);
+
+        if (existing.position === "banniere_categorie") {
+            conflictQuery = conflictQuery.eq("categorie_id", existing.categorie_id);
+        } else if (existing.position === "banniere_boutique") {
+            conflictQuery = conflictQuery.eq("boutique_id", existing.boutique_id);
+        }
+
+        const { data: conflict } = await conflictQuery.limit(1).maybeSingle();
+
+        if (conflict) {
+            return res.status(409).json({
+                error: "Impossible d'approuver : un autre emplacement approuvé chevauche ces dates",
+                conflict: {
+                    id: conflict.id,
+                    titre: conflict.titre,
+                    date_start: conflict.date_start,
+                    date_end: conflict.date_end,
+                },
+            });
         }
 
         const { data, error } = await supabaseAdmin

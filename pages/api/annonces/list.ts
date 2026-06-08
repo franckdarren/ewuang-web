@@ -1,16 +1,13 @@
 // pages/api/annonces/list.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "../../../app/lib/supabaseAdmin";
-import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
+import { requireUserRole } from "../../../app/lib/middlewares/requireUserRole";
 
 /**
  * @swagger
  * /api/annonces/list:
  *   get:
- *     summary: Liste les publicités
- *     description: >
- *       Administrateur : retourne toutes les publicités.
- *       Autres rôles : retourne uniquement les publicités de l'utilisateur connecté.
+ *     summary: Liste toutes les publicités (admin uniquement)
  *     tags:
  *       - Publicites
  *     security:
@@ -20,6 +17,8 @@ import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
  *         description: Liste récupérée
  *       401:
  *         description: Non autorisé
+ *       403:
+ *         description: Accès interdit
  *       500:
  *         description: Erreur serveur
  */
@@ -28,19 +27,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method !== "GET") return res.status(405).json({ error: "Méthode non autorisée" });
 
     try {
-        const auth = await requireUserAuth(req, res);
+        const auth = await requireUserRole(["Administrateur"])(req, res);
         if (!auth) return;
 
-        const isAdmin = auth.profile.role === "Administrateur";
-
-        const baseQuery = supabaseAdmin
+        const { data, error } = await supabaseAdmin
             .from("publicites")
             .select("*")
             .order("created_at", { ascending: false });
-
-        const { data, error } = await (
-            isAdmin ? baseQuery : baseQuery.eq("user_id", auth.authUser.id)
-        );
 
         if (error) {
             console.error("Supabase publicites error:", JSON.stringify(error));

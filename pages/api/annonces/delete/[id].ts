@@ -1,7 +1,7 @@
 // pages/api/annonces/delete/[id].ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "../../../../app/lib/supabaseAdmin";
-import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth";
+import { requireUserRole } from "../../../../app/lib/middlewares/requireUserRole";
 
 /**
  * @swagger
@@ -33,26 +33,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(405).json({ error: "Méthode non autorisée" });
 
     try {
-        const auth = await requireUserAuth(req, res);
+        const auth = await requireUserRole(["Administrateur"])(req, res);
         if (!auth) return;
 
         const { id } = req.query;
         if (typeof id !== "string") return res.status(400).json({ error: "ID invalide" });
 
-        // Vérifier l'appartenance avant la suppression
-        const isAdmin = auth.profile.role === "Administrateur";
-        if (!isAdmin) {
-            const { data: existing } = await supabaseAdmin
-                .from("publicites")
-                .select("user_id")
-                .eq("id", id)
-                .single();
 
-            if (!existing) return res.status(404).json({ error: "Publicité introuvable" });
-            if (existing.user_id !== auth.authUser.id) {
-                return res.status(403).json({ error: "Accès interdit" });
-            }
-        }
 
         const { data, error } = await supabaseAdmin
             .from("publicites")
