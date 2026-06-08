@@ -108,7 +108,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             id,
             couleur,
             taille,
-            prix,
             stock,
             image
         )
