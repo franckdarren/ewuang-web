@@ -6,7 +6,7 @@ import { useAuthStore } from './authStore';
 // TYPES
 // ============================================
 
-export type PaiementStatut = 'En attente' | 'Validé' | 'Echoué' | 'Remboursé';
+export type PaiementStatut = 'En attente' | 'Validé' | 'Echoué' | 'Remboursée';
 export type PaiementMethode = 'carte' | 'mobile_money' | 'especes';
 
 export interface TransactionUser {
@@ -202,13 +202,13 @@ export const useTransactionsStore = createWithEqualityFn<TransactionsState>((set
         const stats: TransactionStats = {
             total: transactions.length,
             montant_total: transactions.reduce((sum, t) => sum + t.montant, 0),
-            valides: transactions.filter(t => t.statut === 'valide').length,
+            valides: transactions.filter(t => t.statut === 'Validé').length,
             montant_valide: transactions
-                .filter(t => t.statut === 'valide')
+                .filter(t => t.statut === 'Validé')
                 .reduce((sum, t) => sum + t.montant, 0),
-            en_attente: transactions.filter(t => t.statut === 'en_attente').length,
-            echouees: transactions.filter(t => t.statut === 'echoue').length,
-            remboursees: transactions.filter(t => t.statut === 'rembourse').length,
+            en_attente: transactions.filter(t => t.statut === 'En attente').length,
+            echouees: transactions.filter(t => t.statut === 'Echoué').length,
+            remboursees: transactions.filter(t => t.statut === 'Remboursée').length,
         };
 
         set({ stats });

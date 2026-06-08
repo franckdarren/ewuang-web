@@ -93,8 +93,8 @@ const getStatutConfig = (statut: PaiementStatut) => {
             return { label: 'Échoué', variant: 'default' as const, icon: XCircle, className: 'bg-red-600 hover:bg-red-700 text-white border-transparent' };
         case 'En attente':
             return { label: 'En attente', variant: 'default' as const, icon: Clock, className: 'bg-yellow-500 hover:bg-yellow-600 text-white border-transparent' };
-        case 'Remboursé':
-            return { label: 'Remboursé', variant: 'default' as const, icon: RefreshCcw, className: 'bg-yellow-500 hover:bg-yellow-600 text-white border-transparent' };
+        case 'Remboursée':
+            return { label: 'Remboursée', variant: 'default' as const, icon: RefreshCcw, className: 'bg-yellow-500 hover:bg-yellow-600 text-white border-transparent' };
         default:
             return { label: statut ?? 'Inconnu', variant: 'default' as const, icon: Clock, className: 'bg-yellow-500 hover:bg-yellow-600 text-white border-transparent' };
     }
