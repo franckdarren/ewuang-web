@@ -84,7 +84,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         // Vérifier que l'utilisateur a le droit d'accéder à cette commande
         if (profile.role !== "Administrateur" && commande.user_id !== profile.id) {
-            return res.status(403).json({ error: "Accès refusé à cette commande" });
+            // Autoriser la boutique si elle possède au moins un article dans cette commande
+            if (profile.role === "Boutique") {
+                const articleUserIds: string[] = (commande.commande_articles ?? [])
+                    .map((ca: any) => ca.articles?.users?.id)
+                    .filter(Boolean);
+                if (!articleUserIds.includes(profile.id)) {
+                    return res.status(403).json({ error: "Accès refusé à cette commande" });
+                }
+            } else {
+                return res.status(403).json({ error: "Accès refusé à cette commande" });
+            }
         }
 
         return res.status(200).json({ commande });

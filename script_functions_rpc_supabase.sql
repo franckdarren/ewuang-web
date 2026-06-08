@@ -2,19 +2,33 @@
 -- Ces fonctions sont nécessaires pour les opérations de mise à jour des stocks et soldes
 
 -- 1. Fonction pour décrémenter le stock d'une variation
+--    Atomique : la condition `stock >= quantity` dans le WHERE empêche
+--    les race conditions qui produiraient un stock négatif.
 CREATE OR REPLACE FUNCTION decrement_variation_stock(
   variation_id UUID,
   quantity INTEGER
 )
 RETURNS VOID AS $$
+DECLARE
+  rows_updated INTEGER;
+  current_stock INTEGER;
 BEGIN
   UPDATE variations
   SET stock = stock - quantity,
       updated_at = NOW()
-  WHERE id = variation_id;
-  
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Variation non trouvée: %', variation_id;
+  WHERE id = variation_id
+    AND stock >= quantity;
+
+  GET DIAGNOSTICS rows_updated = ROW_COUNT;
+
+  IF rows_updated = 0 THEN
+    SELECT stock INTO current_stock FROM variations WHERE id = variation_id;
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'Variation non trouvée: %', variation_id;
+    ELSE
+      RAISE EXCEPTION 'Stock insuffisant pour la variation % (demandé: %, disponible: %)',
+        variation_id, quantity, current_stock;
+    END IF;
   END IF;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -149,19 +163,33 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- 7. Fonction pour décrémenter le stock d'un article (sans variation)
+--    Atomique : la condition `stock >= quantity` dans le WHERE empêche
+--    les race conditions qui produiraient un stock négatif.
 CREATE OR REPLACE FUNCTION decrement_article_stock(
   article_id UUID,
   quantity INTEGER
 )
 RETURNS VOID AS $$
+DECLARE
+  rows_updated INTEGER;
+  current_stock INTEGER;
 BEGIN
   UPDATE articles
   SET stock = stock - quantity,
       updated_at = NOW()
-  WHERE id = article_id;
+  WHERE id = article_id
+    AND stock >= quantity;
 
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Article non trouvé: %', article_id;
+  GET DIAGNOSTICS rows_updated = ROW_COUNT;
+
+  IF rows_updated = 0 THEN
+    SELECT stock INTO current_stock FROM articles WHERE id = article_id;
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'Article non trouvé: %', article_id;
+    ELSE
+      RAISE EXCEPTION 'Stock insuffisant pour l''article % (demandé: %, disponible: %)',
+        article_id, quantity, current_stock;
+    END IF;
   END IF;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -180,6 +208,41 @@ BEGIN
 
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Article non trouvé: %', article_id;
+  END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 9. Fonction pour incrémenter le compteur d'utilisations d'un code promo
+CREATE OR REPLACE FUNCTION increment_code_promo_utilisations(
+  promo_id UUID
+)
+RETURNS VOID AS $$
+BEGIN
+  UPDATE codes_promo
+  SET utilisations_actuelles = utilisations_actuelles + 1,
+      updated_at = NOW()
+  WHERE id = promo_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Code promo non trouvé: %', promo_id;
+  END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 10. Fonction pour décrémenter le compteur d'utilisations d'un code promo
+--     (utilisée lors d'un rollback de paiement)
+CREATE OR REPLACE FUNCTION decrement_code_promo_utilisations(
+  promo_id UUID
+)
+RETURNS VOID AS $$
+BEGIN
+  UPDATE codes_promo
+  SET utilisations_actuelles = GREATEST(utilisations_actuelles - 1, 0),
+      updated_at = NOW()
+  WHERE id = promo_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Code promo non trouvé: %', promo_id;
   END IF;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

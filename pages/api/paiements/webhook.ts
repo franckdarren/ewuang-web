@@ -23,6 +23,11 @@ import {
   type PvitWebhookPayload,
   type PvitWebhookAck,
 } from "../../../app/lib/pvit";
+import {
+  finalizePaiementValide,
+  finalizePaiementEchoue,
+  type PaiementDetails,
+} from "../../../app/lib/finalizePaiement";
 
 // Désactiver le bodyParser pour lire le body brut (nécessaire pour HMAC si activé)
 export const config = {
@@ -124,108 +129,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     })
     .eq("id", paiement.id);
 
-  const details = paiement.details as {
-    commande_id?: string;
-    admin_id?: string;
-    admin_frais?: number;
-    boutique_benefices?: Record<string, number>;
-  } | null;
-
-  const commandeId = details?.commande_id;
+  const details = paiement.details as PaiementDetails | null;
 
   // -------------------------------------------------------------------------
-  // 5a. SUCCESS → confirmer la commande + redistribuer les soldes
+  // 5. Finalisation (commande, stock, soldes, notifications)
   // -------------------------------------------------------------------------
-  if (statutPaiement === "Validé" && commandeId) {
-    const { data: commande } = await supabaseAdmin
-      .from("commandes")
-      .select("id, numero, user_id")
-      .eq("id", commandeId)
-      .maybeSingle();
-
-    if (commande) {
-      await supabaseAdmin
-        .from("commandes")
-        .update({ statut: "En préparation", updated_at: new Date().toISOString() })
-        .eq("id", commande.id);
-
-      await supabaseAdmin.from("notifications").insert({
-        user_id: commande.user_id,
-        type: "Commande",
-        titre: "Paiement confirmé",
-        message: `Votre commande ${commande.numero} a été payée avec succès. Elle est en cours de préparation.`,
-        is_read: false,
-        created_at: new Date().toISOString(),
-      });
-    }
-
-    // Redistribution des soldes
-    if (details?.boutique_benefices) {
-      for (const [userId, benefice] of Object.entries(details.boutique_benefices)) {
-        if (benefice > 0) {
-          await supabaseAdmin.rpc("increment_user_solde", {
-            user_id: userId,
-            amount: benefice,
-          });
-        }
-      }
-    }
-
-    if (details?.admin_id && details?.admin_frais && details.admin_frais > 0) {
-      await supabaseAdmin.rpc("increment_user_solde", {
-        user_id: details.admin_id,
-        amount: details.admin_frais,
-      });
-    }
-  }
-
-  // -------------------------------------------------------------------------
-  // 5b. FAILED → annuler la commande + restaurer le stock
-  // -------------------------------------------------------------------------
-  if (statutPaiement === "Echoué" && commandeId) {
-    const { data: commande } = await supabaseAdmin
-      .from("commandes")
-      .select("id, numero, user_id")
-      .eq("id", commandeId)
-      .maybeSingle();
-
-    if (commande) {
-      await supabaseAdmin
-        .from("commandes")
-        .update({ statut: "Annulée", updated_at: new Date().toISOString() })
-        .eq("id", commande.id);
-
-      // Restaurer le stock des variations réservées
-      const { data: articles } = await supabaseAdmin
-        .from("commande_articles")
-        .select("article_id, variation_id, quantite")
-        .eq("commande_id", commande.id);
-
-      if (articles) {
-        for (const ca of articles) {
-          if (ca.variation_id) {
-            await supabaseAdmin.rpc("increment_variation_stock", {
-              variation_id: ca.variation_id,
-              quantity: ca.quantite,
-            });
-          } else {
-            await supabaseAdmin.rpc("increment_article_stock", {
-              article_id: ca.article_id,
-              quantity: ca.quantite,
-            });
-          }
-        }
-      }
-
-      await supabaseAdmin.from("notifications").insert({
-        user_id: commande.user_id,
-        type: "Commande",
-        titre: "Paiement échoué",
-        message: `Le paiement de votre commande ${commande.numero} a échoué. Veuillez réessayer.`,
-        is_read: false,
-        created_at: new Date().toISOString(),
-      });
-    }
+  if (statutPaiement === "Validé") {
+    await finalizePaiementValide(details);
+  } else {
+    await finalizePaiementEchoue(details);
   }
 
   // -------------------------------------------------------------------------

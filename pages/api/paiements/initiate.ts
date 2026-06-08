@@ -433,7 +433,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // -----------------------------------------------------------------------
-    // 7. Appeler PVIT
+    // 7. Appeler PVIT — en cas d'échec, on rollback tout ce qui a été réservé
     // -----------------------------------------------------------------------
     console.log("[paiements/initiate] PVIT request:", {
       amount: total,
@@ -442,12 +442,49 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       reference,
     });
 
-    const pvitResponse = await pvitInitiatePaiement({
-      amount: total,
-      customerAccountNumber: telephonePvit,
-      operatorCode: toOperateurCode(body.operateur),
-      reference,
-    });
+    let pvitResponse;
+    try {
+      pvitResponse = await pvitInitiatePaiement({
+        amount: total,
+        customerAccountNumber: telephonePvit,
+        operatorCode: toOperateurCode(body.operateur),
+        reference,
+      });
+    } catch (pvitErr) {
+      console.error("[paiements/initiate] PVIT failed, rollback:", pvitErr);
+
+      // Restaurer le stock réservé
+      for (const ca of commandeArticles) {
+        if (ca.variation_to_update) {
+          await supabaseAdmin.rpc("increment_variation_stock", {
+            variation_id: ca.variation_to_update.id,
+            quantity: ca.variation_to_update.quantite,
+          });
+        } else if (ca.article_to_update) {
+          await supabaseAdmin.rpc("increment_article_stock", {
+            article_id: ca.article_to_update.id,
+            quantity: ca.article_to_update.quantite,
+          });
+        }
+      }
+
+      // Décrémenter le compteur du code promo (si on l'avait incrémenté)
+      if (codePromoId) {
+        await supabaseAdmin.rpc("decrement_code_promo_utilisations", {
+          promo_id: codePromoId,
+        });
+      }
+
+      // Supprimer commande_articles, commande, puis paiement (ordre FK)
+      await supabaseAdmin.from("commande_articles").delete().eq("commande_id", commande.id);
+      await supabaseAdmin.from("commandes").delete().eq("id", commande.id);
+      await supabaseAdmin.from("paiements").delete().eq("id", paiementId);
+
+      return res.status(502).json({
+        error: "Le service de paiement est temporairement indisponible. Veuillez réessayer.",
+        details: pvitErr instanceof Error ? pvitErr.message : "Erreur PVIT",
+      });
+    }
 
     console.log("[paiements/initiate] PVIT response:", JSON.stringify(pvitResponse, null, 2));
 

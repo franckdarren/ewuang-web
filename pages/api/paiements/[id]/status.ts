@@ -3,6 +3,11 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "../../../../app/lib/supabaseAdmin";
 import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth";
 import { pvitGetStatus } from "../../../../app/lib/pvit";
+import {
+  finalizePaiementValide,
+  finalizePaiementEchoue,
+  type PaiementDetails,
+} from "../../../../app/lib/finalizePaiement";
 
 /**
  * @swagger
@@ -102,6 +107,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               updated_at: new Date().toISOString(),
             })
             .eq("id", paiement.id);
+
+          // Déclencher la finalisation (commande, stock, soldes, notifications)
+          // au cas où le webhook ne serait pas arrivé. Les helpers sont
+          // idempotents et ne refont rien si la commande est déjà finalisée.
+          const details = paiement.details as PaiementDetails | null;
+          if (statutMapped === "Validé") {
+            await finalizePaiementValide(details);
+          } else if (statutMapped === "Echoué") {
+            await finalizePaiementEchoue(details);
+          }
         }
 
         return res.status(200).json({

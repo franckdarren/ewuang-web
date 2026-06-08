@@ -104,8 +104,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 console.warn("Erreur suppression livraisons:", livraisonsError);
             }
 
-            // 3. Restaurer les stocks si la commande était en attente
-            if (commande.statut === "en_attente") {
+            // 3. Restaurer les stocks si la commande était "En attente"
+            //    (pour "Annulée", le stock a déjà été restauré par le webhook PVIT,
+            //    ou la commande directe l'avait déjà restauré.)
+            if (commande.statut === "En attente") {
                 const { data: commandeArticles } = await supabaseAdmin
                     .from("commande_articles")
                     .select("article_id, variation_id, quantite")
