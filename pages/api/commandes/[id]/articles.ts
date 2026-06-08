@@ -92,7 +92,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             prix,
             prix_promotion,
             is_promotion,
-            categorie,
+            categorie_id,
             image_principale,
             made_in_gabon,
             users!articles_user_id_fkey (

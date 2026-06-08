@@ -67,7 +67,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             prix_promotion,
             is_promotion,
             image_principale,
-            categorie,
+            categorie_id,
             users!articles_user_id_fkey (id, name, email, phone, url_logo)
             ),
             variations (id, couleur, taille, image)
