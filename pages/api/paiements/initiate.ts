@@ -305,16 +305,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // -----------------------------------------------------------------------
-    // 3. Frais de livraison
+    // 3. Frais de livraison (uniquement si livraison demandée)
     // -----------------------------------------------------------------------
-    const adresseLower = body.adresse_livraison.toLowerCase();
-    let baseLivraison = 3000;
-    if (adresseLower.includes("libreville")) baseLivraison = 2500;
-    else if (adresseLower.includes("akanda")) baseLivraison = 2000;
-    else if (adresseLower.includes("owendo")) baseLivraison = 3000;
+    if (body.isLivrable) {
+      const adresseLower = body.adresse_livraison.toLowerCase();
+      let baseLivraison = 3000;
+      if (adresseLower.includes("libreville")) baseLivraison = 2500;
+      else if (adresseLower.includes("akanda")) baseLivraison = 2000;
+      else if (adresseLower.includes("owendo")) baseLivraison = 3000;
 
-    const nombreBoutiques = [...new Set(boutiqueIds)].length;
-    total += Math.min(baseLivraison * nombreBoutiques, 8000);
+      const nombreBoutiques = [...new Set(boutiqueIds)].length;
+      total += Math.min(baseLivraison * nombreBoutiques, 8000);
+    }
 
     // -----------------------------------------------------------------------
     // 4. Créer l'enregistrement paiement en premier (requis par la FK commandes.paiement_id)
