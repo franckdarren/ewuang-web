@@ -92,6 +92,56 @@ const initiateSchema = z.object({
     .min(1),
 });
 
+/**
+ * Normalise un numéro de téléphone gabonais au format local attendu par PVIT.
+ * Exemple doc PVIT : "066666666" (9 chiffres, format local avec 0 initial).
+ * Accepte : "077 XX XX XX", "+24177XXXXXX", "24177XXXXXX", "77XXXXXX", "077XXXXXX".
+ * Retourne : "0XXXXXXXX" (9 chiffres).
+ * Préfixes Airtel : 07, 77, 74, 76 — Préfixes Moov : 06, 62, 65, 66.
+ */
+function normalizeGabonLocalNumber(
+  raw: string,
+  operateur: "airtel_money" | "moov_money" | "visa_mastercard"
+): string {
+  let digits = raw.replace(/\D/g, "");
+  if (digits.startsWith("00")) digits = digits.slice(2);
+  if (digits.startsWith("241")) digits = digits.slice(3);
+
+  // Ajouter le "0" initial s'il manque (format local gabonais : 9 chiffres)
+  if (!digits.startsWith("0")) digits = "0" + digits;
+
+  if (digits.length !== 9) {
+    throw new Error(
+      `Numéro invalide : 9 chiffres attendus (ex: 077XXXXXX), reçu ${digits.length}`
+    );
+  }
+
+  const airtelPrefixes = ["07", "77", "74", "76"];
+  const moovPrefixes = ["06", "62", "65", "66"];
+
+  // Le préfixe se lit sur les 2 premiers chiffres après le "0" trunk (positions 1-2),
+  // OU directement les positions 0-1 si le préfixe inclut le "0" (ex: "07").
+  const prefixWithZero = digits.slice(0, 2);
+  const prefixWithoutZero = digits.slice(1, 3);
+  const validForOperator =
+    operateur === "airtel_money"
+      ? airtelPrefixes.includes(prefixWithZero) ||
+        airtelPrefixes.includes(prefixWithoutZero)
+      : operateur === "moov_money"
+      ? moovPrefixes.includes(prefixWithZero) ||
+        moovPrefixes.includes(prefixWithoutZero)
+      : false;
+
+  if (!validForOperator) {
+    const expected = operateur === "airtel_money" ? "07/77/74/76" : "06/62/65/66";
+    throw new Error(
+      `Numéro ${digits} incompatible avec l'opérateur sélectionné (préfixes attendus : ${expected})`
+    );
+  }
+
+  return digits;
+}
+
 async function generateOrderNumber(): Promise<string> {
   const currentYear = new Date().getFullYear();
   const yearShort = currentYear.toString().slice(-2);
@@ -119,6 +169,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { profile } = auth;
 
     const body = initiateSchema.parse(req.body);
+
+    // Normaliser le téléphone pour PVIT (mobile money uniquement)
+    let telephonePvit = body.telephone;
+    if (body.operateur !== "visa_mastercard") {
+      try {
+        telephonePvit = normalizeGabonLocalNumber(body.telephone, body.operateur);
+      } catch (e) {
+        return res
+          .status(400)
+          .json({ error: e instanceof Error ? e.message : "Téléphone invalide" });
+      }
+    }
 
     // -----------------------------------------------------------------------
     // 1. Valider les articles et calculer les montants
@@ -373,7 +435,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // -----------------------------------------------------------------------
     const pvitResponse = await pvitInitiatePaiement({
       amount: total,
-      customerAccountNumber: body.telephone,
+      customerAccountNumber: telephonePvit,
       operatorCode: toOperateurCode(body.operateur),
       reference,
     });
