@@ -38,7 +38,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             .from("notifications")
             .insert({
                 user_id: commande.vendeur_id,
-                type: "commande",
+                type: "Commande",
                 titre: "Commande en attente de traitement",
                 message: `La commande #${commande.numero} est en attente. Veuillez la prendre en charge dès que possible.`,
                 lien: `/dashboard/commandes`,

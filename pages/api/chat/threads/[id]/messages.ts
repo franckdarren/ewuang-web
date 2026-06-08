@@ -216,7 +216,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
             await supabaseAdmin.from("notifications").insert({
                 user_id: otherId,
-                type: "message",
+                type: "Message",
                 titre: `Nouveau message de ${profile.name}`,
                 message: apercu,
                 lien: `${rolePrefix(other?.role ?? "Client")}/messages?thread=${threadId}`,

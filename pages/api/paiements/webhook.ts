@@ -147,7 +147,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       await supabaseAdmin.from("notifications").insert({
         user_id: commande.user_id,
-        type: "commande",
+        type: "Commande",
         titre: "Paiement confirmé",
         message: `Votre commande ${commande.numero} a été payée avec succès. Elle est en cours de préparation.`,
         lu: false,
@@ -216,7 +216,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       await supabaseAdmin.from("notifications").insert({
         user_id: commande.user_id,
-        type: "commande",
+        type: "Commande",
         titre: "Paiement échoué",
         message: `Le paiement de votre commande ${commande.numero} a échoué. Veuillez réessayer.`,
         lu: false,
