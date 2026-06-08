@@ -6,7 +6,7 @@ import { useAuthStore } from './authStore';
 // TYPES
 // ============================================
 
-export type PaiementStatut = 'en_attente' | 'valide' | 'echoue' | 'rembourse';
+export type PaiementStatut = 'En attente' | 'Validé' | 'Echoué' | 'Remboursé';
 export type PaiementMethode = 'carte' | 'mobile_money' | 'especes';
 
 export interface TransactionUser {

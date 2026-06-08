@@ -87,16 +87,16 @@ const formatMontant = (montant: number) => {
 
 const getStatutConfig = (statut: PaiementStatut) => {
     switch (statut) {
-        case 'valide':
-            return { label: 'Validé', variant: 'default' as const, icon: CheckCircle2, className: 'bg-green-600 hover:bg-green-700' };
-        case 'en_attente':
-            return { label: 'En attente', variant: 'secondary' as const, icon: Clock, className: '' };
-        case 'echoue':
-            return { label: 'Échoué', variant: 'destructive' as const, icon: XCircle, className: '' };
-        case 'rembourse':
-            return { label: 'Remboursé', variant: 'outline' as const, icon: RefreshCcw, className: 'text-orange-600 border-orange-600' };
+        case 'Validé':
+            return { label: 'Validé', variant: 'default' as const, icon: CheckCircle2, className: 'bg-green-600 hover:bg-green-700 text-white border-transparent' };
+        case 'Echoué':
+            return { label: 'Échoué', variant: 'default' as const, icon: XCircle, className: 'bg-red-600 hover:bg-red-700 text-white border-transparent' };
+        case 'En attente':
+            return { label: 'En attente', variant: 'default' as const, icon: Clock, className: 'bg-yellow-500 hover:bg-yellow-600 text-white border-transparent' };
+        case 'Remboursé':
+            return { label: 'Remboursé', variant: 'default' as const, icon: RefreshCcw, className: 'bg-yellow-500 hover:bg-yellow-600 text-white border-transparent' };
         default:
-            return { label: statut ?? 'Inconnu', variant: 'secondary' as const, icon: Clock, className: '' };
+            return { label: statut ?? 'Inconnu', variant: 'default' as const, icon: Clock, className: 'bg-yellow-500 hover:bg-yellow-600 text-white border-transparent' };
     }
 };
 
@@ -211,7 +211,7 @@ const createColumns = (
         cell: ({ row }) => {
             const statut = row.original.statut;
             const montant = row.getValue("montant") as number;
-            const isValide = statut === 'valide';
+            const isValide = statut === 'Validé';
             return (
                 <span className={`font-semibold text-sm ${isValide ? 'text-green-600' : ''}`}>
                     {formatMontant(montant)}
