@@ -3,6 +3,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { z, ZodError } from "zod";
 import { supabaseAdmin } from "../../../app/lib/supabaseAdmin";
 import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
+import { recomputeArticleStock } from "../../../app/lib/stockSync";
 
 /**
  * @swagger
@@ -138,6 +139,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
         }
 
+        // Si des variations sont fournies, le stock article est forcément la
+        // somme des stocks des variations (le champ manuel est ignoré pour
+        // éviter une incohérence entre stock total et détail par variante).
+        const hasVariations = !!body.variations?.length;
+        const stockInitial = hasVariations
+            ? body.variations!.reduce((sum, v) => sum + (v.stock ?? 0), 0)
+            : (body.stock ?? 0);
+
         // 1) Insert article
         const { data: article, error: insertErr } = await supabaseAdmin
             .from("articles")
@@ -148,7 +157,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 prix_promotion: body.prix_promotion ?? null,
                 is_promotion: body.is_promotion ?? false,
                 pourcentage_reduction: body.pourcentage_reduction ?? 0,
-                stock: body.stock ?? 0,
+                stock: stockInitial,
                 made_in_gabon: body.made_in_gabon ?? false,
                 user_id: profile.id,
                 categorie_id: body.categorie_id, // ✅ UUID vérifié
@@ -180,7 +189,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 .from("variations")
                 .insert(variationsToInsert);
 
-            if (varErr) console.warn("Impossible d'ajouter des variations :", varErr);
+            if (varErr) {
+                console.warn("Impossible d'ajouter des variations :", varErr);
+            } else {
+                // Resynchroniser stock article = somme(variations.stock) au cas où
+                // l'insertion partielle aurait modifié le total réel.
+                await recomputeArticleStock(article.id);
+            }
         }
 
         // 3) Insert images

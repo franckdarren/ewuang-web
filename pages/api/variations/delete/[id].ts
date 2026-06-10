@@ -2,6 +2,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "../../../../app/lib/supabaseAdmin";
 import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth";
+import { recomputeArticleStock } from "../../../../app/lib/stockSync";
 
 /**
  * @swagger
@@ -91,6 +92,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (deleteError) {
             console.error("Supabase delete error:", deleteError);
             return res.status(500).json({ error: "Impossible de supprimer la variation" });
+        }
+
+        // Resynchroniser le stock total de l'article = somme(variations.stock).
+        // Si on a supprimé la dernière variation, recomputeArticleStock laisse
+        // le stock article inchangé (à charge du boutiquier de le redéfinir).
+        if (variation.article_id) {
+            await recomputeArticleStock(variation.article_id);
         }
 
         return res.status(200).json({

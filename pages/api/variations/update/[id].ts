@@ -3,6 +3,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { z, ZodError } from "zod";
 import { supabaseAdmin } from "../../../../app/lib/supabaseAdmin";
 import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth";
+import { recomputeArticleStock } from "../../../../app/lib/stockSync";
 
 /**
  * @swagger
@@ -134,6 +135,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (updateError) {
             console.error("Supabase update error:", updateError);
             return res.status(500).json({ error: "Impossible de mettre à jour la variation" });
+        }
+
+        // Si le stock est modifié, resynchroniser le stock total de l'article
+        if (body.stock !== undefined && updatedVariation?.article_id) {
+            await recomputeArticleStock(updatedVariation.article_id);
         }
 
         // Si le stock est modifié, mettre à jour aussi la table stocks

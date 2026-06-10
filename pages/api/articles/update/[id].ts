@@ -3,6 +3,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { z, ZodError } from "zod";
 import { supabaseAdmin } from "../../../../app/lib/supabaseAdmin";
 import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth";
+import { recomputeArticleStock } from "../../../../app/lib/stockSync";
 
 /**
  * @swagger
@@ -129,10 +130,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             }
         }
 
-        // 3) Mise à jour de l'article
-        const payload = {
-            ...body,
-            updated_at: new Date().toISOString()
+        // 3) Si l'article a des variations, le champ "stock" est dérivé et ne peut
+        // pas être modifié manuellement. On retire body.stock du payload et on
+        // resynchronise depuis les variations après la mise à jour.
+        const { count: variationCount } = await supabaseAdmin
+            .from("variations")
+            .select("id", { count: "exact", head: true })
+            .eq("article_id", id);
+
+        const articleHasVariations = (variationCount ?? 0) > 0;
+
+        const { stock: _ignoredStock, ...bodyWithoutStock } = body;
+        const payload: Record<string, unknown> = {
+            ...(articleHasVariations ? bodyWithoutStock : body),
+            updated_at: new Date().toISOString(),
         };
 
         const { data: updated, error: updateErr } = await supabaseAdmin
@@ -145,6 +156,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (updateErr) {
             console.error("Erreur update article:", updateErr);
             return res.status(500).json({ error: "Impossible de mettre à jour l'article" });
+        }
+
+        if (articleHasVariations) {
+            const recomputed = await recomputeArticleStock(id);
+            if (recomputed !== null) {
+                updated.stock = recomputed;
+            }
         }
 
         // 4) ✅ Enrichir la réponse avec les infos de catégorie si modifiée
