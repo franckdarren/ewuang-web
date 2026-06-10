@@ -98,6 +98,11 @@ const data = {
       icon: IconLocation,
     },
     {
+      title: "Zones de livraison",
+      url: "/dashboard/zones-livraison",
+      icon: IconGps,
+    },
+    {
       title: "Transactions",
       url: "/dashboard/transactions",
       icon: IconMoneybag,

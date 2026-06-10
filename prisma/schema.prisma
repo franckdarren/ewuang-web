@@ -556,6 +556,18 @@ enum publicite_position {
   banniere_boutique  @map("banniere_boutique")
 }
 
+model zones_livraison {
+  id         String   @id @default(uuid()) @db.Uuid
+  ville      String   @db.VarChar(100)
+  tarif      Int
+  is_active  Boolean  @default(true)
+  is_default Boolean  @default(false)
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now()) @updatedAt
+
+  @@index([is_active])
+}
+
 enum publicite_premium_statut {
   en_attente @map("en_attente")
   approuve   @map("approuve")

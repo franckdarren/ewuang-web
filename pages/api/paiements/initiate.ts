@@ -47,6 +47,10 @@ import { pvitInitiatePaiement, toOperateurCode } from "../../../app/lib/pvit";
  *                 type: string
  *               code_promo:
  *                 type: string
+ *               zone_livraison_id:
+ *                 type: string
+ *                 format: uuid
+ *                 description: ID de la zone choisie par le client dans la liste déroulante. Optionnel ; à défaut, le serveur détecte la zone via l'adresse.
  *               articles:
  *                 type: array
  *                 minItems: 1
@@ -81,6 +85,7 @@ const initiateSchema = z.object({
   adresse_livraison: z.string().max(255),
   commentaire: z.string().optional().default(""),
   code_promo: z.string().optional(),
+  zone_livraison_id: z.string().uuid().optional(),
   articles: z
     .array(
       z.object({
@@ -91,6 +96,45 @@ const initiateSchema = z.object({
     )
     .min(1),
 });
+
+/**
+ * Calcule le tarif de livraison à partir de la table zones_livraison.
+ * Stratégie :
+ *  1. Si zone_livraison_id est fourni → on l'utilise (zone choisie par le client dans la dropdown).
+ *  2. Sinon, on cherche une zone active dont le nom est contenu dans l'adresse.
+ *  3. Sinon, on prend la zone marquée is_default.
+ * Retourne { tarif, ville } pour traçabilité.
+ */
+async function resolveFraisLivraison(
+  zoneId: string | undefined,
+  adresse: string
+): Promise<{ tarif: number; ville: string }> {
+  if (zoneId) {
+    const { data: zone } = await supabaseAdmin
+      .from("zones_livraison")
+      .select("ville, tarif, is_active")
+      .eq("id", zoneId)
+      .maybeSingle();
+    if (zone && zone.is_active) return { tarif: zone.tarif, ville: zone.ville };
+  }
+
+  const { data: zones } = await supabaseAdmin
+    .from("zones_livraison")
+    .select("ville, tarif, is_default")
+    .eq("is_active", true);
+
+  const adresseLower = adresse.toLowerCase();
+  const matched = zones?.find(
+    z => !z.is_default && adresseLower.includes(z.ville.toLowerCase())
+  );
+  if (matched) return { tarif: matched.tarif, ville: matched.ville };
+
+  const fallback = zones?.find(z => z.is_default);
+  if (fallback) return { tarif: fallback.tarif, ville: fallback.ville };
+
+  // Filet de sécurité si la table est vide
+  return { tarif: 3000, ville: "Autres villes" };
+}
 
 /**
  * Normalise un numéro de téléphone gabonais au format local attendu par PVIT.
@@ -306,16 +350,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // -----------------------------------------------------------------------
     // 3. Frais de livraison (uniquement si livraison demandée)
+    //    Tarif unique par commande, lu dans la table zones_livraison.
     // -----------------------------------------------------------------------
+    let fraisLivraison = 0;
+    let villeLivraison: string | null = null;
     if (body.isLivrable) {
-      const adresseLower = body.adresse_livraison.toLowerCase();
-      let baseLivraison = 3000;
-      if (adresseLower.includes("libreville")) baseLivraison = 2500;
-      else if (adresseLower.includes("akanda")) baseLivraison = 2000;
-      else if (adresseLower.includes("owendo")) baseLivraison = 3000;
-
-      const nombreBoutiques = [...new Set(boutiqueIds)].length;
-      total += Math.min(baseLivraison * nombreBoutiques, 8000);
+      const zone = await resolveFraisLivraison(
+        body.zone_livraison_id,
+        body.adresse_livraison
+      );
+      fraisLivraison = zone.tarif;
+      villeLivraison = zone.ville;
+      total += fraisLivraison;
     }
 
     // -----------------------------------------------------------------------
@@ -349,6 +395,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         admin_id: admin?.id ?? null,
         admin_frais: adminFrais,
         boutique_benefices: boutiqueBenefices,
+        frais_livraison: fraisLivraison,
+        ville_livraison: villeLivraison,
       },
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -390,7 +438,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Mettre à jour commande_id dans les détails du paiement
     await supabaseAdmin
       .from("paiements")
-      .update({ details: { commande_id: commande.id, operateur: body.operateur, telephone: body.telephone, admin_id: admin?.id ?? null, admin_frais: adminFrais, boutique_benefices: boutiqueBenefices } })
+      .update({
+        details: {
+          commande_id: commande.id,
+          operateur: body.operateur,
+          telephone: body.telephone,
+          admin_id: admin?.id ?? null,
+          admin_frais: adminFrais,
+          boutique_benefices: boutiqueBenefices,
+          frais_livraison: fraisLivraison,
+          ville_livraison: villeLivraison,
+        },
+      })
       .eq("id", paiementId);
 
     // -----------------------------------------------------------------------
@@ -506,6 +565,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       pvit_reference_id: pvitResponse.reference_id,
       pvit_statut: pvitResponse.status,
       montant: total,
+      frais_livraison: fraisLivraison,
+      ville_livraison: villeLivraison,
+      remise_appliquee: remiseAppliquee,
     });
   } catch (err) {
     if (err instanceof ZodError) {
