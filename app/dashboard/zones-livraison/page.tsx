@@ -196,8 +196,7 @@ export default function ZonesLivraisonPage() {
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Zones de livraison</h1>
                     <p className="text-muted-foreground">
-                        Configurez le tarif de livraison appliqué à chaque ville. La zone marquée
-                        « par défaut » s&apos;applique aux villes non listées.
+                        Configurez le tarif de livraison appliqué à chaque ville.
                     </p>
                 </div>
                 <Button onClick={openCreate} disabled={!canCreate}>
