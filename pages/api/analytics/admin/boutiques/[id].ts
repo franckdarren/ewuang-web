@@ -86,19 +86,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (boutiqueError || !boutique)
             return res.status(404).json({ error: "Boutique introuvable" });
 
-        // Commandes de la boutique sur la période
-        const { data: commandes } = await supabaseAdmin
-            .from("commandes")
-            .select("id, prix, statut, created_at")
-            .eq("vendeur_id", boutiqueId)
-            .gte("created_at", startDate.toISOString());
-
-        // Toutes les commandes (all-time pour métriques globales)
-        const { data: allCommandes } = await supabaseAdmin
-            .from("commandes")
-            .select("id, prix, statut, created_at")
-            .eq("vendeur_id", boutiqueId);
-
         // Articles de la boutique
         const { data: articles } = await supabaseAdmin
             .from("articles")
@@ -107,8 +94,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const articleIds = articles?.map((a) => a.id) || [];
 
+        // Trouver toutes les commandes de la boutique via commande_articles
+        // (vendeur_id n'est pas fiable car non renseigné à la création)
+        let allCommandes: any[] = [];
+        let commandes: any[] = [];
+        let allCommandeIds: string[] = [];
+
+        if (articleIds.length > 0) {
+            const { data: caLinks } = await supabaseAdmin
+                .from("commande_articles")
+                .select("commande_id")
+                .in("article_id", articleIds);
+
+            allCommandeIds = [...new Set((caLinks?.map((c: any) => c.commande_id) || []) as string[])];
+
+            if (allCommandeIds.length > 0) {
+                const { data: allCmds } = await supabaseAdmin
+                    .from("commandes")
+                    .select("id, prix, statut, created_at")
+                    .in("id", allCommandeIds);
+                allCommandes = allCmds || [];
+                commandes = allCommandes.filter((c) => new Date(c.created_at) >= startDate);
+            }
+        }
+
         // Top articles vendus (via commande_articles sur la période)
-        const commandeIds = commandes?.map((c) => c.id) || [];
+        const commandeIds = commandes.map((c) => c.id);
         let topArticles: any[] = [];
 
         if (commandeIds.length > 0 && articleIds.length > 0) {
@@ -141,7 +152,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         // Réclamations liées aux commandes de la boutique (all-time)
-        const allCommandeIds = allCommandes?.map((c) => c.id) || [];
         let reclamations: any[] = [];
 
         if (allCommandeIds.length > 0) {
