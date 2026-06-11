@@ -208,6 +208,30 @@ const createColumns = (
             },
         },
         {
+            id: "livreur",
+            header: "Livreur",
+            accessorFn: (row) => row.livreur?.name ?? '',
+            cell: ({ row }) => {
+                const livreur = row.original.livreur;
+                if (!livreur) {
+                    return (
+                        <span className="text-xs italic text-muted-foreground">Non assigné</span>
+                    );
+                }
+                return (
+                    <div className="flex items-center gap-2">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-50">
+                            <Truck className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="font-medium text-sm">{livreur.name}</span>
+                            <span className="text-xs text-muted-foreground">{livreur.phone || '—'}</span>
+                        </div>
+                    </div>
+                );
+            },
+        },
+        {
             accessorKey: "ville",
             header: "Ville",
             filterFn: (row, columnId, filterValue) => {

@@ -119,10 +119,38 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(500).json({ error: "Impossible de récupérer les livraisons" });
         }
 
+        // Récupération des livreurs assignés (livreur_id n'a pas de FK, on joint manuellement)
+        const livreurIds = Array.from(
+            new Set(
+                (livraisons ?? [])
+                    .map((l: { livreur_id: string | null }) => l.livreur_id)
+                    .filter((id): id is string => !!id)
+            )
+        );
+
+        let livreursById: Record<string, { id: string; name: string; email: string; phone: string }> = {};
+        if (livreurIds.length > 0) {
+            const { data: livreurs, error: livreursError } = await supabaseAdmin
+                .from("users")
+                .select("id, name, email, phone")
+                .in("id", livreurIds);
+
+            if (livreursError) {
+                console.error("Supabase error (livreurs):", livreursError);
+            } else if (livreurs) {
+                livreursById = Object.fromEntries(livreurs.map((u) => [u.id, u]));
+            }
+        }
+
+        const livraisonsAvecLivreur = (livraisons ?? []).map((l: { livreur_id: string | null }) => ({
+            ...l,
+            livreur: l.livreur_id ? livreursById[l.livreur_id] ?? null : null,
+        }));
+
         const totalPages = count ? Math.ceil(count / limit) : 0;
 
         return res.status(200).json({
-            livraisons,
+            livraisons: livraisonsAvecLivreur,
             pagination: {
                 page,
                 limit,

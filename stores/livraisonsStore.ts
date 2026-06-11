@@ -44,6 +44,7 @@ export interface Livraison {
     updated_at: string;
     commandes?: LivraisonCommande;
     users?: LivraisonUser;
+    livreur?: LivraisonUser | null;
 }
 
 export interface LivraisonStats {
