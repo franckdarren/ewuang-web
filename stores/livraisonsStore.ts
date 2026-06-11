@@ -55,6 +55,15 @@ export interface LivraisonStats {
     annulees: number;
 }
 
+export interface CreateLivraisonData {
+    commande_id: string;
+    adresse: string;
+    ville: string;
+    phone: string;
+    date_livraison: string;
+    details?: string;
+}
+
 export interface LivreurOption {
     id: string;
     name: string;
@@ -74,6 +83,7 @@ interface LivraisonsState {
     stats: LivraisonStats;
 
     fetchLivraisons: () => Promise<void>;
+    createLivraison: (data: CreateLivraisonData) => Promise<void>;
     updateStatut: (id: string, statut: LivraisonStatut) => Promise<void>;
     assignLivreur: (id: string, livreur_id: string) => Promise<void>;
     fetchLivreurs: () => Promise<LivreurOption[]>;
@@ -180,6 +190,32 @@ export const useLivraisonsStore = createWithEqualityFn<LivraisonsState>((set, ge
                 errorMessage.includes('autorisé') ||
                 errorMessage.includes('token')
             ) useAuthStore.getState().logout();
+        }
+    },
+
+    /**
+     * CREATE LIVRAISON - Créer une livraison pour une commande (admin)
+     */
+    createLivraison: async (data: CreateLivraisonData) => {
+        set({ isLoading: true, error: null });
+        try {
+            const response = await fetch('/api/livraisons/create', {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(data),
+            });
+            if (!response.ok) await handleApiError(response);
+            const result = await response.json();
+            const newLivraison: Livraison = result.livraison;
+            const livraisons = [newLivraison, ...get().livraisons];
+            set({ livraisons, isLoading: false, error: null });
+            get().calculateStats();
+            toast.success('Livraison créée', { description: `Livraison vers ${data.ville} créée avec succès` });
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Erreur de création';
+            set({ error: errorMessage, isLoading: false });
+            toast.error('Erreur', { description: errorMessage });
+            throw error;
         }
     },
 

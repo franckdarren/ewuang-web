@@ -27,8 +27,10 @@ import {
 } from "lucide-react";
 import { LivraisonsTable } from "@/components/livraisons/livraisons-table";
 import { LivraisonViewModal } from "@/components/livraisons/livraison-view-modal";
+import { LivraisonCreateModal } from "@/components/livraisons/livraison-create-modal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatFilterCard } from "@/components/stat-filter-card";
+import { Plus } from "lucide-react";
 
 // ============================================
 // COMPOSANT PRINCIPAL
@@ -46,6 +48,7 @@ export default function LivraisonsPage() {
 
     // ========== STATE LOCAL ==========
     const [isViewModalOpen, setIsViewModalOpen] = React.useState(false);
+    const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
     const [selectedLivraison, setSelectedLivraison] = React.useState<Livraison | undefined>(undefined);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
     const [livraisonToDelete, setLivraisonToDelete] = React.useState<Livraison | undefined>(undefined);
@@ -202,6 +205,10 @@ export default function LivraisonsPage() {
                         Suivez et gérez toutes les livraisons de la plateforme
                     </p>
                 </div>
+                <Button onClick={() => setIsCreateModalOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Créer une livraison
+                </Button>
             </div>
 
             {/* ========== STATISTIQUES CLIQUABLES (filtres) ========== */}
@@ -333,6 +340,12 @@ export default function LivraisonsPage() {
                     />
                 </CardContent>
             </Card>
+
+            {/* ========== MODAL DE CRÉATION ========== */}
+            <LivraisonCreateModal
+                open={isCreateModalOpen}
+                onClose={() => setIsCreateModalOpen(false)}
+            />
 
             {/* ========== MODAL DE VISUALISATION ========== */}
             <LivraisonViewModal

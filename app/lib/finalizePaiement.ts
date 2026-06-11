@@ -43,9 +43,26 @@ export async function restoreStockForCommande(commandeId: string): Promise<void>
   }
 }
 
+// Extrait la ville depuis une adresse de livraison
+function extractVille(adresse: string): string {
+  const a = adresse.toLowerCase();
+  const villes = [
+    "libreville", "port-gentil", "franceville", "oyem", "moanda",
+    "mouila", "lambaréné", "lambarene", "tchibanga", "koulamoutou",
+    "makokou", "akanda", "owendo", "ntoum",
+  ];
+  for (const v of villes) {
+    if (a.includes(v)) return v.charAt(0).toUpperCase() + v.slice(1);
+  }
+  // Dernier segment après la dernière virgule, sinon l'adresse complète
+  const parts = adresse.split(",").map((p) => p.trim()).filter(Boolean);
+  return parts[parts.length - 1] ?? adresse;
+}
+
 /**
- * Finalise un paiement Validé : passe la commande en "En préparation",
- * crédite les boutiques et l'admin, notifie le client.
+ * Finalise un paiement Validé : passe la commande en "Prête pour livraison",
+ * crée automatiquement la livraison si isLivrable, crédite les boutiques
+ * et l'admin, notifie le client.
  *
  * Le statut du paiement lui-même doit être mis à jour par l'appelant
  * (typiquement en amont, avec transaction_id, etc.).
@@ -58,7 +75,7 @@ export async function finalizePaiementValide(
 
   const { data: commande } = await supabaseAdmin
     .from("commandes")
-    .select("id, numero, user_id, statut")
+    .select("id, numero, user_id, statut, isLivrable, adresse_livraison")
     .eq("id", commandeId)
     .maybeSingle();
 
@@ -67,16 +84,65 @@ export async function finalizePaiementValide(
   // Idempotence : si déjà "En préparation" (ou plus avancée), on ne refait rien
   if (commande.statut !== "En attente") return;
 
-  await supabaseAdmin
-    .from("commandes")
-    .update({ statut: "En préparation", updated_at: new Date().toISOString() })
-    .eq("id", commande.id);
+  // Créer automatiquement la livraison si la commande est livrable
+  if (commande.isLivrable) {
+    // Vérifier qu'il n'en existe pas déjà une (idempotence)
+    const { data: livraisonExistante } = await supabaseAdmin
+      .from("livraisons")
+      .select("id")
+      .eq("commande_id", commande.id)
+      .maybeSingle();
+
+    if (!livraisonExistante) {
+      // Récupérer le téléphone du client
+      const { data: client } = await supabaseAdmin
+        .from("users")
+        .select("phone")
+        .eq("id", commande.user_id)
+        .maybeSingle();
+
+      const adresse: string = commande.adresse_livraison ?? "";
+      const ville = extractVille(adresse);
+
+      // Date de livraison par défaut : J+3
+      const dateLivraison = new Date();
+      dateLivraison.setDate(dateLivraison.getDate() + 3);
+
+      await supabaseAdmin.from("livraisons").insert({
+        commande_id: commande.id,
+        user_id: commande.user_id,
+        livreur_id: null,
+        adresse,
+        ville,
+        phone: client?.phone ?? "",
+        date_livraison: dateLivraison.toISOString(),
+        statut: "En attente",
+        details: "",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+    }
+
+    // Commande prête pour livraison
+    await supabaseAdmin
+      .from("commandes")
+      .update({ statut: "Prête pour livraison", updated_at: new Date().toISOString() })
+      .eq("id", commande.id);
+  } else {
+    // Commande sans livraison → En préparation classique
+    await supabaseAdmin
+      .from("commandes")
+      .update({ statut: "En préparation", updated_at: new Date().toISOString() })
+      .eq("id", commande.id);
+  }
 
   await supabaseAdmin.from("notifications").insert({
     user_id: commande.user_id,
     type: "Commande",
     titre: "Paiement confirmé",
-    message: `Votre commande ${commande.numero} a été payée avec succès. Elle est en cours de préparation.`,
+    message: commande.isLivrable
+      ? `Votre commande ${commande.numero} a été payée avec succès. Une livraison a été créée.`
+      : `Votre commande ${commande.numero} a été payée avec succès. Elle est en cours de préparation.`,
     is_read: false,
     created_at: new Date().toISOString(),
   });
