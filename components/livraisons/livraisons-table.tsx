@@ -42,6 +42,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import {
     Table,
     TableBody,
     TableCell,
@@ -51,6 +58,8 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { type Livraison, normalizeStatut } from '@/stores/livraisonsStore';
+
+const TOUTES_VILLES = "__all__";
 
 // ============================================
 // PROPS
@@ -199,6 +208,18 @@ const createColumns = (
             },
         },
         {
+            accessorKey: "ville",
+            header: "Ville",
+            filterFn: (row, columnId, filterValue) => {
+                if (!filterValue || filterValue === TOUTES_VILLES) return true;
+                const v = row.getValue<string>(columnId);
+                return (v ?? '').toLowerCase() === String(filterValue).toLowerCase();
+            },
+            cell: ({ row }) => (
+                <span className="text-sm">{row.getValue<string>("ville") || '—'}</span>
+            ),
+        },
+        {
             accessorKey: "statut",
             header: "Statut",
             cell: ({ row }) => {
@@ -284,8 +305,20 @@ export function LivraisonsTable({
         { id: "date_livraison", desc: false }
     ]);
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-    const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
+    const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({
+        ville: false,
+    });
     const [rowSelection, setRowSelection] = React.useState({});
+    const [villeFiltre, setVilleFiltre] = React.useState<string>(TOUTES_VILLES);
+
+    const villesDisponibles = React.useMemo(() => {
+        const set = new Set<string>();
+        for (const l of livraisons) {
+            const v = (l.ville ?? '').trim();
+            if (v) set.add(v);
+        }
+        return Array.from(set).sort((a, b) => a.localeCompare(b, 'fr'));
+    }, [livraisons]);
 
     const columns = React.useMemo(
         () => createColumns(onView, onDelete),
@@ -314,7 +347,7 @@ export function LivraisonsTable({
     return (
         <div className="w-full">
             {/* Barre de recherche et filtres */}
-            <div className="flex items-center gap-4 py-4">
+            <div className="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:gap-4">
                 <Input
                     placeholder="Rechercher un client..."
                     value={(table.getColumn("client")?.getFilterValue() as string) ?? ""}
@@ -323,6 +356,27 @@ export function LivraisonsTable({
                     }
                     className="max-w-sm"
                 />
+                <Select
+                    value={villeFiltre}
+                    onValueChange={(value) => {
+                        setVilleFiltre(value);
+                        table
+                            .getColumn("ville")
+                            ?.setFilterValue(value === TOUTES_VILLES ? undefined : value);
+                    }}
+                >
+                    <SelectTrigger className="w-full sm:w-[220px]">
+                        <SelectValue placeholder="Filtrer par ville" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value={TOUTES_VILLES}>Toutes les villes</SelectItem>
+                        {villesDisponibles.map((ville) => (
+                            <SelectItem key={ville} value={ville}>
+                                {ville}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="outline" className="ml-auto">

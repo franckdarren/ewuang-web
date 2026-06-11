@@ -27,6 +27,7 @@ import {
     Smartphone,
     Banknote,
     Copy,
+    X,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -51,6 +52,14 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { type Transaction, type PaiementStatut } from '@/stores/transactionsStore';
 
 // ============================================
@@ -329,6 +338,15 @@ const createColumns = (
 // COMPOSANT PRINCIPAL
 // ============================================
 
+const STATUT_OPTIONS: PaiementStatut[] = ['Validé', 'En attente', 'Echoué', 'Remboursée'];
+const METHODE_OPTIONS: { value: string; label: string }[] = [
+    { value: 'mobile_money', label: 'Mobile Money' },
+    { value: 'carte', label: 'Carte bancaire' },
+    { value: 'especes', label: 'Espèces' },
+];
+
+const ALL_VALUE = '__all__';
+
 export function TransactionsTable({ transactions, isLoading, onView }: TransactionsTableProps) {
     const [sorting, setSorting] = React.useState<SortingState>([
         { id: "created_at", desc: true }
@@ -337,10 +355,60 @@ export function TransactionsTable({ transactions, isLoading, onView }: Transacti
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
     const [rowSelection, setRowSelection] = React.useState({});
 
+    // ===== Filtres =====
+    const [search, setSearch] = React.useState("");
+    const [statutFilter, setStatutFilter] = React.useState<string>(ALL_VALUE);
+    const [methodeFilter, setMethodeFilter] = React.useState<string>(ALL_VALUE);
+    const [dateFrom, setDateFrom] = React.useState<string>("");
+    const [dateTo, setDateTo] = React.useState<string>("");
+
+    const hasActiveFilters =
+        search.trim() !== "" ||
+        statutFilter !== ALL_VALUE ||
+        methodeFilter !== ALL_VALUE ||
+        dateFrom !== "" ||
+        dateTo !== "";
+
+    const resetFilters = () => {
+        setSearch("");
+        setStatutFilter(ALL_VALUE);
+        setMethodeFilter(ALL_VALUE);
+        setDateFrom("");
+        setDateTo("");
+    };
+
+    // ===== Filtrage côté client =====
+    const filteredTransactions = React.useMemo(() => {
+        const searchLower = search.trim().toLowerCase();
+        const fromTs = dateFrom ? new Date(`${dateFrom}T00:00:00`).getTime() : null;
+        const toTs = dateTo ? new Date(`${dateTo}T23:59:59.999`).getTime() : null;
+
+        return transactions.filter((t) => {
+            if (statutFilter !== ALL_VALUE && t.statut !== statutFilter) return false;
+            if (methodeFilter !== ALL_VALUE && t.methode !== methodeFilter) return false;
+
+            if (fromTs !== null || toTs !== null) {
+                const ts = new Date(t.created_at).getTime();
+                if (fromTs !== null && ts < fromTs) return false;
+                if (toTs !== null && ts > toTs) return false;
+            }
+
+            if (searchLower) {
+                const inRef = t.reference?.toLowerCase().includes(searchLower);
+                const inTxId = t.transaction_id?.toLowerCase().includes(searchLower);
+                const inName = t.users?.name.toLowerCase().includes(searchLower);
+                const inEmail = t.users?.email.toLowerCase().includes(searchLower);
+                if (!inRef && !inTxId && !inName && !inEmail) return false;
+            }
+
+            return true;
+        });
+    }, [transactions, search, statutFilter, methodeFilter, dateFrom, dateTo]);
+
     const columns = React.useMemo(() => createColumns(onView), [onView]);
 
     const table = useReactTable({
-        data: transactions,
+        data: filteredTransactions,
         columns,
         onSortingChange: setSorting,
         onColumnFiltersChange: setColumnFilters,
@@ -361,19 +429,101 @@ export function TransactionsTable({ transactions, isLoading, onView }: Transacti
     return (
         <div className="w-full">
             {/* Barre de recherche et filtres */}
-            <div className="flex items-center gap-4 py-4">
-                <Input
-                    placeholder="Rechercher par référence, client..."
-                    value={(table.getColumn("reference")?.getFilterValue() as string) ?? ""}
-                    onChange={(event) =>
-                        table.getColumn("reference")?.setFilterValue(event.target.value)
-                    }
-                    className="max-w-sm"
-                />
+            <div className="flex flex-col gap-3 py-4 lg:flex-row lg:flex-wrap lg:items-end">
+                <div className="flex flex-col gap-1">
+                    <Label htmlFor="tx-search" className="text-xs text-muted-foreground">
+                        Recherche
+                    </Label>
+                    <Input
+                        id="tx-search"
+                        placeholder="Référence, ID, client, email..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="h-9 w-full lg:w-[260px]"
+                    />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                    <Label htmlFor="tx-statut" className="text-xs text-muted-foreground">
+                        Statut
+                    </Label>
+                    <Select value={statutFilter} onValueChange={setStatutFilter}>
+                        <SelectTrigger id="tx-statut" size="sm" className="w-full lg:w-[170px]">
+                            <SelectValue placeholder="Tous les statuts" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value={ALL_VALUE}>Tous les statuts</SelectItem>
+                            {STATUT_OPTIONS.map((s) => (
+                                <SelectItem key={s} value={s}>
+                                    {s === 'Echoué' ? 'Échoué' : s}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                    <Label htmlFor="tx-methode" className="text-xs text-muted-foreground">
+                        Méthode
+                    </Label>
+                    <Select value={methodeFilter} onValueChange={setMethodeFilter}>
+                        <SelectTrigger id="tx-methode" size="sm" className="w-full lg:w-[180px]">
+                            <SelectValue placeholder="Toutes les méthodes" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value={ALL_VALUE}>Toutes les méthodes</SelectItem>
+                            {METHODE_OPTIONS.map((m) => (
+                                <SelectItem key={m.value} value={m.value}>
+                                    {m.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                    <Label htmlFor="tx-date-from" className="text-xs text-muted-foreground">
+                        Du
+                    </Label>
+                    <Input
+                        id="tx-date-from"
+                        type="date"
+                        value={dateFrom}
+                        onChange={(e) => setDateFrom(e.target.value)}
+                        max={dateTo || undefined}
+                        className="h-9 w-full lg:w-[150px]"
+                    />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                    <Label htmlFor="tx-date-to" className="text-xs text-muted-foreground">
+                        Au
+                    </Label>
+                    <Input
+                        id="tx-date-to"
+                        type="date"
+                        value={dateTo}
+                        onChange={(e) => setDateTo(e.target.value)}
+                        min={dateFrom || undefined}
+                        className="h-9 w-full lg:w-[150px]"
+                    />
+                </div>
+
+                {hasActiveFilters && (
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={resetFilters}
+                        className="h-9 text-muted-foreground"
+                    >
+                        <X className="mr-1 h-4 w-4" />
+                        Réinitialiser
+                    </Button>
+                )}
 
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="outline" className="ml-auto">
+                        <Button variant="outline" size="sm" className="h-9 lg:ml-auto">
                             Colonnes <ChevronDown className="ml-2 h-4 w-4" />
                         </Button>
                     </DropdownMenuTrigger>
