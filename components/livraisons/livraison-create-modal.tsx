@@ -22,8 +22,8 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Truck, ShoppingBag, Loader2 } from "lucide-react";
-import { type CreateLivraisonData, useLivraisonsStore } from '@/stores/livraisonsStore';
+import { Truck, ShoppingBag, Loader2, UserCheck } from "lucide-react";
+import { type CreateLivraisonData, type LivreurOption, useLivraisonsStore } from '@/stores/livraisonsStore';
 import { useAuthStore } from '@/stores/authStore';
 
 interface Commande {
@@ -43,35 +43,33 @@ interface LivraisonCreateModalProps {
 const formatPrice = (prix: number) =>
     new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF', minimumFractionDigits: 0 }).format(prix);
 
+const NO_LIVREUR = '__none__';
+
 export function LivraisonCreateModal({ open, onClose }: LivraisonCreateModalProps) {
-    const { createLivraison, isLoading } = useLivraisonsStore();
+    const { createLivraison, fetchLivreurs, isLoading } = useLivraisonsStore();
     const token = useAuthStore((s) => s.token);
 
     const [commandes, setCommandes] = React.useState<Commande[]>([]);
+    const [livreurs, setLivreurs] = React.useState<LivreurOption[]>([]);
     const [loadingCommandes, setLoadingCommandes] = React.useState(false);
     const [isSaving, setIsSaving] = React.useState(false);
 
-    const [form, setForm] = React.useState<{
-        commande_id: string;
-        adresse: string;
-        ville: string;
-        phone: string;
-        date_livraison: string;
-        details: string;
-    }>({
+    const [form, setForm] = React.useState({
         commande_id: '',
         adresse: '',
         ville: '',
         phone: '',
         date_livraison: '',
         details: '',
+        livreur_id: NO_LIVREUR,
     });
 
-    const [errors, setErrors] = React.useState<Partial<typeof form>>({});
+    const [errors, setErrors] = React.useState<Partial<Record<keyof typeof form, string>>>({});
 
-    // Charger les commandes éligibles à l'ouverture
+    // Charger commandes et livreurs à l'ouverture
     React.useEffect(() => {
         if (!open || !token) return;
+
         setLoadingCommandes(true);
         fetch('/api/commandes/list?limit=100', {
             headers: { Authorization: `Bearer ${token}` },
@@ -86,7 +84,9 @@ export function LivraisonCreateModal({ open, onClose }: LivraisonCreateModalProp
             })
             .catch(console.error)
             .finally(() => setLoadingCommandes(false));
-    }, [open, token]);
+
+        fetchLivreurs().then(setLivreurs);
+    }, [open, token, fetchLivreurs]);
 
     // Pré-remplir adresse/téléphone depuis la commande sélectionnée
     const handleCommandeChange = (id: string) => {
@@ -106,7 +106,7 @@ export function LivraisonCreateModal({ open, onClose }: LivraisonCreateModalProp
     };
 
     const validate = () => {
-        const e: Partial<typeof form> = {};
+        const e: Partial<Record<keyof typeof form, string>> = {};
         if (!form.commande_id) e.commande_id = 'Sélectionnez une commande';
         if (!form.adresse.trim()) e.adresse = 'Adresse requise';
         if (!form.ville.trim()) e.ville = 'Ville requise';
@@ -127,6 +127,7 @@ export function LivraisonCreateModal({ open, onClose }: LivraisonCreateModalProp
                 phone: form.phone.trim(),
                 date_livraison: new Date(form.date_livraison).toISOString(),
                 details: form.details.trim() || undefined,
+                livreur_id: form.livreur_id !== NO_LIVREUR ? form.livreur_id : null,
             };
             await createLivraison(data);
             handleClose();
@@ -138,12 +139,13 @@ export function LivraisonCreateModal({ open, onClose }: LivraisonCreateModalProp
     };
 
     const handleClose = () => {
-        setForm({ commande_id: '', adresse: '', ville: '', phone: '', date_livraison: '', details: '' });
+        setForm({ commande_id: '', adresse: '', ville: '', phone: '', date_livraison: '', details: '', livreur_id: NO_LIVREUR });
         setErrors({});
         onClose();
     };
 
     const selectedCommande = commandes.find((c) => c.id === form.commande_id);
+    const livreurAssigne = livreurs.find((l) => l.id === form.livreur_id);
 
     return (
         <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) handleClose(); }}>
@@ -251,9 +253,47 @@ export function LivraisonCreateModal({ open, onClose }: LivraisonCreateModalProp
                         {errors.date_livraison && <p className="text-xs text-destructive">{errors.date_livraison}</p>}
                     </div>
 
+                    {/* Livreur (optionnel) */}
+                    <div className="space-y-1.5">
+                        <Label className="flex items-center gap-1.5">
+                            <UserCheck className="h-3.5 w-3.5" />
+                            Livreur
+                            <span className="text-muted-foreground text-xs font-normal">(optionnel)</span>
+                        </Label>
+                        <Select value={form.livreur_id} onValueChange={(v) => handleChange('livreur_id', v)}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Assigner un livreur maintenant" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value={NO_LIVREUR}>
+                                    <span className="text-muted-foreground italic">Aucun — à assigner plus tard</span>
+                                </SelectItem>
+                                {livreurs.map((l) => (
+                                    <SelectItem key={l.id} value={l.id}>
+                                        <div className="flex items-center gap-2">
+                                            <Truck className="h-3.5 w-3.5 text-muted-foreground" />
+                                            <span>{l.name}</span>
+                                            {l.phone && (
+                                                <span className="text-xs text-muted-foreground">· {l.phone}</span>
+                                            )}
+                                        </div>
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        {livreurAssigne && (
+                            <p className="text-xs text-blue-600 font-medium">
+                                La livraison passera directement en "En cours de livraison"
+                            </p>
+                        )}
+                    </div>
+
                     {/* Détails optionnels */}
                     <div className="space-y-1.5">
-                        <Label htmlFor="details">Détails / Instructions <span className="text-muted-foreground text-xs">(optionnel)</span></Label>
+                        <Label htmlFor="details">
+                            Détails / Instructions
+                            <span className="text-muted-foreground text-xs font-normal ml-1">(optionnel)</span>
+                        </Label>
                         <Textarea
                             id="details"
                             placeholder="Ex: Appeler avant d'arriver, code portail : 1234..."

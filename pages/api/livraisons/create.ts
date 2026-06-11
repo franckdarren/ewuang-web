@@ -80,6 +80,7 @@ const createLivraisonSchema = z.object({
     phone: z.string().max(255).min(1),
     date_livraison: z.string().datetime(),
     statut: z.string().max(255).optional().default("En attente"),
+    livreur_id: z.string().uuid().optional().nullable(),
 });
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -138,19 +139,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
         }
 
+        // Si un livreur est fourni, le statut passe automatiquement en cours
+        const statutFinal = body.livreur_id
+            ? "En cours de livraison"
+            : (body.statut ?? "En attente");
+
         // Créer la livraison
         const { data: livraison, error: insertError } = await supabaseAdmin
             .from("livraisons")
             .insert({
                 commande_id: body.commande_id,
-                user_id: commande.user_id,   // ✅ acheteur
-                livreur_id: null,
+                user_id: commande.user_id,
+                livreur_id: body.livreur_id ?? null,
                 adresse: body.adresse,
                 details: body.details,
                 ville: body.ville,
                 phone: body.phone,
                 date_livraison: body.date_livraison,
-                statut: body.statut,
+                statut: statutFinal,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
             })

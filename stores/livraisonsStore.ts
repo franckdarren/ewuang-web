@@ -62,6 +62,7 @@ export interface CreateLivraisonData {
     phone: string;
     date_livraison: string;
     details?: string;
+    livreur_id?: string | null;
 }
 
 export interface LivreurOption {
