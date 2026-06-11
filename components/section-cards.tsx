@@ -35,12 +35,14 @@ interface DashboardStats {
     total: number
     clients: number
     boutiques: number
+    newBoutiques: number
     newUsers: number
   }
   products?: {
     total: number
     newProducts: number
     inPromotion: number
+    newInPromotion: number
     madeInGabon: number
     outOfStock: number
   }
@@ -192,15 +194,15 @@ export function SectionCards({ stats }: SectionCardsProps) {
       {/* Utilisateurs → /dashboard/users */}
       <LinkCard href="/dashboard/users" ariaLabel="Voir les utilisateurs">
         <CardHeader>
-          <CardDescription>Utilisateurs</CardDescription>
+          <CardDescription>Utilisateurs (période)</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {overview ? formatNumber(overview.totalUsers) : "—"}
+            {overview ? formatNumber(overview.newUsers) : "—"}
           </CardTitle>
           <CardAction>
             {overview && overview.newUsers > 0 ? (
               <Badge variant="outline" className="text-green-600 border-green-200">
                 <IconTrendingUp className="size-3" />
-                +{overview.newUsers} nouveaux
+                Nouveaux
               </Badge>
             ) : (
               <Badge variant="outline">...</Badge>
@@ -209,7 +211,7 @@ export function SectionCards({ stats }: SectionCardsProps) {
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            {overview ? overview.newUsers : "—"} nouveaux sur la période
+            Total : {overview ? formatNumber(overview.totalUsers) : "—"} utilisateurs
           </div>
           <div className="text-muted-foreground flex items-center gap-1 group-hover:text-primary transition-colors">
             Voir tous les utilisateurs
@@ -221,15 +223,15 @@ export function SectionCards({ stats }: SectionCardsProps) {
       {/* Articles → /dashboard/articles */}
       <LinkCard href="/dashboard/articles" ariaLabel="Voir les articles">
         <CardHeader>
-          <CardDescription>Articles</CardDescription>
+          <CardDescription>Articles (période)</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {overview ? formatNumber(overview.totalProducts) : "—"}
+            {products ? formatNumber(products.newProducts) : "—"}
           </CardTitle>
           <CardAction>
             {products && products.newProducts > 0 ? (
               <Badge variant="outline" className="text-green-600 border-green-200">
                 <IconTrendingUp className="size-3" />
-                +{products.newProducts} nouveaux
+                Nouveaux
               </Badge>
             ) : (
               <Badge variant="outline">...</Badge>
@@ -238,7 +240,7 @@ export function SectionCards({ stats }: SectionCardsProps) {
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            {products ? formatNumber(products.madeInGabon) : "—"} Made in Gabon
+            Total : {overview ? formatNumber(overview.totalProducts) : "—"} · {products ? formatNumber(products.madeInGabon) : "—"} Made in Gabon
           </div>
           <div className="text-muted-foreground flex items-center gap-1 group-hover:text-primary transition-colors">
             Voir tous les articles
@@ -250,9 +252,9 @@ export function SectionCards({ stats }: SectionCardsProps) {
       {/* Promotions → /dashboard/articles */}
       <LinkCard href="/dashboard/articles" ariaLabel="Voir les articles en promotion">
         <CardHeader>
-          <CardDescription>Promotions</CardDescription>
+          <CardDescription>Promotions (période)</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {products ? formatNumber(products.inPromotion) : "—"}
+            {products ? formatNumber(products.newInPromotion) : "—"}
           </CardTitle>
           <CardAction>
             <Badge variant="outline" className="text-orange-600 border-orange-200">
@@ -263,7 +265,7 @@ export function SectionCards({ stats }: SectionCardsProps) {
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            Articles avec réduction
+            Total : {products ? formatNumber(products.inPromotion) : "—"} articles avec réduction
           </div>
           <div className="text-muted-foreground flex items-center gap-1 group-hover:text-primary transition-colors">
             Gérer les promotions
@@ -275,19 +277,19 @@ export function SectionCards({ stats }: SectionCardsProps) {
       {/* Boutiques → /dashboard/boutiques */}
       <LinkCard href="/dashboard/boutiques" ariaLabel="Voir les boutiques">
         <CardHeader>
-          <CardDescription>Boutiques</CardDescription>
+          <CardDescription>Boutiques (période)</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {usersStats ? formatNumber(usersStats.boutiques) : "—"}
+            {usersStats ? formatNumber(usersStats.newBoutiques) : "—"}
           </CardTitle>
           <CardAction>
             <Badge variant="outline" className="text-blue-600 border-blue-200">
-              Vendeurs
+              Nouvelles
             </Badge>
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            Boutiques enregistrées
+            Total : {usersStats ? formatNumber(usersStats.boutiques) : "—"} boutiques enregistrées
           </div>
           <div className="text-muted-foreground flex items-center gap-1 group-hover:text-primary transition-colors">
             Voir toutes les boutiques
@@ -299,15 +301,15 @@ export function SectionCards({ stats }: SectionCardsProps) {
       {/* Retours (Réclamations) → /dashboard/reclamations */}
       <LinkCard href="/dashboard/reclamations" ariaLabel="Voir les retours / réclamations">
         <CardHeader>
-          <CardDescription>Retours</CardDescription>
+          <CardDescription>Retours (période)</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {reclamations ? formatNumber(reclamations.total) : "—"}
+            {reclamations ? formatNumber(reclamations.new) : "—"}
           </CardTitle>
           <CardAction>
             {reclamations && reclamations.new > 0 ? (
               <Badge variant="outline" className="text-orange-600 border-orange-200">
                 <IconTrendingUp className="size-3" />
-                +{reclamations.new} récents
+                Récents
               </Badge>
             ) : (
               <Badge variant="outline">...</Badge>
@@ -316,7 +318,7 @@ export function SectionCards({ stats }: SectionCardsProps) {
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            {reclamations ? reclamations.byStatus.en_attente_de_traitement : "—"} en attente · {reclamations ? reclamations.byStatus.rembourse : "—"} remboursés
+            Total : {reclamations ? formatNumber(reclamations.total) : "—"} · {reclamations ? reclamations.byStatus.en_attente_de_traitement : "—"} en attente
           </div>
           <div className="text-muted-foreground flex items-center gap-1 group-hover:text-primary transition-colors">
             Voir les réclamations

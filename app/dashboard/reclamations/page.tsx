@@ -26,6 +26,7 @@ import {
 import { ReclamationsTable } from "@/components/reclamations/reclamations-table";
 import { ReclamationViewModal } from "@/components/reclamations/reclamation-view-modal";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StatFilterCard } from "@/components/stat-filter-card";
 
 // ============================================
 // COMPOSANT PRINCIPAL
@@ -47,6 +48,31 @@ export default function ReclamationsPage() {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
     const [reclamationToDelete, setReclamationToDelete] = React.useState<Reclamation | undefined>(undefined);
     const [isInitialLoading, setIsInitialLoading] = React.useState(true);
+    const [statutFilter, setStatutFilter] = React.useState<'all' | 'enAttente' | 'enCours' | 'resolues'>('all');
+
+    const toggleStatutFilter = (key: string) => {
+        setStatutFilter((prev) => (prev === key ? 'all' : (key as typeof statutFilter)));
+    };
+
+    const groupOf = React.useCallback((statut: string | undefined): 'enAttente' | 'enCours' | 'resolues' | 'autre' => {
+        const s = (statut ?? '').toLowerCase();
+        if (s.includes('attente')) return 'enAttente';
+        if (s.includes('rembours') || s.includes('rejet')) return 'resolues';
+        if (s.includes('cours')) return 'enCours';
+        return 'autre';
+    }, []);
+
+    const filteredReclamations = React.useMemo(() => {
+        if (statutFilter === 'all') return reclamations;
+        return reclamations.filter((r) => groupOf(r.statut as string | undefined) === statutFilter);
+    }, [reclamations, statutFilter, groupOf]);
+
+    const filterTitles: Record<typeof statutFilter, string> = {
+        all: 'Toutes les réclamations',
+        enAttente: 'Réclamations en attente',
+        enCours: 'Réclamations en cours',
+        resolues: 'Réclamations résolues',
+    };
 
     // ========== EFFECTS ==========
 
@@ -142,79 +168,50 @@ export default function ReclamationsPage() {
                 </div>
             </div>
 
-            {/* ========== STATISTIQUES ========== */}
+            {/* ========== STATISTIQUES CLIQUABLES (filtres) ========== */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                {/* Total */}
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardDescription className="flex items-center gap-2">
-                            <TrendingUp className="h-4 w-4" />
-                            Total des réclamations
-                        </CardDescription>
-                        <CardTitle className="text-3xl font-bold">
-                            {stats.total}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
+                <StatFilterCard
+                    filterKey="all"
+                    activeFilter={statutFilter}
+                    onSelect={(key) => setStatutFilter(key as typeof statutFilter)}
+                    label={<><TrendingUp className="h-4 w-4" /> Total des réclamations</>}
+                    value={stats.total}
+                    footer={
                         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                            <Badge variant="outline" className="text-xs">
-                                {stats.en_attente} en attente
-                            </Badge>
-                            <Badge variant="outline" className="text-xs">
-                                {stats.en_cours} en cours
-                            </Badge>
+                            <Badge variant="outline" className="text-xs">{stats.en_attente} en attente</Badge>
+                            <Badge variant="outline" className="text-xs">{stats.en_cours} en cours</Badge>
                         </div>
-                    </CardContent>
-                </Card>
-
-                {/* En attente */}
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardDescription className="flex items-center gap-2">
-                            <Clock className="h-4 w-4 text-amber-600" />
-                            En attente
-                        </CardDescription>
-                        <CardTitle className="text-3xl font-bold text-amber-600">
-                            {stats.en_attente}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-xs text-muted-foreground">
-                            À traiter en priorité
-                        </p>
-                    </CardContent>
-                </Card>
-
-                {/* En cours */}
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardDescription className="flex items-center gap-2">
-                            <RefreshCw className="h-4 w-4 text-blue-600" />
-                            En cours
-                        </CardDescription>
-                        <CardTitle className="text-3xl font-bold text-blue-600">
-                            {stats.en_cours}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-xs text-muted-foreground">
-                            En cours de traitement
-                        </p>
-                    </CardContent>
-                </Card>
-
-                {/* Résolues */}
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardDescription className="flex items-center gap-2">
-                            <CheckCircle className="h-4 w-4 text-green-600" />
-                            Résolues
-                        </CardDescription>
-                        <CardTitle className="text-3xl font-bold text-green-600">
-                            {stats.remboursees + stats.rejetees}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
+                    }
+                />
+                <StatFilterCard
+                    filterKey="enAttente"
+                    activeFilter={statutFilter}
+                    onSelect={toggleStatutFilter}
+                    label={<><Clock className="h-4 w-4 text-amber-600" /> En attente</>}
+                    value={stats.en_attente}
+                    valueClassName="text-amber-600"
+                    activeRingClassName="ring-amber-500/40 border-amber-500/50 bg-amber-50/50"
+                    footer={<p className="text-xs text-muted-foreground">À traiter en priorité</p>}
+                />
+                <StatFilterCard
+                    filterKey="enCours"
+                    activeFilter={statutFilter}
+                    onSelect={toggleStatutFilter}
+                    label={<><RefreshCw className="h-4 w-4 text-blue-600" /> En cours</>}
+                    value={stats.en_cours}
+                    valueClassName="text-blue-600"
+                    activeRingClassName="ring-blue-500/40 border-blue-500/50 bg-blue-50/50"
+                    footer={<p className="text-xs text-muted-foreground">En cours de traitement</p>}
+                />
+                <StatFilterCard
+                    filterKey="resolues"
+                    activeFilter={statutFilter}
+                    onSelect={toggleStatutFilter}
+                    label={<><CheckCircle className="h-4 w-4 text-green-600" /> Résolues</>}
+                    value={stats.remboursees + stats.rejetees}
+                    valueClassName="text-green-600"
+                    activeRingClassName="ring-green-500/40 border-green-500/50 bg-green-50/50"
+                    footer={
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                             <Badge variant="outline" className="text-xs text-green-600 border-green-300">
                                 {stats.remboursees} remboursées
@@ -223,8 +220,8 @@ export default function ReclamationsPage() {
                                 {stats.rejetees} rejetées
                             </Badge>
                         </div>
-                    </CardContent>
-                </Card>
+                    }
+                />
             </div>
 
             {/* ========== ALERTE RÉCLAMATIONS EN ATTENTE ========== */}
@@ -241,14 +238,25 @@ export default function ReclamationsPage() {
             {/* ========== TABLEAU DES RÉCLAMATIONS ========== */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Toutes les réclamations</CardTitle>
-                    <CardDescription>
-                        Consultez et gérez toutes les réclamations soumises par les clients
-                    </CardDescription>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <CardTitle>{filterTitles[statutFilter]}</CardTitle>
+                            <CardDescription>
+                                {statutFilter === 'all'
+                                    ? 'Consultez et gérez toutes les réclamations soumises par les clients'
+                                    : `${filteredReclamations.length} réclamation${filteredReclamations.length > 1 ? 's' : ''} sur ${reclamations.length}`}
+                            </CardDescription>
+                        </div>
+                        {statutFilter !== 'all' && (
+                            <Button variant="ghost" size="sm" onClick={() => setStatutFilter('all')}>
+                                Réinitialiser le filtre
+                            </Button>
+                        )}
+                    </div>
                 </CardHeader>
                 <CardContent>
                     <ReclamationsTable
-                        reclamations={reclamations}
+                        reclamations={filteredReclamations}
                         isLoading={isLoading}
                         onView={handleView}
                         onDelete={handleDelete}

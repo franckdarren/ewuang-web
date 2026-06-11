@@ -30,6 +30,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ArticlesTable } from "../../../components/articles/articles-table";
 import { ArticleFormModal } from "../../../components/articles/article-form-modal";
 import { ArticleViewModal } from "../../../components/articles/article-view-modal";
+import { StatFilterCard } from "@/components/stat-filter-card";
+import { Button } from "@/components/ui/button";
 
 // ============================================
 // TYPES
@@ -73,6 +75,31 @@ export default function ArticlePage() {
     const [articleToDelete, setArticleToDelete] = React.useState<Article | undefined>(undefined);
     const [isSubmitting, setIsSubmitting] = React.useState(false);
     const [isInitialLoading, setIsInitialLoading] = React.useState(true);
+    const [articleFilter, setArticleFilter] = React.useState<'all' | 'promotion' | 'gabon' | 'rupture'>('all');
+
+    const toggleArticleFilter = (key: string) => {
+        setArticleFilter((prev) => (prev === key ? 'all' : (key as typeof articleFilter)));
+    };
+
+    const filteredArticles = React.useMemo(() => {
+        switch (articleFilter) {
+            case 'promotion':
+                return articles.filter((a) => a.is_promotion);
+            case 'gabon':
+                return articles.filter((a) => a.made_in_gabon);
+            case 'rupture':
+                return articles.filter((a) => (a.stock ?? 0) === 0);
+            default:
+                return articles;
+        }
+    }, [articles, articleFilter]);
+
+    const filterTitles: Record<typeof articleFilter, string> = {
+        all: 'Liste des articles',
+        promotion: 'Articles en promotion',
+        gabon: 'Articles Made in Gabon',
+        rupture: 'Articles en rupture de stock',
+    };
 
     // ========== EFFECTS ==========
 
@@ -269,84 +296,50 @@ export default function ArticlePage() {
                 </Button> */}
             </div>
 
-            {/* ========== STATISTIQUES ========== */}
+            {/* ========== STATISTIQUES CLIQUABLES (filtres) ========== */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                {/* Total des articles */}
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardDescription className="flex items-center gap-2">
-                            <Package className="h-4 w-4" />
-                            Total des articles
-                        </CardDescription>
-                        <CardTitle className="text-3xl font-bold">
-                            {stats.total}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
+                <StatFilterCard
+                    filterKey="all"
+                    activeFilter={articleFilter}
+                    onSelect={(key) => setArticleFilter(key as typeof articleFilter)}
+                    label={<><Package className="h-4 w-4" /> Total des articles</>}
+                    value={stats.total}
+                    footer={
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <Badge variant="outline" className="text-xs">
-                                {stats.actifs} actifs
-                            </Badge>
-                            <Badge variant="outline" className="text-xs">
-                                {stats.inactifs} inactifs
-                            </Badge>
+                            <Badge variant="outline" className="text-xs">{stats.actifs} actifs</Badge>
+                            <Badge variant="outline" className="text-xs">{stats.inactifs} inactifs</Badge>
                         </div>
-                    </CardContent>
-                </Card>
-
-                {/* Articles en promotion */}
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardDescription className="flex items-center gap-2">
-                            <TrendingUp className="h-4 w-4" />
-                            En promotion
-                        </CardDescription>
-                        <CardTitle className="text-3xl font-bold">
-                            {stats.en_promotion}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-xs text-muted-foreground">
-                            Articles avec réduction
-                        </p>
-                    </CardContent>
-                </Card>
-
-                {/* Made in Gabon */}
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardDescription className="flex items-center gap-2">
-                            <MapPin className="h-4 w-4" />
-                            Made in Gabon
-                        </CardDescription>
-                        <CardTitle className="text-3xl font-bold">
-                            {stats.made_in_gabon}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-xs text-muted-foreground">
-                            Produits locaux
-                        </p>
-                    </CardContent>
-                </Card>
-
-                {/* Stock total */}
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardDescription className="flex items-center gap-2">
-                            <ShoppingCart className="h-4 w-4" />
-                            Stock total
-                        </CardDescription>
-                        <CardTitle className="text-3xl font-bold">
-                            {stats.total_stock}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-xs text-muted-foreground">
-                            Unités disponibles
-                        </p>
-                    </CardContent>
-                </Card>
+                    }
+                />
+                <StatFilterCard
+                    filterKey="promotion"
+                    activeFilter={articleFilter}
+                    onSelect={toggleArticleFilter}
+                    label={<><TrendingUp className="h-4 w-4 text-orange-600" /> En promotion</>}
+                    value={stats.en_promotion}
+                    valueClassName="text-orange-600"
+                    activeRingClassName="ring-orange-500/40 border-orange-500/50 bg-orange-50/50"
+                    footer={<p className="text-xs text-muted-foreground">Articles avec réduction</p>}
+                />
+                <StatFilterCard
+                    filterKey="gabon"
+                    activeFilter={articleFilter}
+                    onSelect={toggleArticleFilter}
+                    label={<><MapPin className="h-4 w-4 text-emerald-600" /> Made in Gabon</>}
+                    value={stats.made_in_gabon}
+                    valueClassName="text-emerald-600"
+                    activeRingClassName="ring-emerald-500/40 border-emerald-500/50 bg-emerald-50/50"
+                    footer={<p className="text-xs text-muted-foreground">Produits locaux</p>}
+                />
+                <StatFilterCard
+                    filterKey="rupture"
+                    activeFilter={articleFilter}
+                    onSelect={toggleArticleFilter}
+                    label={<><ShoppingCart className="h-4 w-4 text-red-600" /> Stock total</>}
+                    value={stats.total_stock}
+                    activeRingClassName="ring-red-500/40 border-red-500/50 bg-red-50/50"
+                    footer={<p className="text-xs text-muted-foreground">Cliquez pour voir les ruptures</p>}
+                />
             </div>
 
             {/* ========== STATISTIQUES FINANCIÈRES ========== */}
@@ -391,14 +384,25 @@ export default function ArticlePage() {
             {/* ========== TABLEAU DES ARTICLES ========== */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Liste des articles</CardTitle>
-                    <CardDescription>
-                        Consultez et gérez tous les articles de la plateforme
-                    </CardDescription>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <CardTitle>{filterTitles[articleFilter]}</CardTitle>
+                            <CardDescription>
+                                {articleFilter === 'all'
+                                    ? 'Consultez et gérez tous les articles de la plateforme'
+                                    : `${filteredArticles.length} article${filteredArticles.length > 1 ? 's' : ''} sur ${articles.length}`}
+                            </CardDescription>
+                        </div>
+                        {articleFilter !== 'all' && (
+                            <Button variant="ghost" size="sm" onClick={() => setArticleFilter('all')}>
+                                Réinitialiser le filtre
+                            </Button>
+                        )}
+                    </div>
                 </CardHeader>
                 <CardContent>
                     <ArticlesTable
-                        articles={articles}
+                        articles={filteredArticles}
                         isLoading={isLoading}
                         onView={handleView}
                         onEdit={handleEdit}

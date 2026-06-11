@@ -6,7 +6,9 @@ import { useCommandesStore } from '@/stores/commandesStore';
 import { type Commande } from '@/stores/types/common';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StatFilterCard } from "@/components/stat-filter-card";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -57,6 +59,7 @@ export default function CommandesPage() {
     const [isAlertLoading, setIsAlertLoading] = React.useState(false);
     const [alertFeedback, setAlertFeedback] = React.useState<{ type: 'success' | 'error'; message: string } | null>(null);
     const [isInitialLoading, setIsInitialLoading] = React.useState(true);
+    const [statutFilter, setStatutFilter] = React.useState<'all' | 'enAttente' | 'enCours' | 'livrees' | 'annulees'>('all');
 
     // ========== EFFECTS ==========
 
@@ -160,6 +163,33 @@ export default function CommandesPage() {
         [commandes]
     );
 
+    // Classifie un statut dans l'un des 4 groupes utilisés par les cartes-filtres.
+    const groupOf = React.useCallback((statut: string | undefined): 'enAttente' | 'enCours' | 'livrees' | 'annulees' => {
+        const s = (statut ?? '').toLowerCase();
+        if (s.includes('attente')) return 'enAttente';
+        if (s.includes('annul') || s.includes('rembours')) return 'annulees';
+        if (s.includes('livr') && !s.includes('livraison')) return 'livrees';
+        return 'enCours';
+    }, []);
+
+    const filteredCommandes = React.useMemo(() => {
+        if (statutFilter === 'all') return commandes;
+        return commandes.filter((cmd) => groupOf(cmd.statut as string | undefined) === statutFilter);
+    }, [commandes, statutFilter, groupOf]);
+
+    // Toggle : re-cliquer sur la même carte → retour à "all".
+    const toggleStatutFilter = (key: string) => {
+        setStatutFilter((prev) => (prev === key ? 'all' : (key as typeof statutFilter)));
+    };
+
+    const filterLabels: Record<typeof statutFilter, string> = {
+        all: 'toutes',
+        enAttente: 'en attente',
+        enCours: 'en cours',
+        livrees: 'livrées',
+        annulees: 'annulées / remboursées',
+    };
+
     // ========== RENDER ==========
 
     if (isInitialLoading) {
@@ -218,79 +248,48 @@ export default function CommandesPage() {
                 </Badge>
             </div>
 
-            {/* ========== STATISTIQUES ========== */}
+            {/* ========== STATISTIQUES CLIQUABLES (filtres) ========== */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                {/* En attente */}
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardDescription className="flex items-center gap-2">
-                            <Clock className="h-4 w-4 text-amber-600" />
-                            En attente
-                        </CardDescription>
-                        <CardTitle className="text-3xl font-bold text-amber-600">
-                            {countByGroup.enAttente}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-xs text-muted-foreground">
-                            Commandes à traiter
-                        </p>
-                    </CardContent>
-                </Card>
-
-                {/* En cours */}
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardDescription className="flex items-center gap-2">
-                            <Truck className="h-4 w-4 text-blue-600" />
-                            En cours
-                        </CardDescription>
-                        <CardTitle className="text-3xl font-bold text-blue-600">
-                            {countByGroup.enCours}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-xs text-muted-foreground">
-                            Préparation ou livraison
-                        </p>
-                    </CardContent>
-                </Card>
-
-                {/* Livrées */}
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardDescription className="flex items-center gap-2">
-                            <CheckCircle className="h-4 w-4 text-green-600" />
-                            Livrées
-                        </CardDescription>
-                        <CardTitle className="text-3xl font-bold text-green-600">
-                            {countByGroup.livrees}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-xs text-muted-foreground">
-                            Commandes finalisées
-                        </p>
-                    </CardContent>
-                </Card>
-
-                {/* Annulées / Remboursées */}
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardDescription className="flex items-center gap-2">
-                            <XCircle className="h-4 w-4 text-red-600" />
-                            Annulées
-                        </CardDescription>
-                        <CardTitle className="text-3xl font-bold text-red-600">
-                            {countByGroup.annulees}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-xs text-muted-foreground">
-                            Annulées ou remboursées
-                        </p>
-                    </CardContent>
-                </Card>
+                <StatFilterCard
+                    filterKey="enAttente"
+                    activeFilter={statutFilter}
+                    onSelect={toggleStatutFilter}
+                    label={<><Clock className="h-4 w-4 text-amber-600" /> En attente</>}
+                    value={countByGroup.enAttente}
+                    valueClassName="text-amber-600"
+                    activeRingClassName="ring-amber-500/40 border-amber-500/50 bg-amber-50/50"
+                    footer={<p className="text-xs text-muted-foreground">Commandes à traiter</p>}
+                />
+                <StatFilterCard
+                    filterKey="enCours"
+                    activeFilter={statutFilter}
+                    onSelect={toggleStatutFilter}
+                    label={<><Truck className="h-4 w-4 text-blue-600" /> En cours</>}
+                    value={countByGroup.enCours}
+                    valueClassName="text-blue-600"
+                    activeRingClassName="ring-blue-500/40 border-blue-500/50 bg-blue-50/50"
+                    footer={<p className="text-xs text-muted-foreground">Préparation ou livraison</p>}
+                />
+                <StatFilterCard
+                    filterKey="livrees"
+                    activeFilter={statutFilter}
+                    onSelect={toggleStatutFilter}
+                    label={<><CheckCircle className="h-4 w-4 text-green-600" /> Livrées</>}
+                    value={countByGroup.livrees}
+                    valueClassName="text-green-600"
+                    activeRingClassName="ring-green-500/40 border-green-500/50 bg-green-50/50"
+                    footer={<p className="text-xs text-muted-foreground">Commandes finalisées</p>}
+                />
+                <StatFilterCard
+                    filterKey="annulees"
+                    activeFilter={statutFilter}
+                    onSelect={toggleStatutFilter}
+                    label={<><XCircle className="h-4 w-4 text-red-600" /> Annulées</>}
+                    value={countByGroup.annulees}
+                    valueClassName="text-red-600"
+                    activeRingClassName="ring-red-500/40 border-red-500/50 bg-red-50/50"
+                    footer={<p className="text-xs text-muted-foreground">Annulées ou remboursées</p>}
+                />
             </div>
 
             {/* ========== RÉSUMÉ FINANCIER ========== */}
@@ -353,14 +352,27 @@ export default function CommandesPage() {
             {/* ========== TABLEAU DES COMMANDES ========== */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Toutes les commandes</CardTitle>
-                    <CardDescription>
-                        Consultez, filtrez et gérez l'ensemble des commandes de la plateforme
-                    </CardDescription>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <CardTitle>
+                                {statutFilter === 'all' ? 'Toutes les commandes' : `Commandes ${filterLabels[statutFilter]}`}
+                            </CardTitle>
+                            <CardDescription>
+                                {statutFilter === 'all'
+                                    ? "Consultez, filtrez et gérez l'ensemble des commandes de la plateforme"
+                                    : `${filteredCommandes.length} commande${filteredCommandes.length > 1 ? 's' : ''} sur ${commandes.length}`}
+                            </CardDescription>
+                        </div>
+                        {statutFilter !== 'all' && (
+                            <Button variant="ghost" size="sm" onClick={() => setStatutFilter('all')}>
+                                Réinitialiser le filtre
+                            </Button>
+                        )}
+                    </div>
                 </CardHeader>
                 <CardContent>
                     <CommandesTable
-                        commandes={commandes}
+                        commandes={filteredCommandes}
                         isLoading={isLoading}
                         onView={handleView}
                         onDelete={handleDelete}

@@ -197,6 +197,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             .select("*", { count: "exact", head: true })
             .eq("role", "Boutique");
 
+        const newBoutiques = allUsers?.filter((user) => {
+            if (user.role !== "Boutique") return false;
+            const d = new Date(user.created_at);
+            return d >= startDate && d <= endDate;
+        }).length || 0;
+
         // ============================================
         // 3. STATISTIQUES PRODUITS
         // ============================================
@@ -215,6 +221,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             .from("articles")
             .select("*", { count: "exact", head: true })
             .eq("is_promotion", true);
+
+        const { count: newProductsInPromotion } = await supabaseAdmin
+            .from("articles")
+            .select("*", { count: "exact", head: true })
+            .eq("is_promotion", true)
+            .gte("created_at", startDate.toISOString())
+            .lte("created_at", endDate.toISOString());
 
         const { count: madeInGabonProducts } = await supabaseAdmin
             .from("articles")
@@ -453,6 +466,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 total: totalUsers || 0,
                 clients: totalCustomers || 0,
                 boutiques: totalBoutiques || 0,
+                newBoutiques,
                 newUsers,
             },
 
@@ -460,6 +474,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 total: totalProducts || 0,
                 newProducts: newProducts?.length || 0,
                 inPromotion: productsInPromotion || 0,
+                newInPromotion: newProductsInPromotion || 0,
                 madeInGabon: madeInGabonProducts || 0,
                 outOfStock: outOfStockProducts || 0,
             },

@@ -6,6 +6,7 @@ import { useUsersStore, type User } from '@/stores/usersStore';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { StatFilterCard } from "@/components/stat-filter-card";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -63,6 +64,17 @@ export default function UsersPage() {
     const [userToDelete, setUserToDelete] = React.useState<User | undefined>(undefined);
     const [isSubmitting, setIsSubmitting] = React.useState(false);
     const [isInitialLoading, setIsInitialLoading] = React.useState(true);
+    const [roleFilter, setRoleFilter] = React.useState<'all' | 'Boutique' | 'Client' | 'Livreur'>('all');
+
+    // Toggle : re-cliquer sur la même carte → retour à "all".
+    const toggleRoleFilter = (key: string) => {
+        setRoleFilter((prev) => (prev === key ? 'all' : (key as typeof roleFilter)));
+    };
+
+    const filteredUsers = React.useMemo(() => {
+        if (roleFilter === 'all') return users;
+        return users.filter((u) => u.role === roleFilter);
+    }, [users, roleFilter]);
 
     // ========== EFFECTS ==========
 
@@ -223,107 +235,90 @@ export default function UsersPage() {
                 </Button>
             </div>
 
-            {/* ========== STATISTIQUES ========== */}
+            {/* ========== STATISTIQUES CLIQUABLES (filtres) ========== */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                {/* Total des utilisateurs */}
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardDescription className="flex items-center gap-2">
-                            <Users className="h-4 w-4" />
-                            Total des utilisateurs
-                        </CardDescription>
-                        <CardTitle className="text-3xl font-bold">
-                            {stats.total}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
+                {/* Total : sert de reset */}
+                <StatFilterCard
+                    filterKey="all"
+                    activeFilter={roleFilter}
+                    onSelect={(key) => setRoleFilter(key as typeof roleFilter)}
+                    label={<><Users className="h-4 w-4" /> Total des utilisateurs</>}
+                    value={stats.total}
+                    footer={
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <Badge variant="outline" className="text-xs">
-                                {stats.active} actifs
-                            </Badge>
-                            <Badge variant="outline" className="text-xs">
-                                {stats.verified} vérifiés
-                            </Badge>
+                            <Badge variant="outline" className="text-xs">{stats.active} actifs</Badge>
+                            <Badge variant="outline" className="text-xs">{stats.verified} vérifiés</Badge>
                         </div>
-                    </CardContent>
-                </Card>
-
-                {/* Boutiques */}
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardDescription className="flex items-center gap-2">
-                            <Store className="h-4 w-4" />
-                            Boutiques
-                        </CardDescription>
-                        <CardTitle className="text-3xl font-bold">
-                            {stats.boutiques}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
+                    }
+                />
+                <StatFilterCard
+                    filterKey="Boutique"
+                    activeFilter={roleFilter}
+                    onSelect={toggleRoleFilter}
+                    label={<><Store className="h-4 w-4" /> Boutiques</>}
+                    value={stats.boutiques}
+                    activeRingClassName="ring-blue-500/40 border-blue-500/50 bg-blue-50/50"
+                    footer={
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <Badge variant="outline" className="text-xs">
-                                {stats.certified} certifiées
-                            </Badge>
+                            <Badge variant="outline" className="text-xs">{stats.certified} certifiées</Badge>
                             <span>sur la plateforme</span>
                         </div>
-                    </CardContent>
-                </Card>
-
-                {/* Clients */}
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardDescription className="flex items-center gap-2">
-                            <Users className="h-4 w-4" />
-                            Clients
-                        </CardDescription>
-                        <CardTitle className="text-3xl font-bold">
-                            {stats.clients}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-xs text-muted-foreground">
-                            Acheteurs enregistrés
-                        </p>
-                    </CardContent>
-                </Card>
-
-                {/* Livreurs */}
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardDescription className="flex items-center gap-2">
-                            <Truck className="h-4 w-4" />
-                            Livreurs
-                        </CardDescription>
-                        <CardTitle className="text-3xl font-bold">
-                            {stats.livreurs}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-xs text-muted-foreground">
-                            Partenaires de livraison
-                        </p>
-                    </CardContent>
-                </Card>
+                    }
+                />
+                <StatFilterCard
+                    filterKey="Client"
+                    activeFilter={roleFilter}
+                    onSelect={toggleRoleFilter}
+                    label={<><Users className="h-4 w-4" /> Clients</>}
+                    value={stats.clients}
+                    activeRingClassName="ring-emerald-500/40 border-emerald-500/50 bg-emerald-50/50"
+                    footer={<p className="text-xs text-muted-foreground">Acheteurs enregistrés</p>}
+                />
+                <StatFilterCard
+                    filterKey="Livreur"
+                    activeFilter={roleFilter}
+                    onSelect={toggleRoleFilter}
+                    label={<><Truck className="h-4 w-4" /> Livreurs</>}
+                    value={stats.livreurs}
+                    activeRingClassName="ring-orange-500/40 border-orange-500/50 bg-orange-50/50"
+                    footer={<p className="text-xs text-muted-foreground">Partenaires de livraison</p>}
+                />
             </div>
 
             {/* ========== TABLEAU DES UTILISATEURS ========== */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Liste des utilisateurs</CardTitle>
-                    <CardDescription>
-                        Consultez et gérez tous les utilisateurs de la plateforme
-                    </CardDescription>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <CardTitle>
+                                {roleFilter === 'all'
+                                    ? 'Liste des utilisateurs'
+                                    : roleFilter === 'Boutique'
+                                        ? 'Boutiques'
+                                        : roleFilter === 'Client'
+                                            ? 'Clients'
+                                            : 'Livreurs'}
+                            </CardTitle>
+                            <CardDescription>
+                                {roleFilter === 'all'
+                                    ? 'Consultez et gérez tous les utilisateurs de la plateforme'
+                                    : `${filteredUsers.length} utilisateur${filteredUsers.length > 1 ? 's' : ''} sur ${users.length}`}
+                            </CardDescription>
+                        </div>
+                        {roleFilter !== 'all' && (
+                            <Button variant="ghost" size="sm" onClick={() => setRoleFilter('all')}>
+                                Réinitialiser le filtre
+                            </Button>
+                        )}
+                    </div>
                 </CardHeader>
                 <CardContent>
                     <UsersTable
-                        users={users}
+                        users={filteredUsers}
                         isLoading={isLoading}
                         onEdit={handleEdit}
                         onDelete={handleDelete}
                         onToggleCertified={handleToggleCertified}
-                    // onToggleActive={handleToggleActive}
-                    // onToggleVerified={handleToggleVerified}
-                    // onUpdateSolde={handleUpdateSolde}
                     />
                 </CardContent>
             </Card>

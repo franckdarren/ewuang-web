@@ -28,6 +28,7 @@ import {
 import { LivraisonsTable } from "@/components/livraisons/livraisons-table";
 import { LivraisonViewModal } from "@/components/livraisons/livraison-view-modal";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StatFilterCard } from "@/components/stat-filter-card";
 
 // ============================================
 // COMPOSANT PRINCIPAL
@@ -49,6 +50,31 @@ export default function LivraisonsPage() {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
     const [livraisonToDelete, setLivraisonToDelete] = React.useState<Livraison | undefined>(undefined);
     const [isInitialLoading, setIsInitialLoading] = React.useState(true);
+    const [statutFilter, setStatutFilter] = React.useState<'all' | 'enCours' | 'livrees' | 'enAttente'>('all');
+
+    const toggleStatutFilter = (key: string) => {
+        setStatutFilter((prev) => (prev === key ? 'all' : (key as typeof statutFilter)));
+    };
+
+    const groupOf = React.useCallback((statut: string | undefined): 'enCours' | 'livrees' | 'enAttente' | 'autre' => {
+        const s = (statut ?? '').toLowerCase();
+        if (s.includes('attente') || s.includes('attribu')) return 'enAttente';
+        if (s.includes('cours')) return 'enCours';
+        if (s.includes('livr') && !s.includes('livraison')) return 'livrees';
+        return 'autre';
+    }, []);
+
+    const filteredLivraisons = React.useMemo(() => {
+        if (statutFilter === 'all') return livraisons;
+        return livraisons.filter((l) => groupOf(l.statut as string | undefined) === statutFilter);
+    }, [livraisons, statutFilter, groupOf]);
+
+    const filterTitles: Record<typeof statutFilter, string> = {
+        all: 'Toutes les livraisons',
+        enCours: 'Livraisons en cours',
+        livrees: 'Livraisons effectuées',
+        enAttente: 'Livraisons en attente',
+    };
 
     // ========== EFFECTS ==========
 
@@ -178,84 +204,51 @@ export default function LivraisonsPage() {
                 </div>
             </div>
 
-            {/* ========== STATISTIQUES ========== */}
+            {/* ========== STATISTIQUES CLIQUABLES (filtres) ========== */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                {/* Total */}
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardDescription className="flex items-center gap-2">
-                            <Package className="h-4 w-4" />
-                            Total des livraisons
-                        </CardDescription>
-                        <CardTitle className="text-3xl font-bold">
-                            {stats.total}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
+                <StatFilterCard
+                    filterKey="all"
+                    activeFilter={statutFilter}
+                    onSelect={(key) => setStatutFilter(key as typeof statutFilter)}
+                    label={<><Package className="h-4 w-4" /> Total des livraisons</>}
+                    value={stats.total}
+                    footer={
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <Badge variant="outline" className="text-xs">
-                                {stats.en_attente} en attente
-                            </Badge>
-                            <Badge variant="outline" className="text-xs">
-                                {stats.en_cours} en cours
-                            </Badge>
+                            <Badge variant="outline" className="text-xs">{stats.en_attente} en attente</Badge>
+                            <Badge variant="outline" className="text-xs">{stats.en_cours} en cours</Badge>
                         </div>
-                    </CardContent>
-                </Card>
-
-                {/* En cours */}
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardDescription className="flex items-center gap-2">
-                            <Truck className="h-4 w-4 text-orange-600" />
-                            En cours
-                        </CardDescription>
-                        <CardTitle className="text-3xl font-bold text-orange-600">
-                            {stats.en_cours}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-xs text-muted-foreground">
-                            Livraisons en transit
-                        </p>
-                    </CardContent>
-                </Card>
-
-                {/* Livrées */}
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardDescription className="flex items-center gap-2">
-                            <CheckCircle className="h-4 w-4 text-green-600" />
-                            Livrées
-                        </CardDescription>
-                        <CardTitle className="text-3xl font-bold text-green-600">
-                            {stats.livrees}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-xs text-muted-foreground">
-                            Livraisons effectuées
-                        </p>
-                    </CardContent>
-                </Card>
-
-                {/* En attente */}
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardDescription className="flex items-center gap-2">
-                            <Clock className="h-4 w-4 text-amber-600" />
-                            En attente
-                        </CardDescription>
-                        <CardTitle className="text-3xl font-bold text-amber-600">
-                            {stats.en_attente}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-xs text-muted-foreground">
-                            En attente d'attribution
-                        </p>
-                    </CardContent>
-                </Card>
+                    }
+                />
+                <StatFilterCard
+                    filterKey="enCours"
+                    activeFilter={statutFilter}
+                    onSelect={toggleStatutFilter}
+                    label={<><Truck className="h-4 w-4 text-orange-600" /> En cours</>}
+                    value={stats.en_cours}
+                    valueClassName="text-orange-600"
+                    activeRingClassName="ring-orange-500/40 border-orange-500/50 bg-orange-50/50"
+                    footer={<p className="text-xs text-muted-foreground">Livraisons en transit</p>}
+                />
+                <StatFilterCard
+                    filterKey="livrees"
+                    activeFilter={statutFilter}
+                    onSelect={toggleStatutFilter}
+                    label={<><CheckCircle className="h-4 w-4 text-green-600" /> Livrées</>}
+                    value={stats.livrees}
+                    valueClassName="text-green-600"
+                    activeRingClassName="ring-green-500/40 border-green-500/50 bg-green-50/50"
+                    footer={<p className="text-xs text-muted-foreground">Livraisons effectuées</p>}
+                />
+                <StatFilterCard
+                    filterKey="enAttente"
+                    activeFilter={statutFilter}
+                    onSelect={toggleStatutFilter}
+                    label={<><Clock className="h-4 w-4 text-amber-600" /> En attente</>}
+                    value={stats.en_attente}
+                    valueClassName="text-amber-600"
+                    activeRingClassName="ring-amber-500/40 border-amber-500/50 bg-amber-50/50"
+                    footer={<p className="text-xs text-muted-foreground">En attente d'attribution</p>}
+                />
             </div>
 
             {/* ========== LIVRAISONS EN COURS ========== */}
@@ -315,14 +308,25 @@ export default function LivraisonsPage() {
             {/* ========== TABLEAU DES LIVRAISONS ========== */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Toutes les livraisons</CardTitle>
-                    <CardDescription>
-                        Consultez et gérez l'ensemble des livraisons de la plateforme
-                    </CardDescription>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <CardTitle>{filterTitles[statutFilter]}</CardTitle>
+                            <CardDescription>
+                                {statutFilter === 'all'
+                                    ? "Consultez et gérez l'ensemble des livraisons de la plateforme"
+                                    : `${filteredLivraisons.length} livraison${filteredLivraisons.length > 1 ? 's' : ''} sur ${livraisons.length}`}
+                            </CardDescription>
+                        </div>
+                        {statutFilter !== 'all' && (
+                            <Button variant="ghost" size="sm" onClick={() => setStatutFilter('all')}>
+                                Réinitialiser le filtre
+                            </Button>
+                        )}
+                    </div>
                 </CardHeader>
                 <CardContent>
                     <LivraisonsTable
-                        livraisons={livraisons}
+                        livraisons={filteredLivraisons}
                         isLoading={isLoading}
                         onView={handleView}
                         onDelete={handleDelete}

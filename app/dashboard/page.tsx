@@ -39,12 +39,14 @@ interface DashboardData {
     total: number
     clients: number
     boutiques: number
+    newBoutiques: number
     newUsers: number
   }
   products: {
     total: number
     newProducts: number
     inPromotion: number
+    newInPromotion: number
     madeInGabon: number
     outOfStock: number
   }
