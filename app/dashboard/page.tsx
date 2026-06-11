@@ -34,6 +34,30 @@ interface DashboardData {
       users: { name: string; email: string } | null
     }[]
   }
+  users: {
+    total: number
+    clients: number
+    boutiques: number
+    newUsers: number
+  }
+  products: {
+    total: number
+    newProducts: number
+    inPromotion: number
+    madeInGabon: number
+    outOfStock: number
+  }
+  reclamations: {
+    total: number
+    new: number
+    byStatus: {
+      en_attente_de_traitement: number
+      en_cours: number
+      rejete: number
+      rembourse: number
+    }
+    rate: number
+  }
   alerts: {
     pendingOrders: number
     pendingClaims: number
@@ -121,7 +145,7 @@ export default function DashboardPage() {
 
       {loading ? (
         <div className="grid grid-cols-1 gap-4 px-4 lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
+          {Array.from({ length: 8 }).map((_, i) => (
             <div key={i} className="h-36 animate-pulse rounded-xl bg-muted" />
           ))}
         </div>
