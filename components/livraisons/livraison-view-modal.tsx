@@ -243,6 +243,40 @@ export function LivraisonViewModal({ open, onClose, livraison }: LivraisonViewMo
 
                     <Separator />
 
+                    {/* Livreur assigné */}
+                    <div>
+                        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                            <Truck className="h-4 w-4" />
+                            Livreur assigné
+                        </h3>
+                        {livraison.livreur ? (
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="rounded-lg bg-muted/50 p-3">
+                                    <p className="text-xs text-muted-foreground mb-1">Nom</p>
+                                    <p className="text-sm font-medium">{livraison.livreur.name}</p>
+                                </div>
+                                <div className="rounded-lg bg-muted/50 p-3">
+                                    <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+                                        <Phone className="h-3 w-3" /> Téléphone
+                                    </p>
+                                    <p className="text-sm font-medium">{livraison.livreur.phone || '—'}</p>
+                                </div>
+                                <div className="rounded-lg bg-muted/50 p-3 col-span-2">
+                                    <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+                                        <Mail className="h-3 w-3" /> Email
+                                    </p>
+                                    <p className="text-sm font-medium truncate">{livraison.livreur.email || '—'}</p>
+                                </div>
+                            </div>
+                        ) : (
+                            <p className="text-sm text-muted-foreground italic">
+                                Aucun livreur n'a encore été assigné à cette livraison.
+                            </p>
+                        )}
+                    </div>
+
+                    <Separator />
+
                     {/* Dates */}
                     <div>
                         <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">

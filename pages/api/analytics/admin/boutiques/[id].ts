@@ -169,9 +169,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return date.toISOString().split("T")[0];
         });
 
+        // Statuts = paiement confirmé (tout sauf "En attente", "Annulée", "Remboursée")
+        const STATUTS_PAYES = ["En préparation", "Prête pour livraison", "En cours de livraison", "Livrée"];
+
         const revenueByDay = last30Days.map((date) => {
             const dayOrders = allCommandes?.filter(
-                (c) => c.created_at.startsWith(date) && c.statut === "Livrée"
+                (c) => c.created_at.startsWith(date) && STATUTS_PAYES.includes(c.statut)
             ) || [];
             return {
                 date,
@@ -182,13 +185,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         // Calculs agrégés
         const totalCommandes = commandes?.length || 0;
-        const commandesLivrees = commandes?.filter((c) => c.statut === "Livrée") || [];
-        const chiffreAffaires = commandesLivrees.reduce((sum, c) => sum + c.prix, 0);
-        const panierMoyen = commandesLivrees.length > 0
-            ? Math.round(chiffreAffaires / commandesLivrees.length)
+        const commandesPayees = commandes?.filter((c) => STATUTS_PAYES.includes(c.statut)) || [];
+        const chiffreAffaires = commandesPayees.reduce((sum, c) => sum + c.prix, 0);
+        const panierMoyen = commandesPayees.length > 0
+            ? Math.round(chiffreAffaires / commandesPayees.length)
             : 0;
         const tauxConversion = totalCommandes > 0
-            ? Math.round((commandesLivrees.length / totalCommandes) * 100 * 100) / 100
+            ? Math.round((commandesPayees.length / totalCommandes) * 100 * 100) / 100
             : 0;
 
         const commandesByStatus = {
@@ -216,7 +219,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         // Totaux all-time pour comparaison
         const allTimeCA = allCommandes
-            ?.filter((c) => c.statut === "Livrée")
+            ?.filter((c) => STATUTS_PAYES.includes(c.statut))
             .reduce((sum, c) => sum + c.prix, 0) || 0;
 
         return res.status(200).json({

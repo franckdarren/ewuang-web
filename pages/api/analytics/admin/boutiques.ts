@@ -122,6 +122,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             }
         });
 
+        const STATUTS_PAYES = ["En préparation", "Prête pour livraison", "En cours de livraison", "Livrée"];
+
         // Construire stats par boutique
         const statsByBoutique: Record<string, any> = {};
 
@@ -165,20 +167,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             const s = statsByBoutique[bid];
             s.commandes.total += 1;
 
-            if (c.statut === "Livrée") {
+            if (STATUTS_PAYES.includes(c.statut)) {
                 s.commandes.livrees += 1;
                 s.finances.chiffre_affaires += c.prix;
             } else if (c.statut === "En attente") {
                 s.commandes.en_attente += 1;
-            } else if (c.statut === "En préparation") {
-                s.commandes.en_preparation += 1;
-                s.finances.chiffre_affaires_en_cours += c.prix;
             } else if (c.statut === "Annulée") {
                 s.commandes.annulees += 1;
             } else if (c.statut === "Remboursée") {
                 s.commandes.remboursees += 1;
-            } else {
-                s.finances.chiffre_affaires_en_cours += c.prix;
             }
         });
 
