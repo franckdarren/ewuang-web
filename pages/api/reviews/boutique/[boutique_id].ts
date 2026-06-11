@@ -94,7 +94,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const { data: articles, error: articlesError } = await supabaseAdmin
             .from("articles")
             .select("id")
-            .eq("boutique_id", boutique_id);
+            .eq("user_id", boutique_id);
 
         if (articlesError) {
             console.error("Supabase error (articles):", articlesError);
