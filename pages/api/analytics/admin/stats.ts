@@ -23,7 +23,19 @@ import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth
  *           type: string
  *           enum: [today, week, month, year]
  *           default: month
- *         description: Période pour les statistiques temporelles
+ *         description: Préset de période (ignoré si from et to sont fournis)
+ *       - in: query
+ *         name: from
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Date de début ISO (YYYY-MM-DD). Prioritaire sur period.
+ *       - in: query
+ *         name: to
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Date de fin ISO (YYYY-MM-DD), incluse. Prioritaire sur period.
  *     responses:
  *       200:
  *         description: Statistiques du dashboard
@@ -80,23 +92,42 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         const period = (req.query.period as string) || "month";
+        const fromParam = req.query.from as string | undefined;
+        const toParam = req.query.to as string | undefined;
         const now = new Date();
-        let startDate = new Date();
 
-        // Calculer la date de début selon la période
-        switch (period) {
-            case "today":
-                startDate.setHours(0, 0, 0, 0);
-                break;
-            case "week":
-                startDate.setDate(now.getDate() - 7);
-                break;
-            case "month":
-                startDate.setMonth(now.getMonth() - 1);
-                break;
-            case "year":
-                startDate.setFullYear(now.getFullYear() - 1);
-                break;
+        // Détermine [startDate, endDate]. from/to ont priorité sur period.
+        let startDate = new Date();
+        let endDate = new Date(now);
+
+        if (fromParam && toParam) {
+            const parsedFrom = new Date(fromParam);
+            const parsedTo = new Date(toParam);
+            if (isNaN(parsedFrom.getTime()) || isNaN(parsedTo.getTime())) {
+                return res.status(400).json({ error: "from/to invalides (format attendu : YYYY-MM-DD)" });
+            }
+            if (parsedFrom > parsedTo) {
+                return res.status(400).json({ error: "from doit être <= to" });
+            }
+            startDate = parsedFrom;
+            startDate.setHours(0, 0, 0, 0);
+            endDate = parsedTo;
+            endDate.setHours(23, 59, 59, 999);
+        } else {
+            switch (period) {
+                case "today":
+                    startDate.setHours(0, 0, 0, 0);
+                    break;
+                case "week":
+                    startDate.setDate(now.getDate() - 7);
+                    break;
+                case "month":
+                    startDate.setMonth(now.getMonth() - 1);
+                    break;
+                case "year":
+                    startDate.setFullYear(now.getFullYear() - 1);
+                    break;
+            }
         }
 
         // ============================================
@@ -112,19 +143,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const totalOrders = allOrders?.length || 0;
 
         // Commandes et revenus de la période
-        const periodOrders = allOrders?.filter(
-            (order) => new Date(order.created_at) >= startDate
-        ) || [];
+        const periodOrders = allOrders?.filter((order) => {
+            const d = new Date(order.created_at);
+            return d >= startDate && d <= endDate;
+        }) || [];
         const periodRevenue = periodOrders.reduce((sum, order) => sum + order.prix, 0);
         const periodOrdersCount = periodOrders.length;
 
-        // Calcul des pourcentages de croissance
+        // Calcul des pourcentages de croissance (période précédente de même durée)
+        const periodDuration = endDate.getTime() - startDate.getTime();
+        const previousPeriodEnd = new Date(startDate.getTime() - 1);
+        const previousPeriodStart = new Date(startDate.getTime() - periodDuration);
         const previousPeriodOrders = allOrders?.filter((order) => {
-            const orderDate = new Date(order.created_at);
-            const periodStart = new Date(startDate);
-            const periodDuration = now.getTime() - startDate.getTime();
-            const previousPeriodStart = new Date(periodStart.getTime() - periodDuration);
-            return orderDate >= previousPeriodStart && orderDate < periodStart;
+            const d = new Date(order.created_at);
+            return d >= previousPeriodStart && d <= previousPeriodEnd;
         }) || [];
 
         const previousRevenue = previousPeriodOrders.reduce((sum, order) => sum + order.prix, 0);
@@ -150,9 +182,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             .from("users")
             .select("*", { count: "exact" });
 
-        const newUsers = allUsers?.filter(
-            (user) => new Date(user.created_at) >= startDate
-        ).length || 0;
+        const newUsers = allUsers?.filter((user) => {
+            const d = new Date(user.created_at);
+            return d >= startDate && d <= endDate;
+        }).length || 0;
 
         const { count: totalCustomers } = await supabaseAdmin
             .from("users")
@@ -175,7 +208,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const { data: newProducts } = await supabaseAdmin
             .from("articles")
             .select("created_at")
-            .gte("created_at", startDate.toISOString());
+            .gte("created_at", startDate.toISOString())
+            .lte("created_at", endDate.toISOString());
 
         const { count: productsInPromotion } = await supabaseAdmin
             .from("articles")
@@ -246,9 +280,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             rembourse: allClaims?.filter(c => c.statut === "Remboursée").length || 0,
         };
 
-        const newClaims = allClaims?.filter(
-            (claim) => new Date(claim.created_at) >= startDate
-        ).length || 0;
+        const newClaims = allClaims?.filter((claim) => {
+            const d = new Date(claim.created_at);
+            return d >= startDate && d <= endDate;
+        }).length || 0;
 
         const totalClaims = allClaims?.length || 0;
         const claimRate = totalOrders > 0 ? (totalClaims / totalOrders) * 100 : 0;
@@ -313,16 +348,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             .slice(0, 5);
 
         // ============================================
-        // 8. ÉVOLUTION DES REVENUS (30 derniers jours)
+        // 8. ÉVOLUTION DES REVENUS (sur la période sélectionnée, jour par jour)
         // ============================================
 
-        const last30Days = Array.from({ length: 30 }, (_, i) => {
-            const date = new Date();
-            date.setDate(date.getDate() - (29 - i));
+        const dayCount = Math.max(
+            1,
+            Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
+        );
+        // Plafond pour éviter une réponse trop volumineuse sur des plages très larges
+        const cappedDayCount = Math.min(dayCount, 366);
+        const rangeStart = new Date(startDate);
+        rangeStart.setHours(0, 0, 0, 0);
+
+        const rangeDays = Array.from({ length: cappedDayCount }, (_, i) => {
+            const date = new Date(rangeStart);
+            date.setDate(rangeStart.getDate() + i);
             return date.toISOString().split("T")[0];
         });
 
-        const revenueByDay = last30Days.map((date) => {
+        const revenueByDay = rangeDays.map((date) => {
             const dayOrders = allOrders?.filter(
                 (order) => order.created_at.startsWith(date)
             ) || [];
@@ -369,6 +413,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         return res.status(200).json({
             period,
+            dateRange: {
+                from: startDate.toISOString(),
+                to: endDate.toISOString(),
+            },
             generatedAt: new Date().toISOString(),
 
             overview: {

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { ChartAreaInteractive } from "@/components/chart-area-interactive";
 import { SectionCards } from "@/components/section-cards";
 import { RecentOrdersTable } from "@/components/recent-orders-table";
+import { PeriodFilter, getDefaultPeriod, type PeriodValue } from "@/components/period-filter";
 import { useAuthStore, useIsAdmin, useUserName } from '@/stores/authStore';
 
 interface DashboardData {
@@ -78,6 +79,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [period, setPeriod] = useState<PeriodValue>(() => getDefaultPeriod());
 
   useEffect(() => {
     if (isInitialized && !isAuthenticated) {
@@ -91,7 +93,10 @@ export default function DashboardPage() {
     async function fetchStats() {
       try {
         setLoading(true);
-        const res = await fetch('/api/analytics/admin/stats?period=month', {
+        const fromIso = period.from.toISOString().split('T')[0];
+        const toIso = period.to.toISOString().split('T')[0];
+        const url = `/api/analytics/admin/stats?from=${fromIso}&to=${toIso}`;
+        const res = await fetch(url, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -110,7 +115,7 @@ export default function DashboardPage() {
     }
 
     fetchStats();
-  }, [isInitialized, isAuthenticated, token]);
+  }, [isInitialized, isAuthenticated, token, period.from, period.to]);
 
   if (!isInitialized || !user) {
     return (
@@ -135,6 +140,10 @@ export default function DashboardPage() {
             : `Rôle : ${user.role}`
           }
         </p>
+      </div>
+
+      <div className="px-4 lg:px-6">
+        <PeriodFilter value={period} onChange={setPeriod} />
       </div>
 
       {error && (

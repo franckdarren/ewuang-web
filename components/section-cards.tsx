@@ -140,7 +140,7 @@ export function SectionCards({ stats }: SectionCardsProps) {
       {/* Revenus → Transactions */}
       <LinkCard href="/dashboard/transactions" ariaLabel="Voir les transactions">
         <CardHeader>
-          <CardDescription>Revenus (ce mois)</CardDescription>
+          <CardDescription>Revenus (période)</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
             {overview ? formatCurrency(overview.periodRevenue) : "—"}
           </CardTitle>
@@ -166,7 +166,7 @@ export function SectionCards({ stats }: SectionCardsProps) {
       {/* Commandes → /dashboard/commandes */}
       <LinkCard href="/dashboard/commandes" ariaLabel="Voir les commandes">
         <CardHeader>
-          <CardDescription>Commandes (ce mois)</CardDescription>
+          <CardDescription>Commandes (période)</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
             {overview ? formatNumber(overview.periodOrders) : "—"}
           </CardTitle>
@@ -209,7 +209,7 @@ export function SectionCards({ stats }: SectionCardsProps) {
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            {overview ? overview.newUsers : "—"} nouveaux ce mois
+            {overview ? overview.newUsers : "—"} nouveaux sur la période
           </div>
           <div className="text-muted-foreground flex items-center gap-1 group-hover:text-primary transition-colors">
             Voir tous les utilisateurs

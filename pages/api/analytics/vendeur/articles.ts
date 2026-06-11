@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "../../../../app/lib/supabaseAdmin";
 import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth";
+import { resolvePeriod, isResolveError } from "../../../../app/lib/analyticsPeriod";
 
 /**
  * @swagger
@@ -8,11 +9,29 @@ import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth
  *   get:
  *     summary: Performance des articles du vendeur (Boutique)
  *     description: >
- *       Retourne les statistiques de performance des articles du vendeur.
+ *       Retourne les statistiques de performance des articles du vendeur sur la période demandée.
+ *       Les compteurs « quantité vendue / revenu / commandes » sont filtrés par la période ;
+ *       les résumés (total articles, en promotion) reflètent l'état courant.
  *     tags:
  *       - Analytics
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: periode
+ *         schema:
+ *           type: string
+ *           enum: [today, week, month, year, all]
+ *       - in: query
+ *         name: from
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: to
+ *         schema:
+ *           type: string
+ *           format: date
  */
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -23,6 +42,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const auth = await requireUserAuth(req, res);
         if (!auth) return;
         const { profile } = auth;
+
+        const resolved = resolvePeriod({
+            periode: req.query.periode as string | undefined,
+            from: req.query.from as string | undefined,
+            to: req.query.to as string | undefined,
+        });
+        if (isResolveError(resolved)) {
+            return res.status(400).json({ error: resolved.error });
+        }
+        const { startDate, endDate, period: periode } = resolved;
 
         // Récupérer les articles avec leurs commandes
         const { data: articles, error } = await supabaseAdmin
@@ -40,11 +69,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(500).json({ error: "Erreur lors de la récupération" });
         }
 
-        // Calculer les stats par article
+        // Calculer les stats par article — ventes filtrées sur la période
         const statsArticles = articles?.map(article => {
-            const commandesLivrees = article.commande_articles?.filter(
-                (ca: any) => ca.commandes?.statut === 'livree'
-            ) || [];
+            const commandesLivrees = article.commande_articles?.filter((ca: any) => {
+                if (ca.commandes?.statut !== 'livree') return false;
+                const d = ca.created_at ? new Date(ca.created_at) : null;
+                if (!d) return false;
+                return d >= startDate && d <= endDate;
+            }) || [];
 
             const quantiteVendue = commandesLivrees.reduce(
                 (sum: number, ca: any) => sum + ca.quantite, 0
@@ -79,6 +111,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         return res.status(200).json({
             stats: {
+                periode,
+                date_debut: startDate,
+                date_fin: endDate,
                 resume: {
                     total_articles: statsArticles.length,
                     articles_actifs: articles?.filter(a => a.is_active).length || 0,
