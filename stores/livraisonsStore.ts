@@ -55,6 +55,13 @@ export interface LivraisonStats {
     annulees: number;
 }
 
+export interface LivreurOption {
+    id: string;
+    name: string;
+    email: string;
+    phone: string;
+}
+
 // ============================================
 // INTERFACE DU STORE
 // ============================================
@@ -68,6 +75,8 @@ interface LivraisonsState {
 
     fetchLivraisons: () => Promise<void>;
     updateStatut: (id: string, statut: LivraisonStatut) => Promise<void>;
+    assignLivreur: (id: string, livreur_id: string) => Promise<void>;
+    fetchLivreurs: () => Promise<LivreurOption[]>;
     deleteLivraison: (id: string) => Promise<void>;
     setSelectedLivraison: (livraison: Livraison | null) => void;
     calculateStats: () => void;
@@ -201,6 +210,54 @@ export const useLivraisonsStore = createWithEqualityFn<LivraisonsState>((set, ge
             set({ error: errorMessage, isLoading: false });
             toast.error('Erreur', { description: errorMessage });
             throw error;
+        }
+    },
+
+    /**
+     * ASSIGN LIVREUR - Attribuer un livreur à une livraison (admin)
+     */
+    assignLivreur: async (id: string, livreur_id: string) => {
+        set({ isLoading: true, error: null });
+        try {
+            const response = await fetch(`/api/livraisons/${id}/update`, {
+                method: 'PATCH',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ livreur_id }),
+            });
+            if (!response.ok) await handleApiError(response);
+            const data = await response.json();
+            const updated: Livraison = data.livraison;
+            const livraisons = get().livraisons.map(l => l.id === id ? updated : l);
+            const selectedLivraison = get().selectedLivraison?.id === id
+                ? updated
+                : get().selectedLivraison;
+            set({ livraisons, selectedLivraison, isLoading: false, error: null });
+            get().calculateStats();
+            toast.success('Livreur attribué', { description: 'La livraison est maintenant en cours' });
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Erreur d\'attribution';
+            set({ error: errorMessage, isLoading: false });
+            toast.error('Erreur', { description: errorMessage });
+            throw error;
+        }
+    },
+
+    /**
+     * FETCH LIVREURS - Récupérer la liste des livreurs disponibles (admin)
+     */
+    fetchLivreurs: async (): Promise<LivreurOption[]> => {
+        try {
+            const token = getAuthToken();
+            const response = await fetch('/api/users/livreurs', {
+                headers: { 'Authorization': `Bearer ${token}` },
+            });
+            if (!response.ok) await handleApiError(response);
+            const data = await response.json();
+            return data.livreurs as LivreurOption[];
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Erreur de chargement';
+            toast.error('Erreur', { description: errorMessage });
+            return [];
         }
     },
 

@@ -199,7 +199,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             en_preparation: commandes?.filter((c) => c.statut === "En préparation").length || 0,
             prete_pour_livraison: commandes?.filter((c) => c.statut === "Prête pour livraison").length || 0,
             en_cours_de_livraison: commandes?.filter((c) => c.statut === "En cours de livraison").length || 0,
-            livree: commandesLivrees.length,
+            livree: commandes?.filter((c) => c.statut === "Livrée").length || 0,
             annulee: commandes?.filter((c) => c.statut === "Annulée").length || 0,
             remboursee: commandes?.filter((c) => c.statut === "Remboursée").length || 0,
         };

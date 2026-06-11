@@ -35,6 +35,7 @@ import {
 import {
     type Livraison,
     type LivraisonStatut,
+    type LivreurOption,
     normalizeStatut,
     useLivraisonsStore,
 } from '@/stores/livraisonsStore';
@@ -103,15 +104,27 @@ const STATUTS: LivraisonStatut[] = [
 // ============================================
 
 export function LivraisonViewModal({ open, onClose, livraison }: LivraisonViewModalProps) {
-    const { updateStatut, isLoading } = useLivraisonsStore();
+    const { updateStatut, assignLivreur, fetchLivreurs, isLoading } = useLivraisonsStore();
     const [selectedStatut, setSelectedStatut] = React.useState<LivraisonStatut | undefined>(undefined);
     const [isSaving, setIsSaving] = React.useState(false);
+
+    // Assignation livreur
+    const [livreurs, setLivreurs] = React.useState<LivreurOption[]>([]);
+    const [selectedLivreurId, setSelectedLivreurId] = React.useState<string>('');
+    const [isAssigning, setIsAssigning] = React.useState(false);
 
     React.useEffect(() => {
         if (livraison) {
             setSelectedStatut(normalizeStatut(livraison.statut) as LivraisonStatut);
+            setSelectedLivreurId(livraison.livreur_id ?? '');
         }
     }, [livraison]);
+
+    React.useEffect(() => {
+        if (open) {
+            fetchLivreurs().then(setLivreurs);
+        }
+    }, [open, fetchLivreurs]);
 
     if (!livraison) return null;
 
@@ -119,6 +132,7 @@ export function LivraisonViewModal({ open, onClose, livraison }: LivraisonViewMo
     const StatutIcon = statutConfig.icon;
     const displayStatut = normalizeStatut(livraison.statut);
     const hasStatutChanged = selectedStatut && selectedStatut !== displayStatut;
+    const hasLivreurChanged = selectedLivreurId !== (livraison.livreur_id ?? '');
 
     const handleSaveStatut = async () => {
         if (!selectedStatut || !hasStatutChanged) return;
@@ -127,6 +141,16 @@ export function LivraisonViewModal({ open, onClose, livraison }: LivraisonViewMo
             await updateStatut(livraison.id, selectedStatut);
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    const handleAssignLivreur = async () => {
+        if (!selectedLivreurId || !hasLivreurChanged) return;
+        setIsAssigning(true);
+        try {
+            await assignLivreur(livraison.id, selectedLivreurId);
+        } finally {
+            setIsAssigning(false);
         }
     };
 
@@ -249,8 +273,10 @@ export function LivraisonViewModal({ open, onClose, livraison }: LivraisonViewMo
                             <Truck className="h-4 w-4" />
                             Livreur assigné
                         </h3>
+
+                        {/* Infos du livreur actuel */}
                         {livraison.livreur ? (
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-2 gap-3 mb-4">
                                 <div className="rounded-lg bg-muted/50 p-3">
                                     <p className="text-xs text-muted-foreground mb-1">Nom</p>
                                     <p className="text-sm font-medium">{livraison.livreur.name}</p>
@@ -269,10 +295,46 @@ export function LivraisonViewModal({ open, onClose, livraison }: LivraisonViewMo
                                 </div>
                             </div>
                         ) : (
-                            <p className="text-sm text-muted-foreground italic">
+                            <p className="text-sm text-muted-foreground italic mb-4">
                                 Aucun livreur n'a encore été assigné à cette livraison.
                             </p>
                         )}
+
+                        {/* Sélecteur d'attribution */}
+                        <div className="flex items-center gap-3">
+                            <Select
+                                value={selectedLivreurId}
+                                onValueChange={setSelectedLivreurId}
+                                disabled={livreurs.length === 0}
+                            >
+                                <SelectTrigger className="flex-1">
+                                    <SelectValue placeholder={
+                                        livreurs.length === 0
+                                            ? 'Aucun livreur disponible'
+                                            : 'Sélectionner un livreur'
+                                    } />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {livreurs.map((l) => (
+                                        <SelectItem key={l.id} value={l.id}>
+                                            <div className="flex items-center gap-2">
+                                                <Truck className="h-3.5 w-3.5 text-muted-foreground" />
+                                                <span>{l.name}</span>
+                                                {l.phone && (
+                                                    <span className="text-xs text-muted-foreground">· {l.phone}</span>
+                                                )}
+                                            </div>
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <Button
+                                onClick={handleAssignLivreur}
+                                disabled={!hasLivreurChanged || isAssigning || isLoading}
+                            >
+                                {isAssigning ? 'Attribution...' : 'Attribuer'}
+                            </Button>
+                        </div>
                     </div>
 
                     <Separator />
