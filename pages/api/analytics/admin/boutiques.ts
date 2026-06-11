@@ -91,7 +91,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Récupérer commandes sur la période
         const { data: commandes } = await supabaseAdmin
             .from("commandes")
-            .select("id, vendeur_id, prix, statut, created_at")
+            .select("id, prix, statut, created_at")
             .gte("created_at", startDate.toISOString());
 
         // Récupérer articles par boutique
@@ -158,9 +158,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             };
         });
 
-        // Agréger commandes par vendeur_id (lien direct)
+        // Agréger commandes via commande_articles (vendeur_id non fiable)
         commandes?.forEach((c) => {
-            const bid = c.vendeur_id;
+            const bid = commandeBoutique[c.id];
             if (!bid || !statsByBoutique[bid]) return;
             const s = statsByBoutique[bid];
             s.commandes.total += 1;
