@@ -65,8 +65,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           image_principale,
           user_id,
           users (name, email)
-        ),
-        stocks (quantite)
+        )
       `);
 
         // Si pas admin, filtrer par boutique
@@ -98,7 +97,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Filtrer et formater les résultats
         const alerts = variations
             ?.map((v) => {
-                const stockQuantity = v.stocks?.[0]?.quantite || v.stock || 0;
+                const stockQuantity = v.stock || 0;
                 const article = Array.isArray(v.articles) ? v.articles[0] : v.articles;
                 const user = article?.users ? (Array.isArray(article.users) ? article.users[0] : article.users) : null;
 
