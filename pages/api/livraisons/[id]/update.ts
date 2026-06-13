@@ -78,6 +78,15 @@ const updateLivraisonSchema = z.object({
         "Reportée"
     ]).optional(),
     livreur_id: z.string().uuid().optional(),
+    commentaire: z.string().max(500).optional(),
+}).superRefine((data, ctx) => {
+    if ((data.statut === "Annulée" || data.statut === "Reportée") && !data.commentaire?.trim()) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["commentaire"],
+            message: "Un commentaire est obligatoire pour annuler ou reporter une livraison",
+        });
+    }
 });
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -150,12 +159,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // 📦 Assignation livreur
         if (body.livreur_id) {
             updateData.livreur_id = body.livreur_id;
-            updateData.statut = "en_cours_de_livraison";
+            updateData.statut = "En cours de livraison";
         }
 
         // 🚚 Mise à jour statut
         if (body.statut) {
             updateData.statut = body.statut;
+            // Stocker le commentaire dans details pour Annulée/Reportée
+            if ((body.statut === "Annulée" || body.statut === "Reportée") && body.commentaire) {
+                updateData.details = body.commentaire.trim();
+            }
         }
 
         // 🔄 Mise à jour livraison
@@ -182,18 +195,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (body.statut || body.livreur_id) {
             let commandeStatut: string | null = null;
 
-            if (updateData.statut === "en_cours_de_livraison") {
-                commandeStatut = "en_livraison";
-            } else if (updateData.statut === "livree") {
-                commandeStatut = "livree";
-            } else if (updateData.statut === "annulee") {
-                commandeStatut = "annulee";
+            if (updateData.statut === "En cours de livraison") {
+                commandeStatut = "En cours de livraison";
+            } else if (updateData.statut === "Livrée") {
+                commandeStatut = "Livrée";
+            } else if (updateData.statut === "Annulée") {
+                commandeStatut = "Annulée";
+            }
+            // "Reportée" : la commande repasse en "Prête pour livraison"
+            else if (updateData.statut === "Reportée") {
+                commandeStatut = "Prête pour livraison";
             }
 
             if (commandeStatut) {
                 await supabaseAdmin
                     .from("commandes")
-                    .update({ statut: commandeStatut })
+                    .update({ statut: commandeStatut, updated_at: new Date().toISOString() })
                     .eq("id", livraison.commande_id);
             }
         }

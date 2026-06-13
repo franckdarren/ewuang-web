@@ -59,10 +59,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             .from("livraisons")
             .select(`
                 *,
-                commandes (id, numero, statut, prix, adresse_livraison)
+                commandes!inner (id, numero, statut, prix, adresse_livraison)
             `, { count: "exact" })
             .eq("statut", "En attente")
             .is("livreur_id", null)
+            .eq("commandes.statut", "Prête pour livraison")
             .order("date_livraison", { ascending: true })
             .range(offset, offset + limit - 1);
 

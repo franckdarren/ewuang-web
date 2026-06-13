@@ -141,6 +141,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(500).json({ error: "Impossible de mettre à jour le statut" });
         }
 
+        // Notifier tous les livreurs quand la commande est prête à être récupérée
+        if (body.statut === "Prête pour livraison") {
+            const { data: livreurs } = await supabaseAdmin
+                .from("users")
+                .select("id")
+                .eq("role", "Livreur")
+                .eq("is_active", true);
+
+            if (livreurs && livreurs.length > 0) {
+                const now = new Date().toISOString();
+                await supabaseAdmin.from("notifications").insert(
+                    livreurs.map((l: { id: string }) => ({
+                        user_id: l.id,
+                        type: "Livraison",
+                        titre: "Nouvelle livraison disponible",
+                        message: `La commande #${updatedCommande.numero} est prête et attend un livreur.`,
+                        lien: "/livraisons",
+                        is_read: false,
+                        created_at: now,
+                    }))
+                );
+            }
+        }
+
         return res.status(200).json({
             message: "Statut mis à jour avec succès",
             commande: updatedCommande,

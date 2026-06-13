@@ -100,7 +100,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Synchroniser le statut de la commande
         await supabaseAdmin
             .from("commandes")
-            .update({ statut: "en_livraison" })
+            .update({ statut: "En cours de livraison", updated_at: new Date().toISOString() })
             .eq("id", livraison.commande_id);
 
         return res.status(200).json({

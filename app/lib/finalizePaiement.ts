@@ -60,7 +60,7 @@ function extractVille(adresse: string): string {
 }
 
 /**
- * Finalise un paiement Validé : passe la commande en "Prête pour livraison",
+ * Finalise un paiement Validé : passe la commande en "En préparation",
  * crée automatiquement la livraison si isLivrable, crédite les boutiques
  * et l'admin, notifie le client.
  *
@@ -122,27 +122,21 @@ export async function finalizePaiementValide(
         updated_at: new Date().toISOString(),
       });
     }
-
-    // Commande prête pour livraison
-    await supabaseAdmin
-      .from("commandes")
-      .update({ statut: "Prête pour livraison", updated_at: new Date().toISOString() })
-      .eq("id", commande.id);
-  } else {
-    // Commande sans livraison → En préparation classique
-    await supabaseAdmin
-      .from("commandes")
-      .update({ statut: "En préparation", updated_at: new Date().toISOString() })
-      .eq("id", commande.id);
   }
+
+  // Commande toujours en préparation après paiement — la boutique la passera
+  // manuellement en "Prête pour livraison" une fois prête, ce qui déclenchera
+  // la notification aux livreurs.
+  await supabaseAdmin
+    .from("commandes")
+    .update({ statut: "En préparation", updated_at: new Date().toISOString() })
+    .eq("id", commande.id);
 
   await supabaseAdmin.from("notifications").insert({
     user_id: commande.user_id,
     type: "Commande",
     titre: "Paiement confirmé",
-    message: commande.isLivrable
-      ? `Votre commande ${commande.numero} a été payée avec succès. Une livraison a été créée.`
-      : `Votre commande ${commande.numero} a été payée avec succès. Elle est en cours de préparation.`,
+    message: `Votre commande ${commande.numero} a été payée avec succès. Elle est en cours de préparation.`,
     is_read: false,
     created_at: new Date().toISOString(),
   });
