@@ -33,6 +33,8 @@ import { resolvePeriod, isResolveError } from "../../../../app/lib/analyticsPeri
  *           format: date
  */
 
+const STATUTS_PAYES = ["En préparation", "Prête pour livraison", "En cours de livraison", "Livrée"];
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== "GET")
         return res.status(405).json({ error: "Méthode non autorisée" });
@@ -52,33 +54,48 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
         const { startDate: dateDebut, endDate: dateFin, period: periode } = resolved;
 
-        // Récupérer les commandes
-        const { data: commandes, error } = await supabaseAdmin
-            .from("commandes")
-            .select("*")
-            .eq("vendeur_id", profile.id)
-            .gte("created_at", dateDebut.toISOString())
-            .lte("created_at", dateFin.toISOString());
+        // Récupérer les articles de cette boutique
+        const { data: articles } = await supabaseAdmin
+            .from("articles")
+            .select("id")
+            .eq("user_id", profile.id);
 
-        if (error) {
-            console.error("Erreur récupération commandes:", error);
-            return res.status(500).json({ error: "Erreur lors du calcul" });
+        const articleIds = articles?.map((a) => a.id) || [];
+
+        let commandes: any[] = [];
+
+        if (articleIds.length > 0) {
+            // Trouver les commandes contenant ces articles
+            const { data: caLinks } = await supabaseAdmin
+                .from("commande_articles")
+                .select("commande_id")
+                .in("article_id", articleIds);
+
+            const commandeIds = [...new Set((caLinks?.map((c: any) => c.commande_id) || []) as string[])];
+
+            if (commandeIds.length > 0) {
+                const { data: allCmds } = await supabaseAdmin
+                    .from("commandes")
+                    .select("id, prix, statut, created_at")
+                    .in("id", commandeIds)
+                    .gte("created_at", dateDebut.toISOString())
+                    .lte("created_at", dateFin.toISOString());
+                commandes = allCmds || [];
+            }
         }
 
-        const total = commandes?.length || 0;
-        const livrees = commandes?.filter(c => c.statut === 'livree').length || 0;
-        const enCours = commandes?.filter(c =>
-            ['en_preparation', 'prete_pour_livraison', 'en_cours_de_livraison'].includes(c.statut)
-        ).length || 0;
-        const annulees = commandes?.filter(c => c.statut === 'annule').length || 0;
+        const total = commandes.length;
+        const livrees = commandes.filter(c => c.statut === 'Livrée').length;
+        const enCours = commandes.filter(c => STATUTS_PAYES.includes(c.statut) && c.statut !== 'Livrée').length;
+        const annulees = commandes.filter(c => c.statut === 'Annulée' || c.statut === 'Remboursée').length;
 
         const chiffreAffaires = commandes
-            ?.filter(c => c.statut === 'livree')
-            .reduce((sum, c) => sum + c.prix, 0) || 0;
+            .filter(c => c.statut === 'Livrée')
+            .reduce((sum, c) => sum + c.prix, 0);
 
         const chiffreAffairesEnCours = commandes
-            ?.filter(c => ['en_preparation', 'prete_pour_livraison', 'en_cours_de_livraison'].includes(c.statut))
-            .reduce((sum, c) => sum + c.prix, 0) || 0;
+            .filter(c => STATUTS_PAYES.includes(c.statut) && c.statut !== 'Livrée')
+            .reduce((sum, c) => sum + c.prix, 0);
 
         const panierMoyen = livrees > 0 ? Math.round(chiffreAffaires / livrees) : 0;
         const tauxConversion = total > 0 ? ((livrees / total) * 100).toFixed(2) : 0;

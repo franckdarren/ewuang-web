@@ -1,11 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { ChartAreaInteractive } from "@/components/chart-area-interactive";
 import { SectionCards } from "@/components/section-cards";
 import { RecentOrdersTable } from "@/components/recent-orders-table";
 import { PeriodFilter, getDefaultPeriod, type PeriodValue } from "@/components/period-filter";
 import { useAuthStore, useIsAdmin, useUserName } from '@/stores/authStore';
+import { Button } from "@/components/ui/button";
+import { IconRefresh } from "@tabler/icons-react";
 
 interface DashboardData {
   period: string
@@ -82,6 +84,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [period, setPeriod] = useState<PeriodValue>(() => getDefaultPeriod());
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     if (isInitialized && !isAuthenticated) {
@@ -89,35 +92,35 @@ export default function DashboardPage() {
     }
   }, [isInitialized, isAuthenticated]);
 
-  useEffect(() => {
+  const fetchStats = useCallback(async () => {
     if (!isInitialized || !isAuthenticated || !token) return;
-
-    async function fetchStats() {
-      try {
-        setLoading(true);
-        const fromIso = period.from.toISOString().split('T')[0];
-        const toIso = period.to.toISOString().split('T')[0];
-        const url = `/api/analytics/admin/stats?from=${fromIso}&to=${toIso}`;
-        const res = await fetch(url, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.error ?? 'Erreur lors du chargement des statistiques');
-        }
-        const data: DashboardData = await res.json();
-        setStats(data);
-      } catch (e: any) {
-        setError(e.message ?? 'Erreur inconnue');
-      } finally {
-        setLoading(false);
+    try {
+      setLoading(true);
+      setError(null);
+      const fromIso = period.from.toISOString().split('T')[0];
+      const toIso = period.to.toISOString().split('T')[0];
+      const url = `/api/analytics/admin/stats?from=${fromIso}&to=${toIso}`;
+      const res = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error ?? 'Erreur lors du chargement des statistiques');
       }
+      const data: DashboardData = await res.json();
+      setStats(data);
+    } catch (e: any) {
+      setError(e.message ?? 'Erreur inconnue');
+    } finally {
+      setLoading(false);
     }
-
-    fetchStats();
   }, [isInitialized, isAuthenticated, token, period.from, period.to]);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats, refreshKey]);
 
   if (!isInitialized || !user) {
     return (
@@ -144,8 +147,20 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      <div className="px-4 lg:px-6">
-        <PeriodFilter value={period} onChange={setPeriod} />
+      <div className="px-4 lg:px-6 flex items-center gap-3">
+        <div className="flex-1">
+          <PeriodFilter value={period} onChange={setPeriod} />
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setRefreshKey(k => k + 1)}
+          disabled={loading}
+          className="shrink-0"
+        >
+          <IconRefresh className={`size-4 ${loading ? 'animate-spin' : ''}`} />
+          Rafraîchir
+        </Button>
       </div>
 
       {error && (

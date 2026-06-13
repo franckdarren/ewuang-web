@@ -69,11 +69,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(500).json({ error: "Erreur lors de la récupération" });
         }
 
+        // Statuts considérés comme ventes confirmées (paiement reçu)
+        const STATUTS_VENTES = ['En préparation', 'Prête pour livraison', 'En cours de livraison', 'Livrée'];
+
         // Calculer les stats par article — ventes filtrées sur la période
         const statsArticles = articles?.map(article => {
             const commandesLivrees = article.commande_articles?.filter((ca: any) => {
-                if (ca.commandes?.statut !== 'livree') return false;
-                const d = ca.created_at ? new Date(ca.created_at) : null;
+                if (!STATUTS_VENTES.includes(ca.commandes?.statut)) return false;
+                const d = ca.commandes?.created_at ? new Date(ca.commandes.created_at) : null;
                 if (!d) return false;
                 return d >= startDate && d <= endDate;
             }) || [];
@@ -83,7 +86,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             );
 
             const revenu = commandesLivrees.reduce(
-                (sum: number, ca: any) => sum + (ca.prix_unitaire * ca.quantite), 0
+                (sum: number, ca: any) => sum + ((ca.prix_unitaire || 0) * ca.quantite), 0
             );
 
             const noteMoyenne = article.avis?.length > 0

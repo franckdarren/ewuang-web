@@ -21,6 +21,7 @@ import {
   IconCircleCheck,
   IconClock,
   IconX,
+  IconRefresh,
 } from '@tabler/icons-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -142,6 +143,7 @@ export default function BoutiqueDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [period, setPeriod] = useState<Period>('month')
+  const [refreshKey, setRefreshKey] = useState(0)
 
   useEffect(() => {
     if (isInitialized && !isAuthenticated) {
@@ -173,7 +175,7 @@ export default function BoutiqueDetailPage() {
     }
 
     fetchData()
-  }, [isInitialized, isAuthenticated, token, id, period])
+  }, [isInitialized, isAuthenticated, token, id, period, refreshKey])
 
   const boutique = data?.boutique
 
@@ -244,6 +246,15 @@ export default function BoutiqueDetailPage() {
                 ))}
               </SelectContent>
             </Select>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setRefreshKey(k => k + 1)}
+              disabled={loading}
+            >
+              <IconRefresh className={`size-4 ${loading ? 'animate-spin' : ''}`} />
+              Rafraîchir
+            </Button>
           </div>
         </div>
       </div>
