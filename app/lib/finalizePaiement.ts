@@ -75,7 +75,7 @@ export async function finalizePaiementValide(
 
   const { data: commande } = await supabaseAdmin
     .from("commandes")
-    .select("id, numero, user_id, statut, isLivrable, adresse_livraison")
+    .select("id, numero, user_id, statut, isLivrable, adresse_livraison, telephone_livraison")
     .eq("id", commandeId)
     .maybeSingle();
 
@@ -94,15 +94,20 @@ export async function finalizePaiementValide(
       .maybeSingle();
 
     if (!livraisonExistante) {
-      // Récupérer le téléphone du client
-      const { data: client } = await supabaseAdmin
-        .from("users")
-        .select("phone")
-        .eq("id", commande.user_id)
-        .maybeSingle();
-
       const adresse: string = commande.adresse_livraison ?? "";
       const ville = extractVille(adresse);
+
+      // Priorité : numéro de contact livraison saisi au checkout,
+      // sinon fallback sur le téléphone du profil utilisateur
+      let phoneContact: string = (commande as any).telephone_livraison ?? "";
+      if (!phoneContact) {
+        const { data: client } = await supabaseAdmin
+          .from("users")
+          .select("phone")
+          .eq("id", commande.user_id)
+          .maybeSingle();
+        phoneContact = client?.phone ?? "";
+      }
 
       // Date de livraison par défaut : J+3
       const dateLivraison = new Date();
@@ -114,7 +119,7 @@ export async function finalizePaiementValide(
         livreur_id: null,
         adresse,
         ville,
-        phone: client?.phone ?? "",
+        phone: phoneContact,
         date_livraison: dateLivraison.toISOString(),
         statut: "En attente",
         details: "",

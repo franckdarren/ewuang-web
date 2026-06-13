@@ -38,7 +38,10 @@ import { pvitInitiatePaiement, toOperateurCode } from "../../../app/lib/pvit";
  *                 enum: [airtel_money, moov_money, visa_mastercard]
  *               telephone:
  *                 type: string
- *                 description: Numéro MSISDN du client (ex: 077XXXXXXX)
+ *                 description: Numéro MSISDN du client pour le paiement mobile money (ex: 077XXXXXXX)
+ *               telephone_livraison:
+ *                 type: string
+ *                 description: Numéro de contact pour la livraison (peut différer du numéro de paiement)
  *               isLivrable:
  *                 type: boolean
  *               adresse_livraison:
@@ -81,6 +84,7 @@ import { pvitInitiatePaiement, toOperateurCode } from "../../../app/lib/pvit";
 const initiateSchema = z.object({
   operateur: z.enum(["airtel_money", "moov_money", "visa_mastercard"]),
   telephone: z.string().min(5),
+  telephone_livraison: z.string().min(5).optional(),
   isLivrable: z.boolean(),
   adresse_livraison: z.string().max(255),
   commentaire: z.string().optional().default(""),
@@ -420,6 +424,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         isLivrable: body.isLivrable,
         prix: total,
         adresse_livraison: body.adresse_livraison,
+        telephone_livraison: body.telephone_livraison ?? null,
         code_promo_id: codePromoId,
         remise_appliquee: remiseAppliquee,
         paiement_id: paiementId,

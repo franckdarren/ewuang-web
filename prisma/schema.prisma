@@ -94,7 +94,8 @@ model commandes {
   remise_appliquee  Int              @default(0)
   created_at        DateTime         @default(now())
   updated_at        DateTime         @updatedAt
-  adresse_livraison String           @db.VarChar(255)
+  adresse_livraison    String           @db.VarChar(255)
+  telephone_livraison  String?          @db.VarChar(255)
 
   // 🔗 Relations
   acheteur users  @relation("CommandeAcheteur", fields: [user_id], references: [id])
