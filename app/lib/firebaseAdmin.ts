@@ -1,5 +1,5 @@
-import * as admin from 'firebase-admin';
 import { getApps, initializeApp, cert } from 'firebase-admin/app';
+import { getMessaging } from 'firebase-admin/messaging';
 
 // Initialise Firebase Admin une seule fois (pattern singleton pour Next.js)
 if (!getApps().length) {
@@ -12,4 +12,4 @@ if (!getApps().length) {
     });
 }
 
-export default admin;
+export { getMessaging };

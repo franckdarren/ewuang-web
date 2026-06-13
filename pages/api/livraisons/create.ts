@@ -3,7 +3,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { z, ZodError } from "zod";
 import { supabaseAdmin } from "../../../app/lib/supabaseAdmin";
 import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
-import firebaseAdmin from "../../../app/lib/firebaseAdmin";
+import { getMessaging } from "../../../app/lib/firebaseAdmin";
 
 /**
  * @swagger
@@ -212,7 +212,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                         .map((l: { id: string; fcm_token: string | null }) => l.fcm_token as string);
 
                     if (fcmTokens.length > 0) {
-                        await firebaseAdmin.messaging().sendEachForMulticast({
+                        await getMessaging().sendEachForMulticast({
                             tokens: fcmTokens,
                             notification: { title: titre, body: message },
                             data: { type: "livraison", route: "/livreur/livraisons" },
