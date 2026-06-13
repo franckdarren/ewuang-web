@@ -89,15 +89,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const enCours = commandes.filter(c => STATUTS_PAYES.includes(c.statut) && c.statut !== 'Livrée').length;
         const annulees = commandes.filter(c => c.statut === 'Annulée' || c.statut === 'Remboursée').length;
 
-        const chiffreAffaires = commandes
-            .filter(c => c.statut === 'Livrée')
-            .reduce((sum, c) => sum + c.prix, 0);
+        const commandesPayees = commandes.filter(c => STATUTS_PAYES.includes(c.statut));
+        const chiffreAffaires = commandesPayees.reduce((sum, c) => sum + c.prix, 0);
 
         const chiffreAffairesEnCours = commandes
             .filter(c => STATUTS_PAYES.includes(c.statut) && c.statut !== 'Livrée')
             .reduce((sum, c) => sum + c.prix, 0);
 
-        const panierMoyen = livrees > 0 ? Math.round(chiffreAffaires / livrees) : 0;
+        const panierMoyen = commandesPayees.length > 0 ? Math.round(chiffreAffaires / commandesPayees.length) : 0;
         const tauxConversion = total > 0 ? ((livrees / total) * 100).toFixed(2) : 0;
 
         return res.status(200).json({
