@@ -3,6 +3,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { z, ZodError } from "zod";
 import { supabaseAdmin } from "../../../app/lib/supabaseAdmin";
 import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
+import firebaseAdmin from "../../../app/lib/firebaseAdmin";
 
 /**
  * @swagger
@@ -178,6 +179,60 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 .from("commandes")
                 .update({ statut: "prete_pour_livraison" })
                 .eq("id", body.commande_id);
+        }
+
+        // Notifier tous les livreurs si la livraison est en attente d'attribution
+        if (statutFinal === "En attente") {
+            try {
+                const { data: livreurs } = await supabaseAdmin
+                    .from("users")
+                    .select("id, fcm_token")
+                    .eq("role", "Livreur");
+
+                if (livreurs && livreurs.length > 0) {
+                    const titre = "Nouvelle livraison disponible !";
+                    const message = `Une livraison vers ${body.ville} (${body.adresse}) est disponible. Acceptez-la maintenant.`;
+
+                    // Notifications in-app (Supabase Realtime)
+                    await supabaseAdmin.from("notifications").insert(
+                        livreurs.map((l: { id: string; fcm_token: string | null }) => ({
+                            user_id: l.id,
+                            type: "livraison",
+                            titre,
+                            message,
+                            lien: "/livreur/livraisons",
+                            is_read: false,
+                            created_at: new Date().toISOString(),
+                        }))
+                    );
+
+                    // Notifications push FCM (app fermée / arrière-plan)
+                    const fcmTokens = livreurs
+                        .filter((l: { id: string; fcm_token: string | null }) => l.fcm_token)
+                        .map((l: { id: string; fcm_token: string | null }) => l.fcm_token as string);
+
+                    if (fcmTokens.length > 0) {
+                        await firebaseAdmin.messaging().sendEachForMulticast({
+                            tokens: fcmTokens,
+                            notification: { title: titre, body: message },
+                            data: { type: "livraison", route: "/livreur/livraisons" },
+                            android: {
+                                priority: "high",
+                                notification: {
+                                    channelId: "livraisons",
+                                    sound: "default",
+                                    priority: "max",
+                                },
+                            },
+                            apns: {
+                                payload: { aps: { sound: "default", badge: 1 } },
+                            },
+                        });
+                    }
+                }
+            } catch (notifError) {
+                console.error("Erreur notification livreurs:", notifError);
+            }
         }
 
         return res.status(201).json({
