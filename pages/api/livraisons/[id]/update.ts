@@ -3,6 +3,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { z, ZodError } from "zod";
 import { supabaseAdmin } from "../../../../app/lib/supabaseAdmin";
 import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth";
+import { getMessaging } from "../../../../app/lib/firebaseAdmin";
 
 /**
  * @swagger
@@ -112,7 +113,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
         }
 
-        // 🔎 Récupérer la livraison
+        // 🔎 Récupérer la livraison avec les infos nécessaires aux notifications
         const { data: livraison, error: fetchError } = await supabaseAdmin
             .from("livraisons")
             .select(`
@@ -120,7 +121,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         statut,
         commande_id,
         livreur_id,
-        commandes (statut)
+        commandes (
+            id,
+            numero,
+            statut,
+            user_id,
+            commande_articles (
+                articles (user_id)
+            )
+        )
         `)
             .eq("id", id)
             .single();
@@ -212,6 +221,118 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     .from("commandes")
                     .update({ statut: commandeStatut, updated_at: new Date().toISOString() })
                     .eq("id", livraison.commande_id);
+            }
+        }
+
+        // 🔔 Notifier la boutique et le client du changement de statut
+        if (updateData.statut) {
+            try {
+                const commande = livraison.commandes as any;
+                const commandeNumero = commande?.numero ?? updatedLivraison?.commandes?.numero ?? "";
+
+                // IDs uniques des propriétaires de boutique (articles de la commande)
+                const boutiqueIds: string[] = [
+                    ...new Set<string>(
+                        (commande?.commande_articles ?? [])
+                            .map((ca: any) => ca.articles?.user_id)
+                            .filter(Boolean)
+                    ),
+                ];
+                const clientId: string | null = commande?.user_id ?? null;
+
+                let titreLivraison = "";
+                let messageClient = "";
+                let messageBoutique = "";
+
+                switch (updateData.statut) {
+                    case "En cours de livraison":
+                        titreLivraison = "Livraison en cours";
+                        messageClient = `Votre commande #${commandeNumero} est en cours de livraison.`;
+                        messageBoutique = `La commande #${commandeNumero} est en cours de livraison.`;
+                        break;
+                    case "Livrée":
+                        titreLivraison = "Commande livrée !";
+                        messageClient = `Votre commande #${commandeNumero} a été livrée avec succès. Merci pour votre confiance !`;
+                        messageBoutique = `La commande #${commandeNumero} a été livrée avec succès.`;
+                        break;
+                    case "Annulée":
+                        titreLivraison = "Livraison annulée";
+                        messageClient = `La livraison de votre commande #${commandeNumero} a été annulée.`;
+                        messageBoutique = `La livraison de la commande #${commandeNumero} a été annulée.`;
+                        break;
+                    case "Reportée":
+                        titreLivraison = "Livraison reportée";
+                        messageClient = `La livraison de votre commande #${commandeNumero} a été reportée.`;
+                        messageBoutique = `La livraison de la commande #${commandeNumero} a été reportée.`;
+                        break;
+                }
+
+                if (titreLivraison) {
+                    const now = new Date().toISOString();
+
+                    // Construire les notifications in-app
+                    const notifications: object[] = [];
+                    if (clientId) {
+                        notifications.push({
+                            user_id: clientId,
+                            type: "livraison",
+                            titre: titreLivraison,
+                            message: messageClient,
+                            lien: "/client/commandes",
+                            is_read: false,
+                            created_at: now,
+                        });
+                    }
+                    for (const bId of boutiqueIds) {
+                        notifications.push({
+                            user_id: bId,
+                            type: "livraison",
+                            titre: titreLivraison,
+                            message: messageBoutique,
+                            lien: "/boutique/commandes",
+                            is_read: false,
+                            created_at: now,
+                        });
+                    }
+                    if (notifications.length > 0) {
+                        await supabaseAdmin.from("notifications").insert(notifications);
+                    }
+
+                    // Récupérer les tokens FCM pour les notifications push
+                    const destinataireIds = [...(clientId ? [clientId] : []), ...boutiqueIds];
+                    if (destinataireIds.length > 0) {
+                        const { data: destinataires } = await supabaseAdmin
+                            .from("users")
+                            .select("id, fcm_token")
+                            .in("id", destinataireIds);
+
+                        if (destinataires) {
+                            const clientToken = destinataires.find((u: any) => u.id === clientId)?.fcm_token;
+                            const boutiqueTokens = destinataires
+                                .filter((u: any) => boutiqueIds.includes(u.id) && u.fcm_token)
+                                .map((u: any) => u.fcm_token as string);
+
+                            const fcmJobs: Array<{ tokens: string[]; body: string }> = [];
+                            if (clientToken) fcmJobs.push({ tokens: [clientToken], body: messageClient });
+                            if (boutiqueTokens.length > 0) fcmJobs.push({ tokens: boutiqueTokens, body: messageBoutique });
+
+                            for (const job of fcmJobs) {
+                                await getMessaging().sendEachForMulticast({
+                                    tokens: job.tokens,
+                                    notification: { title: titreLivraison, body: job.body },
+                                    data: { type: "livraison", route: "/commandes" },
+                                    android: {
+                                        priority: "high",
+                                        notification: { channelId: "commandes", sound: "default", priority: "max" },
+                                    },
+                                    apns: { payload: { aps: { sound: "default", badge: 1 } } },
+                                });
+                            }
+                        }
+                    }
+                }
+            } catch (notifError) {
+                console.error("Erreur notifications statut livraison:", notifError);
             }
         }
 
