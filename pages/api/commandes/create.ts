@@ -81,13 +81,13 @@ const createCommandeSchema = z.object({
 });
 
 /**
- * Génère un numéro de commande séquentiel au format CMD-YY-XXXXX
- * Exemple: CMD-24-00001, CMD-24-00002, etc.
+ * Génère un numéro de commande séquentiel au format E-YYXXXXX (9 caractères)
+ * Exemple: E-2600001, E-2600002, etc.
  * Capacité: 99,999 commandes par an
  */
 async function generateOrderNumber(): Promise<string> {
     const currentYear = new Date().getFullYear();
-    const yearShort = currentYear.toString().slice(-2); // 24 pour 2024
+    const yearShort = currentYear.toString().slice(-2); // 26 pour 2026
 
     // Récupérer le nombre de commandes pour l'année en cours
     const { count, error } = await supabaseAdmin
@@ -99,13 +99,13 @@ async function generateOrderNumber(): Promise<string> {
     if (error) {
         console.error("Erreur lors du comptage des commandes:", error);
         // En cas d'erreur, utiliser un timestamp pour éviter les doublons
-        return `CMD-${yearShort}-${Date.now().toString().slice(-5)}`;
+        return `E-${yearShort}${Date.now().toString().slice(-5)}`;
     }
 
     const nextNumber = (count || 0) + 1;
     const paddedNumber = String(nextNumber).padStart(5, "0");
 
-    return `CMD-${yearShort}-${paddedNumber}`;
+    return `E-${yearShort}${paddedNumber}`;
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

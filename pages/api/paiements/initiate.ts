@@ -200,10 +200,10 @@ async function generateOrderNumber(): Promise<string> {
     .gte("created_at", `${currentYear}-01-01T00:00:00.000Z`)
     .lte("created_at", `${currentYear}-12-31T23:59:59.999Z`);
 
-  if (error) return `CMD-${yearShort}-${Date.now().toString().slice(-5)}`;
+  if (error) return `E-${yearShort}${Date.now().toString().slice(-5)}`;
 
   const nextNumber = (count || 0) + 1;
-  return `CMD-${yearShort}-${String(nextNumber).padStart(5, "0")}`;
+  return `E-${yearShort}${String(nextNumber).padStart(5, "0")}`;
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
