@@ -243,6 +243,7 @@ model users {
   id              String   @id @default(uuid()) @db.Uuid
   auth_id         String?  @unique @db.Uuid
   name            String   @db.VarChar(255)
+  owner_name      String?  @db.VarChar(255) // Nom du propriétaire / gérant pour les comptes Boutique (NULL pour les autres rôles)
   role            String   @db.VarChar(255)
   email           String   @unique @db.VarChar(255)
   url_logo        String?  @db.VarChar(255)

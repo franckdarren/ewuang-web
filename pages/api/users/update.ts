@@ -7,6 +7,7 @@ import { getSupabaseClient } from "../../../app/lib/supabaseSafeClient";
 // Schema de modification
 const updateSchema = z.object({
     name: z.string().min(3).optional(),
+    owner_name: z.string().min(2).optional(),
     address: z.string().optional(),
     url_logo: z.string().optional(),
     phone: z.string().optional(),
@@ -96,6 +97,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         // 1️⃣ Valider les champs envoyés
         const body = updateSchema.parse(req.body);
+
+        // owner_name n'a de sens que pour un compte Boutique : on l'ignore
+        // silencieusement pour les autres rôles plutôt que de renvoyer une
+        // erreur (le champ peut traîner dans un payload générique côté client).
+        if (body.owner_name !== undefined && auth.profile.role !== "Boutique") {
+            delete body.owner_name;
+        }
 
         // 2️⃣ Mettre à jour uniquement le profil de l'utilisateur connecté
         const supabaseAdmin = getSupabaseAdmin();

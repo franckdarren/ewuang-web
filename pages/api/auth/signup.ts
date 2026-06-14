@@ -11,6 +11,8 @@ const signupSchema = z.object({
     email: z.string().email(),
     password: z.string().min(6),
     name: z.string().min(3).optional(),
+    owner_name: z.string().min(2).optional(),
+    phone: z.string().optional(),
     role: z.enum(["Client", "Boutique", "Livreur", "Administrateur"]).optional(),
 });
 
@@ -114,7 +116,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method !== "POST") return res.status(405).json({ error: "Méthode non autorisée" });
 
     try {
-        const { email, password, name, role } = signupSchema.parse(req.body);
+        const { email, password, name, owner_name, phone, role } = signupSchema.parse(req.body);
 
         const supabase = getSupabaseClient();
         const supabaseAdmin = getSupabaseAdmin();
@@ -139,7 +141,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 auth_id: authData.user?.id,
                 email: authData.user?.email,
                 name: name || null,
-                role: role || "client",
+                owner_name: role === "Boutique" ? (owner_name || null) : null,
+                phone: phone || null,
+                role: role || "Client",
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
             })
