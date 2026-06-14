@@ -191,19 +191,25 @@ function normalizeGabonLocalNumber(
 }
 
 async function generateOrderNumber(): Promise<string> {
-  const currentYear = new Date().getFullYear();
-  const yearShort = currentYear.toString().slice(-2);
+  const now = new Date();
+  const yearShort = now.getFullYear().toString().slice(-2);
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  const datePart = `${yearShort}${month}${day}`;
+
+  const startOfDay = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0));
+  const endOfDay = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999));
 
   const { count, error } = await supabaseAdmin
     .from("commandes")
     .select("*", { count: "exact", head: true })
-    .gte("created_at", `${currentYear}-01-01T00:00:00.000Z`)
-    .lte("created_at", `${currentYear}-12-31T23:59:59.999Z`);
+    .gte("created_at", startOfDay.toISOString())
+    .lte("created_at", endOfDay.toISOString());
 
-  if (error) return `E-${yearShort}${Date.now().toString().slice(-5)}`;
+  if (error) return `E-${datePart}-${Date.now().toString().slice(-3)}`;
 
   const nextNumber = (count || 0) + 1;
-  return `E-${yearShort}${String(nextNumber).padStart(5, "0")}`;
+  return `E-${datePart}-${String(nextNumber).padStart(3, "0")}`;
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
