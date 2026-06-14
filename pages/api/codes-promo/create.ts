@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { z, ZodError } from "zod";
 import { supabaseAdmin } from "../../../app/lib/supabaseAdmin";
-import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
+import { requireBoutiqueAccess } from "../../../app/lib/middlewares/requireBoutiqueAccess";
 
 const createSchema = z.object({
     code: z.string().min(3).max(30).regex(/^[A-Z0-9_-]+$/, "Le code ne doit contenir que des lettres majuscules, chiffres, - ou _"),
@@ -18,9 +18,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(405).json({ error: "Méthode non autorisée" });
 
     try {
-        const auth = await requireUserAuth(req, res);
-        if (!auth) return;
-        const { profile } = auth;
+        const access = await requireBoutiqueAccess(req, res);
+        if (!access) return;
 
         const body = createSchema.parse(req.body);
 
@@ -28,7 +27,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(400).json({ error: "Le pourcentage ne peut pas dépasser 100" });
         }
 
-        // Si article_id fourni, vérifier que l'article appartient au vendeur
+        // Si article_id fourni, vérifier que l'article appartient à la boutique
         if (body.article_id) {
             const { data: article } = await supabaseAdmin
                 .from("articles")
@@ -36,8 +35,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 .eq("id", body.article_id)
                 .single();
 
-            if (!article || article.user_id !== profile.id) {
-                return res.status(403).json({ error: "Cet article ne vous appartient pas" });
+            if (!article || article.user_id !== access.boutiqueId) {
+                return res.status(403).json({ error: "Cet article n'appartient pas à votre boutique" });
             }
         }
 
@@ -46,7 +45,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             .insert({
                 code: body.code.toUpperCase(),
                 article_id: body.article_id || null,
-                boutique_id: profile.id,
+                boutique_id: access.boutiqueId,
                 type: body.type,
                 valeur: body.valeur,
                 montant_min: body.montant_min,

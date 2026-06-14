@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "../../../../app/lib/supabaseAdmin";
-import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth";
+import { requireBoutiqueAccess } from "../../../../app/lib/middlewares/requireBoutiqueAccess";
 import { resolvePeriod, isResolveError } from "../../../../app/lib/analyticsPeriod";
 
 /**
@@ -39,9 +39,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(405).json({ error: "Méthode non autorisée" });
 
     try {
-        const auth = await requireUserAuth(req, res);
-        if (!auth) return;
-        const { profile } = auth;
+        const access = await requireBoutiqueAccess(req, res);
+        if (!access) return;
 
         const resolved = resolvePeriod({
             periode: req.query.periode as string | undefined,
@@ -62,7 +61,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         avis(note),
         favoris(id)
         `)
-            .eq("user_id", profile.id);
+            .eq("user_id", access.boutiqueId);
 
         if (error) {
             console.error("Erreur récupération articles:", error);

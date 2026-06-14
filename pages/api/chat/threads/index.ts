@@ -4,6 +4,7 @@ import { z, ZodError } from "zod";
 import { v4 as uuidv4 } from "uuid";
 import { supabaseAdmin } from "../../../../app/lib/supabaseAdmin";
 import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth";
+import { resolveBoutiqueIdFor } from "../../../../app/lib/middlewares/requireBoutiqueAccess";
 import {
     resolveThreadType,
     orderParticipants,
@@ -51,12 +52,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!auth) return;
     const { profile } = auth;
 
+    // Phase 2 : pour un gérant Boutique, les fils sont attachés au boutique_id
+    // (= proprio.id). On utilise donc boutique_id comme identité pour
+    // GET/POST côté Boutique. Pour les autres rôles, c'est profile.id.
+    const boutiqueId = await resolveBoutiqueIdFor(profile.id, profile.role);
+    const chatIdentity = boutiqueId ?? profile.id;
+
     // ---------- LISTE DES FILS ----------
     if (req.method === "GET") {
         const { data: threads, error } = await supabaseAdmin
             .from("chat_threads")
             .select("*")
-            .or(`participant_a_id.eq.${profile.id},participant_b_id.eq.${profile.id}`)
+            .or(`participant_a_id.eq.${chatIdentity},participant_b_id.eq.${chatIdentity}`)
             .order("last_message_at", { ascending: false, nullsFirst: false });
 
         if (error) {
@@ -65,7 +72,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         const others = (threads ?? []).map((t) =>
-            t.participant_a_id === profile.id ? t.participant_b_id : t.participant_a_id
+            t.participant_a_id === chatIdentity ? t.participant_b_id : t.participant_a_id
         );
 
         let usersById: Record<string, any> = {};
@@ -92,9 +99,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         const result = (threads ?? []).map((t) => {
-            const slot = participantSlot(t, profile.id);
+            const slot = participantSlot(t, chatIdentity);
             const otherId =
-                t.participant_a_id === profile.id ? t.participant_b_id : t.participant_a_id;
+                t.participant_a_id === chatIdentity ? t.participant_b_id : t.participant_a_id;
             return {
                 ...t,
                 interlocuteur: usersById[otherId] ?? null,
@@ -110,7 +117,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         try {
             const body = createSchema.parse(req.body);
 
-            if (body.target_user_id === profile.id) {
+            if (body.target_user_id === chatIdentity) {
                 return res
                     .status(400)
                     .json({ error: "Impossible d'ouvrir une discussion avec soi-même" });
@@ -137,7 +144,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 });
             }
 
-            const [a, b] = orderParticipants(profile.id, target.id);
+            const [a, b] = orderParticipants(chatIdentity, target.id);
 
             // Recherche d'un fil existant (même couple, même commande/réclamation)
             const { data: existing } = await supabaseAdmin

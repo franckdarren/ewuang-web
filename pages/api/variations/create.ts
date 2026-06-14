@@ -3,6 +3,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { z, ZodError } from "zod";
 import { supabaseAdmin } from "../../../app/lib/supabaseAdmin";
 import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
+import { resolveBoutiqueIdFor } from "../../../app/lib/middlewares/requireBoutiqueAccess";
 import { recomputeArticleStock } from "../../../app/lib/stockSync";
 
 /**
@@ -99,13 +100,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(404).json({ error: "Article introuvable" });
         }
 
-        // Vérifier les permissions (propriétaire ou admin)
-        const isOwner = article.user_id === profile.id;
+        // Phase 2 : résoudre la boutique du gérant pour l'ownership.
         const isAdmin = profile.role === "Administrateur";
+        const boutiqueId = await resolveBoutiqueIdFor(profile.id, profile.role);
+        const isOwner = boutiqueId !== null && article.user_id === boutiqueId;
 
         if (!isOwner && !isAdmin) {
             return res.status(403).json({
-                error: "Vous ne pouvez créer des variations que pour vos propres articles",
+                error: "Vous ne pouvez créer des variations que pour les articles de votre boutique",
             });
         }
 

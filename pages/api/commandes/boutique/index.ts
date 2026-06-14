@@ -1,7 +1,7 @@
 // pages/api/commandes/boutique/index.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "../../../../app/lib/supabaseAdmin";
-import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth";
+import { requireBoutiqueAccess } from "../../../../app/lib/middlewares/requireBoutiqueAccess";
 
 /**
  * @swagger
@@ -69,9 +69,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
-        const auth = await requireUserAuth(req, res);
-        if (!auth) return;
-        const { profile } = auth;
+        const access = await requireBoutiqueAccess(req, res);
+        if (!access) return;
 
         const page = parseInt(req.query.page as string) || 1;
         const limit = parseInt(req.query.limit as string) || 10;
@@ -82,7 +81,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const { data: articles, error: articlesError } = await supabaseAdmin
             .from("articles")
             .select("id")
-            .eq("user_id", profile.id);
+            .eq("user_id", access.boutiqueId);
 
         if (articlesError) {
             console.error("Error fetching articles:", articlesError);

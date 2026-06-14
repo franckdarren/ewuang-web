@@ -2,7 +2,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { z, ZodError } from "zod";
 import { supabaseAdmin } from "../../../app/lib/supabaseAdmin";
-import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
+import { requireBoutiqueAccess } from "../../../app/lib/middlewares/requireBoutiqueAccess";
 import { recomputeArticleStock } from "../../../app/lib/stockSync";
 
 /**
@@ -111,9 +111,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(405).json({ error: "Méthode non autorisée" });
 
     try {
-        const auth = await requireUserAuth(req, res);
-        if (!auth) return;
-        const { profile } = auth;
+        const access = await requireBoutiqueAccess(req, res);
+        if (!access) return;
 
         const body = createSchema.parse(req.body);
 
@@ -159,7 +158,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 pourcentage_reduction: body.pourcentage_reduction ?? 0,
                 stock: stockInitial,
                 made_in_gabon: body.made_in_gabon ?? false,
-                user_id: profile.id,
+                user_id: access.boutiqueId,
                 categorie_id: body.categorie_id, // ✅ UUID vérifié
                 image_principale: body.image_principale ?? null,
                 is_active: true, // ✅ Par défaut actif

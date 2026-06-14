@@ -283,6 +283,14 @@ model users {
   publicites_premium_admin    publicites_premium[] @relation("AdminPublicitesPremium")
   publicites                  publicites[]         @relation("UserPublicites")
 
+  // Multi-profil par boutique (Phase 2). 3 relations vers boutique_membres :
+  //  - boutique_membres : ce user EST une boutique → liste de ses membres (proprio + gérants).
+  //  - boutique_memberships : ce user EST membre d'une boutique → ses adhésions.
+  //  - boutique_membres_envoyees : ce user a invité d'autres → audit.
+  boutique_membres            boutique_membres[]   @relation("BoutiqueMembresOfBoutique")
+  boutique_memberships        boutique_membres[]   @relation("BoutiqueMembresOfUser")
+  boutique_membres_envoyees   boutique_membres[]   @relation("BoutiqueMembresInvitedBy")
+
   @@index([email])
   @@index([role])
   @@index([is_active])
@@ -575,4 +583,43 @@ enum publicite_premium_statut {
   approuve   @map("approuve")
   refuse     @map("refuse")
   annule     @map("annule")
+}
+
+// 🏬 Multi-profil par boutique (Phase 2) — voir add_boutique_membres_table.sql
+model boutique_membres {
+  id           String                 @id @default(uuid()) @db.Uuid
+  boutique_id  String                 @db.Uuid
+  user_id      String?                @db.Uuid
+  auth_user_id String?                @db.Uuid // id auth.users, pré-créé par inviteUserByEmail (pas de FK car schéma auth séparé)
+  email        String                 @db.VarChar(255)
+  role_membre  boutique_membre_role   @default(gerant)
+  statut       boutique_membre_statut @default(pending)
+  invite_token String?                @db.VarChar(64)
+  expires_at   DateTime?              @db.Timestamptz
+  invited_by   String?                @db.Uuid
+  invited_at   DateTime               @default(now()) @db.Timestamptz
+  joined_at    DateTime?              @db.Timestamptz
+  revoked_at   DateTime?              @db.Timestamptz
+  created_at   DateTime               @default(now()) @db.Timestamptz
+  updated_at   DateTime               @default(now()) @updatedAt @db.Timestamptz
+
+  boutique users  @relation("BoutiqueMembresOfBoutique", fields: [boutique_id], references: [id], onDelete: Cascade)
+  user     users? @relation("BoutiqueMembresOfUser",      fields: [user_id],     references: [id], onDelete: Cascade)
+  inviter  users? @relation("BoutiqueMembresInvitedBy",   fields: [invited_by],  references: [id], onDelete: SetNull)
+
+  @@index([boutique_id])
+  @@index([user_id])
+  @@index([invite_token])
+  @@index([statut])
+}
+
+enum boutique_membre_role {
+  proprio @map("proprio")
+  gerant  @map("gerant")
+}
+
+enum boutique_membre_statut {
+  pending @map("pending")
+  active  @map("active")
+  revoked @map("revoked")
 }

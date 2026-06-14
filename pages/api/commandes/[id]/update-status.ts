@@ -3,6 +3,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { z, ZodError } from "zod";
 import { supabaseAdmin } from "../../../../app/lib/supabaseAdmin";
 import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth";
+import { resolveBoutiqueIdFor } from "../../../../app/lib/middlewares/requireBoutiqueAccess";
 import { getMessaging } from "../../../../app/lib/firebaseAdmin";
 
 /**
@@ -106,12 +107,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         // Vérifier les permissions
+        // Phase 2 : pour un compte Boutique, on résout son boutique_id (proprio
+        // OU gérant accède aux mêmes commandes). isOwner couvre l'acheteur.
         const isAdmin = profile.role === "Administrateur";
         const isOwner = commande.user_id === profile.id;
-
-        // Vérifier si l'utilisateur est propriétaire d'au moins un article de la commande
-        const isBoutiqueOwner = commande.commande_articles?.some(
-            (ca: any) => ca.articles?.user_id === profile.id
+        const boutiqueId = await resolveBoutiqueIdFor(profile.id, profile.role);
+        const isBoutiqueOwner = boutiqueId !== null && commande.commande_articles?.some(
+            (ca: any) => ca.articles?.user_id === boutiqueId
         );
 
         if (!isAdmin && !isOwner && !isBoutiqueOwner) {

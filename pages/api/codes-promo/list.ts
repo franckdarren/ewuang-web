@@ -1,15 +1,14 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "../../../app/lib/supabaseAdmin";
-import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
+import { requireBoutiqueAccess } from "../../../app/lib/middlewares/requireBoutiqueAccess";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== "GET")
         return res.status(405).json({ error: "Méthode non autorisée" });
 
     try {
-        const auth = await requireUserAuth(req, res);
-        if (!auth) return;
-        const { profile } = auth;
+        const access = await requireBoutiqueAccess(req, res);
+        if (!access) return;
 
         const { data: promos, error } = await supabaseAdmin
             .from("codes_promo")
@@ -17,7 +16,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 *,
                 articles (id, nom, image_principale)
             `)
-            .eq("boutique_id", profile.id)
+            .eq("boutique_id", access.boutiqueId)
             .order("created_at", { ascending: false });
 
         if (error) throw error;

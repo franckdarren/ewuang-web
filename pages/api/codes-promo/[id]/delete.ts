@@ -1,15 +1,14 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "../../../../app/lib/supabaseAdmin";
-import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth";
+import { requireBoutiqueAccess } from "../../../../app/lib/middlewares/requireBoutiqueAccess";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== "DELETE")
         return res.status(405).json({ error: "Méthode non autorisée" });
 
     try {
-        const auth = await requireUserAuth(req, res);
-        if (!auth) return;
-        const { profile } = auth;
+        const access = await requireBoutiqueAccess(req, res);
+        if (!access) return;
 
         const { id } = req.query;
         if (!id || typeof id !== "string") {
@@ -26,8 +25,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(404).json({ error: "Code promo introuvable" });
         }
 
-        if (promo.boutique_id !== profile.id) {
-            return res.status(403).json({ error: "Accès refusé" });
+        if (promo.boutique_id !== access.boutiqueId) {
+            return res.status(403).json({ error: "Ce code promo n'appartient pas à votre boutique" });
         }
 
         const { error } = await supabaseAdmin

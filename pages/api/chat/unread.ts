@@ -2,6 +2,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "../../../app/lib/supabaseAdmin";
 import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
+import { resolveBoutiqueIdFor } from "../../../app/lib/middlewares/requireBoutiqueAccess";
 
 /**
  * @swagger
@@ -22,10 +23,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!auth) return;
     const { profile } = auth;
 
+    // Phase 2 : pour un gérant Boutique, l'identité chat est le boutique_id.
+    const boutiqueId = await resolveBoutiqueIdFor(profile.id, profile.role);
+    const chatIdentity = boutiqueId ?? profile.id;
+
     const { data: threads, error } = await supabaseAdmin
         .from("chat_threads")
         .select("participant_a_id, participant_b_id, unread_count_a, unread_count_b")
-        .or(`participant_a_id.eq.${profile.id},participant_b_id.eq.${profile.id}`);
+        .or(`participant_a_id.eq.${chatIdentity},participant_b_id.eq.${chatIdentity}`);
 
     if (error) {
         console.error("Erreur compteur non-lus chat:", error);
@@ -33,8 +38,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const total = (threads ?? []).reduce((sum, t) => {
-        if (t.participant_a_id === profile.id) return sum + (t.unread_count_a || 0);
-        if (t.participant_b_id === profile.id) return sum + (t.unread_count_b || 0);
+        if (t.participant_a_id === chatIdentity) return sum + (t.unread_count_a || 0);
+        if (t.participant_b_id === chatIdentity) return sum + (t.unread_count_b || 0);
         return sum;
     }, 0);
 

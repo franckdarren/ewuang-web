@@ -2,7 +2,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { z, ZodError } from "zod";
 import { supabaseAdmin } from "../../../../app/lib/supabaseAdmin";
-import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth";
+import { requireBoutiqueAccess } from "../../../../app/lib/middlewares/requireBoutiqueAccess";
 import { recomputeArticleStock } from "../../../../app/lib/stockSync";
 
 /**
@@ -83,9 +83,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(405).json({ error: "Méthode non autorisée" });
 
     try {
-        const auth = await requireUserAuth(req, res);
-        if (!auth) return;
-        const { profile } = auth;
+        const access = await requireBoutiqueAccess(req, res);
+        if (!access) return;
 
         const { id } = req.query;
         if (!id || typeof id !== "string")
@@ -103,8 +102,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (findErr || !existing)
             return res.status(404).json({ error: "Article introuvable" });
 
-        if (existing.user_id !== profile.id)
-            return res.status(403).json({ error: "Accès refusé. Vous n'êtes pas le propriétaire de cet article." });
+        if (existing.user_id !== access.boutiqueId)
+            return res.status(403).json({ error: "Accès refusé. Cet article n'appartient pas à votre boutique." });
 
         // 2) ✅ VALIDATION : Si categorie_id est fourni, vérifier qu'elle existe
         if (body.categorie_id) {

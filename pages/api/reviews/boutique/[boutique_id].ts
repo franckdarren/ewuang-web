@@ -2,6 +2,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "../../../../app/lib/supabaseAdmin";
 import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth";
+import { resolveBoutiqueIdFor } from "../../../../app/lib/middlewares/requireBoutiqueAccess";
 
 /**
  * @swagger
@@ -73,9 +74,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(400).json({ error: "ID de boutique invalide" });
         }
 
-        // Seuls le propriétaire de la boutique ou un administrateur peuvent consulter
-        if (profile.role !== "Administrateur" && profile.id !== boutique_id) {
-            return res.status(403).json({ error: "Accès refusé" });
+        // Phase 2 : autoriser le proprio ET les gérants de la boutique cible
+        // (même boutique_id résolu via membership), ainsi que les admins.
+        if (profile.role !== "Administrateur") {
+            const callerBoutiqueId = await resolveBoutiqueIdFor(profile.id, profile.role);
+            if (callerBoutiqueId !== boutique_id) {
+                return res.status(403).json({ error: "Accès refusé : cette boutique ne vous appartient pas" });
+            }
         }
 
         // Vérifier l'existence de la boutique

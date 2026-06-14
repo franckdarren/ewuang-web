@@ -5,6 +5,8 @@ import fs from "fs";
 import { v4 as uuidv4 } from "uuid";
 import { supabaseAdmin } from "../../../../../app/lib/supabaseAdmin";
 import { requireUserAuth } from "../../../../../app/lib/middlewares/requireUserAuth";
+import { resolveBoutiqueIdFor } from "../../../../../app/lib/middlewares/requireBoutiqueAccess";
+import { notifyBoutiqueMembres } from "../../../../../app/lib/notifyBoutique";
 import {
     uploadChatImage,
     getChatImageSignedUrl,
@@ -76,7 +78,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(404).json({ error: "Discussion introuvable" });
     }
 
-    const slot = participantSlot(thread, profile.id);
+    // Phase 2 : pour un gérant Boutique, l'identité chat est le boutique_id.
+    const boutiqueId = await resolveBoutiqueIdFor(profile.id, profile.role);
+    const chatIdentity = boutiqueId ?? profile.id;
+
+    const slot = participantSlot(thread, chatIdentity);
     if (!slot) {
         return res
             .status(403)
@@ -177,12 +183,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 imagePath = up.path;
             }
 
+            // sender_id = identité chat : pour un gérant, on enregistre le
+            // boutique_id (=proprio) comme expéditeur — le client/interlocuteur
+            // voit toujours « la boutique » comme expéditeur, peu importe quel
+            // gérant a tapé. La traçabilité interne (qui a tapé) peut être
+            // ajoutée plus tard via une colonne sender_user_id.
             const { data: message, error: insertErr } = await supabaseAdmin
                 .from("chat_messages")
                 .insert({
                     id: messageId,
                     thread_id: threadId,
-                    sender_id: profile.id,
+                    sender_id: chatIdentity,
                     contenu: contenu || null,
                     image_url: imagePath,
                     is_read: false,
@@ -198,7 +209,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
             // Notification au destinataire
             const otherId =
-                thread.participant_a_id === profile.id
+                thread.participant_a_id === chatIdentity
                     ? thread.participant_b_id
                     : thread.participant_a_id;
 
@@ -214,15 +225,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     : contenu
                 : "📷 Image";
 
-            await supabaseAdmin.from("notifications").insert({
-                user_id: otherId,
+            // Phase 2 : si le destinataire est une boutique, on fan-out aux
+            // gérants actifs (sinon l'un d'eux raterait les messages clients).
+            // Pour les autres rôles, un seul insert direct sur le user_id.
+            const notifPayload = {
                 type: "Message",
                 titre: `Nouveau message de ${profile.name}`,
                 message: apercu,
                 lien: `${rolePrefix(other?.role ?? "Client")}/messages?thread=${threadId}`,
-                is_read: false,
-                created_at: new Date().toISOString(),
-            });
+            };
+            if (other?.role === "Boutique") {
+                await notifyBoutiqueMembres(otherId, notifPayload);
+            } else {
+                await supabaseAdmin.from("notifications").insert({
+                    user_id: otherId,
+                    ...notifPayload,
+                    is_read: false,
+                    created_at: new Date().toISOString(),
+                });
+            }
 
             return res.status(201).json({
                 message: {

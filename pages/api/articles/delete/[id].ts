@@ -1,7 +1,7 @@
 // pages/api/articles/delete/[id].ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "../../../../app/lib/supabaseAdmin";
-import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth";
+import { requireBoutiqueAccess } from "../../../../app/lib/middlewares/requireBoutiqueAccess";
 
 /**
  * @swagger
@@ -16,16 +16,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method !== "DELETE") return res.status(405).json({ error: "Méthode non autorisée" });
 
     try {
-        const auth = await requireUserAuth(req, res);
-        if (!auth) return;
-        const { profile } = auth;
+        const access = await requireBoutiqueAccess(req, res);
+        if (!access) return;
 
         const { id } = req.query;
         if (!id || typeof id !== "string") return res.status(400).json({ error: "ID article manquant" });
 
         const { data: article, error: findErr } = await supabaseAdmin.from("articles").select("*").eq("id", id).single();
         if (findErr || !article) return res.status(404).json({ error: "Article introuvable" });
-        if (article.user_id !== profile.id) return res.status(403).json({ error: "Accès refusé" });
+        if (article.user_id !== access.boutiqueId) return res.status(403).json({ error: "Accès refusé : cet article n'appartient pas à votre boutique" });
 
         // delete variations -> image_articles (cascade if cascade in DB would be automatic)
         await supabaseAdmin.from("image_articles").delete().eq("article_id", id);

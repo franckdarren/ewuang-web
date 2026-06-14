@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "../../../../app/lib/supabaseAdmin";
-import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth";
+import { requireBoutiqueAccess } from "../../../../app/lib/middlewares/requireBoutiqueAccess";
 
 /**
  * @swagger
@@ -34,22 +34,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
-        // Vérification de l'authentification
-        const auth = await requireUserAuth(req, res);
-        if (!auth) return;
+        // Phase 2 : on filtre par la boutique de l'appelant (proprio ou gérant
+        // → même boutique_id résolu), pas par son user.id personnel. Le `id`
+        // du path est ignoré : le filtre repose uniquement sur l'identité
+        // authentifiée pour empêcher un appelant de lire les articles d'une
+        // autre boutique.
+        const access = await requireBoutiqueAccess(req, res);
+        if (!access) return;
 
-        const { id } = req.query;
-        const authenticatedUserId = auth.profile.auth_id;
-
-        console.log("param.id:", id);
-        console.log("authenticatedUserId:", authenticatedUserId);
-
-        // Vérifie que user.id existe (sécurité)
-        if (!auth.profile?.id) {
-            return res.status(400).json({ error: "Utilisateur invalide : ID introuvable" });
-        }
-
-        // Récupération des articles de l'utilisateur
+        // Récupération des articles de la boutique
         const { data: articles, error } = await supabaseAdmin
             .from("articles")
             .select(`
@@ -57,7 +50,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 commande_articles(*),
                 variations(*)
             `)
-            .eq("user_id", authenticatedUserId);
+            .eq("user_id", access.boutiqueId);
 
         if (error) {
             console.error("Erreur Supabase :", error);

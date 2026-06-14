@@ -2,6 +2,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "../../../app/lib/supabaseAdmin";
 import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
+import { resolveBoutiqueIdFor } from "../../../app/lib/middlewares/requireBoutiqueAccess";
 
 /**
  * @swagger
@@ -84,12 +85,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         // Vérifier que l'utilisateur a le droit d'accéder à cette commande
         if (profile.role !== "Administrateur" && commande.user_id !== profile.id) {
-            // Autoriser la boutique si elle possède au moins un article dans cette commande
+            // Phase 2 : pour un compte Boutique, on autorise si AU MOINS un
+            // article appartient à la boutique de l'appelant (proprio OU gérant
+            // → même boutique_id résolu).
             if (profile.role === "Boutique") {
+                const boutiqueId = await resolveBoutiqueIdFor(profile.id, profile.role);
                 const articleUserIds: string[] = (commande.commande_articles ?? [])
                     .map((ca: any) => ca.articles?.users?.id)
                     .filter(Boolean);
-                if (!articleUserIds.includes(profile.id)) {
+                if (!boutiqueId || !articleUserIds.includes(boutiqueId)) {
                     return res.status(403).json({ error: "Accès refusé à cette commande" });
                 }
             } else {

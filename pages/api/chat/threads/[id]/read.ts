@@ -2,6 +2,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "../../../../../app/lib/supabaseAdmin";
 import { requireUserAuth } from "../../../../../app/lib/middlewares/requireUserAuth";
+import { resolveBoutiqueIdFor } from "../../../../../app/lib/middlewares/requireBoutiqueAccess";
 import { participantSlot } from "../../../../../lib/chat";
 
 /**
@@ -40,7 +41,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(404).json({ error: "Discussion introuvable" });
     }
 
-    const slot = participantSlot(thread, profile.id);
+    // Phase 2 : pour un gérant Boutique, l'identité chat est le boutique_id.
+    const boutiqueId = await resolveBoutiqueIdFor(profile.id, profile.role);
+    const chatIdentity = boutiqueId ?? profile.id;
+
+    const slot = participantSlot(thread, chatIdentity);
     if (!slot) {
         return res
             .status(403)
@@ -60,7 +65,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .from("chat_messages")
         .update({ is_read: true })
         .eq("thread_id", threadId)
-        .neq("sender_id", profile.id)
+        .neq("sender_id", chatIdentity)
         .eq("is_read", false);
 
     return res.status(200).json({ ok: true });

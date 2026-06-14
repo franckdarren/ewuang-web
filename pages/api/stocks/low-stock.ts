@@ -2,6 +2,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "../../../app/lib/supabaseAdmin";
 import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
+import { resolveBoutiqueIdFor } from "../../../app/lib/middlewares/requireBoutiqueAccess";
 
 /**
  * @swagger
@@ -68,13 +69,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         )
       `);
 
-        // Si pas admin, filtrer par boutique
+        // Si pas admin, filtrer par boutique (résolue via membership pour les gérants)
         if (profile.role !== "Administrateur") {
-            // Utiliser la syntaxe correcte pour filtrer sur une relation
+            const boutiqueId = await resolveBoutiqueIdFor(profile.id, profile.role);
+            if (!boutiqueId) {
+                return res.status(200).json({
+                    alerts: [],
+                    summary: { total: 0, outOfStock: 0, lowStock: 0, threshold },
+                });
+            }
             const { data: userArticles } = await supabaseAdmin
                 .from("articles")
                 .select("id")
-                .eq("user_id", profile.id);
+                .eq("user_id", boutiqueId);
 
             if (!userArticles || userArticles.length === 0) {
                 return res.status(200).json({

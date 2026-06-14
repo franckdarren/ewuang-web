@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "../../../../app/lib/supabaseAdmin";
 import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth";
+import { notifyBoutiqueMembres } from "../../../../app/lib/notifyBoutique";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== "POST")
@@ -34,22 +35,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(400).json({ error: "Cette commande n'est associée à aucune boutique" });
         }
 
-        const { error: notifError } = await supabaseAdmin
-            .from("notifications")
-            .insert({
-                user_id: commande.vendeur_id,
-                type: "Commande",
-                titre: "Commande en attente de traitement",
-                message: `La commande #${commande.numero} est en attente. Veuillez la prendre en charge dès que possible.`,
-                lien: `/dashboard/commandes`,
-                is_read: false,
-                created_at: new Date().toISOString(),
-            });
-
-        if (notifError) {
-            console.error("Erreur envoi alerte boutique:", notifError);
-            return res.status(500).json({ error: "Impossible d'envoyer l'alerte" });
-        }
+        // Phase 2 : fan-out à tous les membres actifs de la boutique
+        // (proprio + gérants), pas seulement au vendeur_id historique.
+        await notifyBoutiqueMembres(commande.vendeur_id, {
+            type: "Commande",
+            titre: "Commande en attente de traitement",
+            message: `La commande #${commande.numero} est en attente. Veuillez la prendre en charge dès que possible.`,
+            lien: `/dashboard/commandes`,
+        });
 
         return res.status(200).json({ message: `Alerte envoyée pour la commande #${commande.numero}` });
     } catch (err) {
