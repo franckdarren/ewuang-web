@@ -81,9 +81,11 @@ import { recomputeArticleStock } from "../../../app/lib/stockSync";
  *         description: Erreur serveur
  */
 
+const capitalizeFirst = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
 const createSchema = z.object({
-    nom: z.string().min(1, "Le nom est requis"),
-    description: z.string().optional(),
+    nom: z.string().min(1, "Le nom est requis").transform(capitalizeFirst),
+    description: z.string().transform(capitalizeFirst).optional(),
     prix: z.number().int().nonnegative("Le prix doit être positif"),
     prix_promotion: z.number().int().nonnegative().optional(),
     is_promotion: z.boolean().optional(),

@@ -16,7 +16,7 @@ const inviteSchema = z.object({
  * /api/boutiques/membres/invite:
  *   post:
  *     tags: ["Boutique Membres"]
- *     summary: "Invite un gérant à rejoindre la boutique (proprio uniquement)"
+ *     summary: "Invite un  gérant à rejoindre la boutique (proprio uniquement)"
  *     description: >
  *       Crée une invitation `pending` dans `boutique_membres`, génère un token,
  *       et envoie un email d'invitation via Supabase Auth. La cible est créée

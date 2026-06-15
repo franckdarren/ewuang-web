@@ -65,9 +65,11 @@ import { recomputeArticleStock } from "../../../../app/lib/stockSync";
  *         description: Article introuvable
  */
 
+const capitalizeFirst = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
 const updateSchema = z.object({
-    nom: z.string().min(1, "Le nom ne peut pas être vide").optional(),
-    description: z.string().optional(),
+    nom: z.string().min(1, "Le nom ne peut pas être vide").transform(capitalizeFirst).optional(),
+    description: z.string().transform(capitalizeFirst).optional(),
     prix: z.number().int().nonnegative("Le prix doit être positif").optional(),
     prix_promotion: z.number().int().nonnegative().optional(),
     is_promotion: z.boolean().optional(),

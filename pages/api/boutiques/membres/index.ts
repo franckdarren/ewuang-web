@@ -7,7 +7,7 @@ import { getSupabaseAdmin } from "../../../../app/lib/supabaseSafeAdmin";
  * /api/boutiques/membres:
  *   get:
  *     tags: ["Boutique Membres"]
- *     summary: "Liste les membres (proprio + gérants) de la boutique de l'appelant"
+ *     summary: "Liste  les membres (proprio + gérants) de la boutique de l'appelant"
  *     description: >
  *       Retourne tous les memberships (pending, active, revoked) liés à la boutique
  *       de l'utilisateur authentifié. Inclut le user lié si l'invitation a été acceptée.
