@@ -35,7 +35,7 @@ type Step = "verifying" | "form" | "submitting" | "success" | "error";
 
 export default function InviteAcceptClient() {
   const search = useSearchParams();
-  const token = search.get("token") ?? "";
+  const token = search?.get("token") ?? "";
 
   const [step, setStep] = useState<Step>("verifying");
   const [errorMsg, setErrorMsg] = useState<string>("");
