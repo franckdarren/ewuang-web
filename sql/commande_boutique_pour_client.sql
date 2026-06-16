@@ -60,16 +60,44 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- 4. Fonction d'expiration des commandes en attente de validation > 48h
---    Marque les commandes comme expirées et libère le stock.
---    Retourne le nombre de commandes expirées.
+--    Marque les commandes comme expirées, libère le stock, et envoie une
+--    notification au client + à la boutique. Retourne (expirees, rappels)
+--    pour traçabilité / logs.
+--
+--    Étape A : rappel J-1 (commandes qui expirent dans 23h-24h)
+--    Étape B : expiration + libération stock + notifications finales
 CREATE OR REPLACE FUNCTION expirer_commandes_en_attente_validation()
-RETURNS INTEGER AS $$
+RETURNS TABLE(expirees INTEGER, rappels INTEGER) AS $$
 DECLARE
   cmd RECORD;
-  total INTEGER := 0;
+  v_expirees INTEGER := 0;
+  v_rappels  INTEGER := 0;
 BEGIN
+  -- Étape A : rappels J-1 (entre 23h et 24h avant expiration)
   FOR cmd IN
-    SELECT id
+    SELECT id, numero, user_id
+    FROM commandes
+    WHERE statut = 'En attente de validation client'
+      AND expire_at IS NOT NULL
+      AND expire_at BETWEEN NOW() + INTERVAL '23 hours'
+                       AND NOW() + INTERVAL '24 hours'
+  LOOP
+    INSERT INTO notifications (user_id, type, titre, message, lien, is_read, created_at)
+    VALUES (
+      cmd.user_id,
+      'commande',
+      'Commande en attente',
+      'La commande ' || cmd.numero || ' expire dans moins de 24h. Validez-la pour la payer.',
+      '/commandes/' || cmd.id || '/valider',
+      FALSE,
+      NOW()
+    );
+    v_rappels := v_rappels + 1;
+  END LOOP;
+
+  -- Étape B : expiration + libération stock + notifications
+  FOR cmd IN
+    SELECT id, numero, user_id, creee_par_boutique_id
     FROM commandes
     WHERE statut = 'En attente de validation client'
       AND expire_at IS NOT NULL
@@ -82,9 +110,71 @@ BEGIN
         updated_at = NOW()
     WHERE id = cmd.id;
 
-    total := total + 1;
+    -- Notification client
+    INSERT INTO notifications (user_id, type, titre, message, lien, is_read, created_at)
+    VALUES (
+      cmd.user_id,
+      'commande',
+      'Commande expirée',
+      'La commande ' || cmd.numero || ' a expiré faute de validation.',
+      '/commandes/' || cmd.id,
+      FALSE,
+      NOW()
+    );
+
+    -- Notification boutique
+    IF cmd.creee_par_boutique_id IS NOT NULL THEN
+      INSERT INTO notifications (user_id, type, titre, message, lien, is_read, created_at)
+      VALUES (
+        cmd.creee_par_boutique_id,
+        'commande',
+        'Commande client expirée',
+        'La commande ' || cmd.numero || ' a expiré, le stock a été restitué.',
+        '/commandes/' || cmd.id,
+        FALSE,
+        NOW()
+      );
+    END IF;
+
+    v_expirees := v_expirees + 1;
   END LOOP;
 
-  RETURN total;
+  expirees := v_expirees;
+  rappels  := v_rappels;
+  RETURN NEXT;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- =====================================================================
+-- 5. Planification pg_cron (parade au cron Vercel limité au Hobby plan)
+-- =====================================================================
+-- pg_cron est disponible nativement sur Supabase. Il faut d'abord activer
+-- l'extension (Dashboard → Database → Extensions → pg_cron : Enable).
+-- Ensuite exécuter le bloc ci-dessous UNE FOIS pour planifier le job.
+--
+-- Avantages vs Vercel Cron Hobby :
+--   - Granularité horaire (Vercel Hobby = daily uniquement)
+--   - Gratuit, illimité
+--   - Tourne dans Postgres, donc pas de timeout serverless
+--
+-- Pour désinscrire le job plus tard :
+--   SELECT cron.unschedule('expirer-commandes-validation-client');
+
+-- Activer l'extension si pas déjà fait (idempotent)
+CREATE EXTENSION IF NOT EXISTS pg_cron;
+
+-- Planifier l'exécution toutes les heures à la minute 5
+-- (la minute 5 plutôt que 0 évite les pics où d'autres jobs Supabase tournent)
+DO $$
+BEGIN
+  -- Nettoie un job existant du même nom pour rendre le script idempotent
+  PERFORM cron.unschedule(jobid)
+  FROM cron.job
+  WHERE jobname = 'expirer-commandes-validation-client';
+
+  PERFORM cron.schedule(
+    'expirer-commandes-validation-client',
+    '5 * * * *',
+    'SELECT expirer_commandes_en_attente_validation();'
+  );
+END $$;

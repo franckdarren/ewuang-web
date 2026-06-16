@@ -1,8 +1,0 @@
-{
-  "crons": [
-    {
-      "path": "/api/commandes/cron/expirer-en-attente",
-      "schedule": "0 * * * *"
-    }
-  ]
-}
