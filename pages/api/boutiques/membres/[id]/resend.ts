@@ -94,24 +94,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         let emailError: string | null = null;
         let authUserId: string | null = null;
 
-        try {
-            const { data: inviteData, error: mailError } =
-                await supabaseAdmin.auth.admin.inviteUserByEmail(membre.email, {
-                    redirectTo: inviteUrl,
-                    data: {
-                        invite_type: "boutique_membre",
-                        boutique_id: access.boutiqueId,
-                        invite_token: inviteToken,
-                    },
-                });
-            if (mailError) {
-                emailError = mailError.message;
-            } else {
-                emailSent = true;
-                authUserId = inviteData?.user?.id ?? null;
+        // Le compte `auth.users` est créé dès le premier envoi (invite.ts ou un
+        // précédent resend). Rappeler `inviteUserByEmail` pour ce même email
+        // échoue alors systématiquement avec "User already registered" — ce
+        // n'est pas une erreur, c'est le comportement normal de l'API Supabase.
+        // On ne tente l'appel que si aucun compte n'a encore été créé ; sinon
+        // on se contente de régénérer le token et on informe le proprio qu'il
+        // doit partager le lien manuellement.
+        if (membre.auth_user_id) {
+            emailError = "Le lien d'invitation a été régénéré. Le compte existe déjà : partagez-le manuellement (WhatsApp, SMS…) plutôt que de renvoyer l'email automatique.";
+        } else {
+            try {
+                const { data: inviteData, error: mailError } =
+                    await supabaseAdmin.auth.admin.inviteUserByEmail(membre.email, {
+                        redirectTo: inviteUrl,
+                        data: {
+                            invite_type: "boutique_membre",
+                            boutique_id: access.boutiqueId,
+                            invite_token: inviteToken,
+                        },
+                    });
+                if (mailError) {
+                    emailError = mailError.message;
+                } else {
+                    emailSent = true;
+                    authUserId = inviteData?.user?.id ?? null;
+                }
+            } catch (e) {
+                emailError = e instanceof Error ? e.message : String(e);
             }
-        } catch (e) {
-            emailError = e instanceof Error ? e.message : String(e);
         }
 
         if (authUserId) {
