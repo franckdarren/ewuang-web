@@ -10,8 +10,9 @@ import { getMessaging } from "../../../../app/lib/firebaseAdmin";
  *   post:
  *     summary: Accepter une livraison disponible
  *     description: >
- *       Permet à un livreur de s'auto-assigner une livraison "En attente" sans livreur.
- *       Le livreur connecté est automatiquement assigné et le statut passe à "En cours de livraison".
+ *       Permet à un livreur de s'auto-assigner une livraison "En attente" ou "Reportée"
+ *       (sans livreur assigné). Le livreur connecté est automatiquement assigné et le
+ *       statut passe à "En cours de livraison".
  *     tags:
  *       - Livraisons
  *     security:
@@ -86,8 +87,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(400).json({ error: "Cette livraison est déjà assignée à un livreur" });
         }
 
-        if (livraison.statut !== "En attente") {
-            return res.status(400).json({ error: "Seules les livraisons 'En attente' peuvent être acceptées" });
+        if (livraison.statut !== "En attente" && livraison.statut !== "Reportée") {
+            return res.status(400).json({ error: "Seules les livraisons 'En attente' ou 'Reportée' peuvent être acceptées" });
         }
 
         // Assigner le livreur et passer en cours

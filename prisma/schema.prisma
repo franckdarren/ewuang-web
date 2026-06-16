@@ -81,25 +81,32 @@ model commande_articles {
 }
 
 model commandes {
-  id                String           @id @default(uuid()) @db.Uuid
-  numero            String           @db.VarChar(255)
-  statut            commandes_statut @default(en_attente)
-  prix              Int
-  commentaire       String           @db.VarChar(255)
-  isLivrable        Boolean
-  user_id           String           @db.Uuid
-  vendeur_id        String?          @db.Uuid
-  paiement_id       String?          @unique @db.Uuid
-  code_promo_id     String?          @db.Uuid
-  remise_appliquee  Int              @default(0)
-  created_at        DateTime         @default(now())
-  updated_at        DateTime         @updatedAt
-  adresse_livraison    String           @db.VarChar(255)
-  telephone_livraison  String?          @db.VarChar(255)
+  id                     String           @id @default(uuid()) @db.Uuid
+  numero                 String           @db.VarChar(255)
+  statut                 commandes_statut @default(en_attente)
+  prix                   Int
+  commentaire            String           @db.VarChar(255)
+  isLivrable             Boolean
+  user_id                String           @db.Uuid
+  vendeur_id             String?          @db.Uuid
+  paiement_id            String?          @unique @db.Uuid
+  code_promo_id          String?          @db.Uuid
+  remise_appliquee       Int              @default(0)
+  created_at             DateTime         @default(now())
+  updated_at             DateTime         @updatedAt
+  adresse_livraison      String           @db.VarChar(255)
+  telephone_livraison    String?          @db.VarChar(255)
+  // Quand une boutique crée la commande pour un client : id du compte boutique
+  creee_par_boutique_id  String?          @db.Uuid
+  // L'adresse de livraison est proposée par la boutique, à confirmer par le client
+  adresse_a_confirmer    Boolean          @default(false)
+  // Date limite de validation pour les commandes En attente de validation client
+  expire_at              DateTime?        @db.Timestamptz
 
   // 🔗 Relations
-  acheteur users  @relation("CommandeAcheteur", fields: [user_id], references: [id])
-  vendeur  users? @relation("CommandeVendeur", fields: [vendeur_id], references: [id])
+  acheteur          users  @relation("CommandeAcheteur", fields: [user_id], references: [id])
+  vendeur           users? @relation("CommandeVendeur", fields: [vendeur_id], references: [id])
+  creee_par_boutique users? @relation("CommandeCreeeParBoutique", fields: [creee_par_boutique_id], references: [id], onDelete: SetNull)
 
   article_commandes article_commandes[]
   commande_articles commande_articles[]
@@ -116,6 +123,8 @@ model commandes {
   @@index([statut])
   @@index([created_at])
   @@index([code_promo_id])
+  @@index([creee_par_boutique_id])
+  @@index([expire_at])
 }
 
 model image_articles {
@@ -277,6 +286,7 @@ model users {
 
   commandes_achetees commandes[]   @relation("CommandeAcheteur")
   commandes_vendues  commandes[]   @relation("CommandeVendeur")
+  commandes_creees_pour_clients commandes[] @relation("CommandeCreeeParBoutique")
   codes_promo        codes_promo[]
 
   publicites_premium_boutique publicites_premium[] @relation("BoutiquePublicitesPremium")
@@ -527,13 +537,16 @@ enum codes_promo_type {
 }
 
 enum commandes_statut {
-  en_attente            @map("En attente")
-  en_preparation        @map("En préparation")
-  prete_pour_livraison  @map("Prête pour livraison")
-  en_cours_de_livraison @map("En cours de livraison")
-  livree                @map("Livrée")
-  annule                @map("Annulée")
-  rembourse             @map("Remboursée")
+  en_attente_validation_client @map("En attente de validation client")
+  en_attente                   @map("En attente")
+  en_preparation               @map("En préparation")
+  prete_pour_livraison         @map("Prête pour livraison")
+  en_cours_de_livraison        @map("En cours de livraison")
+  livree                       @map("Livrée")
+  annule                       @map("Annulée")
+  rembourse                    @map("Remboursée")
+  refusee_par_client           @map("Refusée par le client")
+  expiree_non_validee          @map("Expirée non validée")
 }
 
 enum reclamations_statut {

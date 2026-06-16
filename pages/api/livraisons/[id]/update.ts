@@ -88,6 +88,13 @@ const updateLivraisonSchema = z.object({
             message: "Un commentaire est obligatoire pour annuler ou reporter une livraison",
         });
     }
+    if (data.statut === "Reportée" && !data.date_livraison) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["date_livraison"],
+            message: "La nouvelle date de livraison est obligatoire pour reporter une livraison",
+        });
+    }
 });
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -178,6 +185,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             if ((body.statut === "Annulée" || body.statut === "Reportée") && body.commentaire) {
                 updateData.details = body.commentaire.trim();
             }
+            // 📅 Report : on libère le livreur actuel, la livraison redevient
+            // disponible (à la nouvelle date) pour n'importe quel livreur de la flotte
+            if (body.statut === "Reportée") {
+                updateData.livreur_id = null;
+            }
         }
 
         // 🔄 Mise à jour livraison
@@ -260,11 +272,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                         messageClient = `La livraison de votre commande #${commandeNumero} a été annulée.`;
                         messageBoutique = `La livraison de la commande #${commandeNumero} a été annulée.`;
                         break;
-                    case "Reportée":
+                    case "Reportée": {
+                        const nouvelleDate = updateData.date_livraison
+                            ? new Date(updateData.date_livraison).toLocaleDateString("fr-FR")
+                            : null;
+                        const suffixeDate = nouvelleDate ? ` Nouvelle date proposée : ${nouvelleDate}.` : "";
                         titreLivraison = "Livraison reportée";
-                        messageClient = `La livraison de votre commande #${commandeNumero} a été reportée.`;
-                        messageBoutique = `La livraison de la commande #${commandeNumero} a été reportée.`;
+                        messageClient = `La livraison de votre commande #${commandeNumero} a été reportée.${suffixeDate}`;
+                        messageBoutique = `La livraison de la commande #${commandeNumero} a été reportée.${suffixeDate}`;
                         break;
+                    }
                 }
 
                 if (titreLivraison) {

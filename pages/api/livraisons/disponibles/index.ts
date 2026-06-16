@@ -9,7 +9,9 @@ import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth
  *   get:
  *     summary: Liste les livraisons disponibles à accepter
  *     description: >
- *       Retourne les livraisons "En attente" sans livreur assigné.
+ *       Retourne les livraisons "En attente" ou "Reportée" sans livreur assigné
+ *       (une livraison reportée redevient disponible, à sa nouvelle date, pour
+ *       n'importe quel livreur de la flotte).
  *       Accessible aux livreurs et administrateurs.
  *     tags:
  *       - Livraisons
@@ -61,7 +63,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 *,
                 commandes!inner (id, numero, statut, prix, adresse_livraison)
             `, { count: "exact" })
-            .eq("statut", "En attente")
+            .in("statut", ["En attente", "Reportée"])
             .is("livreur_id", null)
             .eq("commandes.statut", "Prête pour livraison")
             .order("date_livraison", { ascending: true })
