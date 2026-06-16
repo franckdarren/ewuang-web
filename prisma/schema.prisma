@@ -113,6 +113,7 @@ model commandes {
   paiements         paiements?          @relation(fields: [paiement_id], references: [id])
   livraisons        livraisons[]
   reclamations      reclamations[]
+  remboursements    remboursements[]
   chat_threads      chat_threads[]
   codes_promo       codes_promo?        @relation(fields: [code_promo_id], references: [id], onDelete: SetNull)
   users             users?              @relation(fields: [usersId], references: [id])
@@ -233,6 +234,39 @@ model reclamations {
   @@index([statut])
 }
 
+// Workflow de remboursement avec arbitrage — voir sql/remboursements.sql
+model remboursements {
+  id               String                @id @default(uuid()) @db.Uuid
+  commande_id      String                @db.Uuid
+  paiement_id      String?               @db.Uuid
+  user_id          String                @db.Uuid // client demandeur
+  vendeur_id       String?               @db.Uuid // boutique concernée
+  montant          Int                   @default(0)
+  motif            String                @db.Text
+  statut           remboursements_statut @default(en_attente_vendeur)
+  decision_vendeur String?               @db.VarChar(20) // Acceptée | Refusée | Sans réponse
+  motif_vendeur    String?               @db.Text
+  traite_par       String?               @db.Uuid // admin ayant pris en charge
+  conclusion_admin String?               @db.Text
+  vendeur_deadline DateTime?             @db.Timestamptz
+  rembourse_le     DateTime?             @db.Timestamptz
+  created_at       DateTime              @default(now())
+  updated_at       DateTime              @updatedAt
+
+  // Relations
+  commandes commandes  @relation(fields: [commande_id], references: [id], onDelete: Cascade)
+  paiements paiements? @relation(fields: [paiement_id], references: [id], onDelete: SetNull)
+  client    users      @relation("RemboursementClient", fields: [user_id], references: [id], onDelete: Cascade)
+  vendeur   users?     @relation("RemboursementVendeur", fields: [vendeur_id], references: [id], onDelete: SetNull)
+  admin     users?     @relation("RemboursementTraitePar", fields: [traite_par], references: [id], onDelete: SetNull)
+
+  @@index([commande_id])
+  @@index([user_id])
+  @@index([vendeur_id])
+  @@index([statut])
+  @@index([vendeur_deadline])
+}
+
 model stocks {
   id           String   @id @default(uuid()) @db.Uuid
   variation_id String   @db.Uuid
@@ -300,6 +334,11 @@ model users {
   boutique_membres            boutique_membres[]   @relation("BoutiqueMembresOfBoutique")
   boutique_memberships        boutique_membres[]   @relation("BoutiqueMembresOfUser")
   boutique_membres_envoyees   boutique_membres[]   @relation("BoutiqueMembresInvitedBy")
+
+  // Remboursements : 3 relations vers users (demandeur, vendeur, admin traitant)
+  remboursements_demandes     remboursements[]     @relation("RemboursementClient")
+  remboursements_vendeur      remboursements[]     @relation("RemboursementVendeur")
+  remboursements_traites      remboursements[]     @relation("RemboursementTraitePar")
 
   @@index([email])
   @@index([role])
@@ -400,8 +439,9 @@ model paiements {
   updated_at     DateTime        @updatedAt
 
   // Relations
-  users     users       @relation(fields: [user_id], references: [id])
-  commandes commandes[]
+  users          users            @relation(fields: [user_id], references: [id])
+  commandes      commandes[]
+  remboursements remboursements[]
 
   @@index([user_id])
   @@index([reference])
@@ -554,6 +594,15 @@ enum reclamations_statut {
   en_cours                 @map("En cours")
   rejete                   @map("Rejetée")
   rembourse                @map("Remboursée")
+}
+
+enum remboursements_statut {
+  en_attente_vendeur   @map("En attente réponse vendeur")
+  en_attente_arbitrage @map("En attente arbitrage admin")
+  en_traitement        @map("En traitement par l'admin")
+  rembourse            @map("Remboursée")
+  rejete               @map("Rejetée")
+  annule               @map("Annulée")
 }
 
 enum paiement_statut {

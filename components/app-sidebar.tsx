@@ -93,6 +93,11 @@ const data = {
       icon: IconMessage,
     },
     {
+      title: "Remboursements",
+      url: "/dashboard/remboursements",
+      icon: IconMoneybag,
+    },
+    {
       title: "Livraisons",
       url: "/dashboard/livraisons",
       icon: IconLocation,

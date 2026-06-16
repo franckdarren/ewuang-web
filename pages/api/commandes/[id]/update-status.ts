@@ -224,23 +224,49 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (body.statut === "Prête pour livraison") {
             const { data: livreurs } = await supabaseAdmin
                 .from("users")
-                .select("id")
+                .select("id, fcm_token")
                 .eq("role", "Livreur")
                 .eq("is_active", true);
 
             if (livreurs && livreurs.length > 0) {
+                const titre = "Nouvelle livraison disponible";
+                const message = `La commande #${updatedCommande.numero} est prête et attend un livreur.`;
                 const now = new Date().toISOString();
+
+                // Notifications in-app (Supabase Realtime)
                 await supabaseAdmin.from("notifications").insert(
-                    livreurs.map((l: { id: string }) => ({
+                    livreurs.map((l: { id: string; fcm_token: string | null }) => ({
                         user_id: l.id,
                         type: "Livraison",
-                        titre: "Nouvelle livraison disponible",
-                        message: `La commande #${updatedCommande.numero} est prête et attend un livreur.`,
+                        titre,
+                        message,
                         lien: "/livraisons",
                         is_read: false,
                         created_at: now,
                     }))
                 );
+
+                // Notifications push FCM (app fermée / arrière-plan)
+                try {
+                    const fcmTokens = livreurs
+                        .filter((l: { id: string; fcm_token: string | null }) => l.fcm_token)
+                        .map((l: { id: string; fcm_token: string | null }) => l.fcm_token as string);
+
+                    if (fcmTokens.length > 0) {
+                        await getMessaging().sendEachForMulticast({
+                            tokens: fcmTokens,
+                            notification: { title: titre, body: message },
+                            data: { type: "livraison", route: "/livraisons" },
+                            android: {
+                                priority: "high",
+                                notification: { channelId: "livraisons", sound: "default", priority: "max" },
+                            },
+                            apns: { payload: { aps: { sound: "default", badge: 1 } } },
+                        });
+                    }
+                } catch (notifError) {
+                    console.error("Erreur push livreurs (Prête pour livraison):", notifError);
+                }
             }
         }
 
