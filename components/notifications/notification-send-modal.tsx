@@ -45,9 +45,10 @@ import { useAuthStore } from '@/stores/authStore';
 
 interface AppUser {
     id: string;
-    name: string;
-    email: string;
-    role: string;
+    name?: string | null;
+    owner_name?: string | null;
+    email?: string | null;
+    role?: string | null;
     url_logo?: string | null;
     is_active: boolean;
 }
@@ -140,9 +141,9 @@ export function NotificationSendModal({ open, onClose }: NotificationSendModalPr
         const q = search.toLowerCase().trim();
         if (!q) return allUsers;
         return allUsers.filter(u =>
-            u.name.toLowerCase().includes(q) ||
-            u.email.toLowerCase().includes(q) ||
-            u.role.toLowerCase().includes(q)
+            (u.name ?? '').toLowerCase().includes(q) ||
+            (u.email ?? '').toLowerCase().includes(q) ||
+            (u.role ?? '').toLowerCase().includes(q)
         );
     }, [allUsers, search]);
 
@@ -186,9 +187,18 @@ export function NotificationSendModal({ open, onClose }: NotificationSendModalPr
 
     const hasDestinatairies = resolvedIds.length > 0;
 
-    // Initiales pour l'avatar
-    const getInitials = (name: string) =>
-        name.split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2);
+    // Initiales pour l'avatar (robuste aux noms null/vides — ex. comptes Boutique).
+    const getInitials = (name?: string | null) => {
+        const initials = (name ?? '')
+            .trim()
+            .split(/\s+/)
+            .filter(Boolean)
+            .map(p => p[0])
+            .join('')
+            .toUpperCase()
+            .slice(0, 2);
+        return initials || '?';
+    };
 
     const onSubmit = async (values: SendFormValues) => {
         if (!hasDestinatairies) return;
@@ -297,15 +307,17 @@ export function NotificationSendModal({ open, onClose }: NotificationSendModalPr
                                                             <Avatar className="h-8 w-8 shrink-0">
                                                                 <AvatarImage src={user.url_logo ?? undefined} />
                                                                 <AvatarFallback className="text-xs">
-                                                                    {getInitials(user.name)}
+                                                                    {getInitials(user.name ?? user.owner_name ?? user.email)}
                                                                 </AvatarFallback>
                                                             </Avatar>
                                                             <div className="flex-1 min-w-0">
-                                                                <p className="text-sm font-medium truncate">{user.name}</p>
-                                                                <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                                                                <p className="text-sm font-medium truncate">
+                                                                    {user.name || user.owner_name || user.email || 'Sans nom'}
+                                                                </p>
+                                                                <p className="text-xs text-muted-foreground truncate">{user.email ?? '—'}</p>
                                                             </div>
                                                             <Badge variant="outline" className="text-xs shrink-0">
-                                                                {user.role}
+                                                                {user.role ?? '—'}
                                                             </Badge>
                                                         </div>
                                                     ))}
