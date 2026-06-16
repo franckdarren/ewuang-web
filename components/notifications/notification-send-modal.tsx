@@ -54,7 +54,7 @@ interface AppUser {
 
 const ROLES = [
     { value: 'Administrateur', label: 'Administrateurs', color: 'text-red-600' },
-    { value: 'Vendeur',        label: 'Vendeurs',        color: 'text-blue-600' },
+    { value: 'Boutique',       label: 'Boutiques',       color: 'text-blue-600' },
     { value: 'Livreur',        label: 'Livreurs',        color: 'text-green-600' },
     { value: 'Client',         label: 'Clients',         color: 'text-orange-600' },
 ];
