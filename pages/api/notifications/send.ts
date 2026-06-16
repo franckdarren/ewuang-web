@@ -108,6 +108,21 @@ const sendSchema = z.object({
     lien: z.string().optional(),
 });
 
+// L'enum Postgres `notification_type` stocke des libellés français capitalisés
+// avec accents ('Système', 'Alerte stock', …). Le runtime passe par PostgREST,
+// donc le `@map` du schéma Prisma n'est PAS appliqué : il faut insérer la valeur
+// littérale de l'enum, sinon Postgres rejette l'insert (22P02). L'API publique
+// reste en minuscules (ce qu'envoient le dashboard et l'app Flutter).
+const DB_NOTIFICATION_TYPE: Record<z.infer<typeof sendSchema>["type"], string> = {
+    commande: 'Commande',
+    livraison: 'Livraison',
+    message: 'Message',
+    promotion: 'Promotion',
+    alerte_stock: 'Alerte stock',
+    avis: 'Avis',
+    systeme: 'Système',
+};
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== "POST")
         return res.status(405).json({ error: "Méthode non autorisée" });
@@ -125,7 +140,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const notificationsToInsert = body.user_ids.map(user_id => ({
             user_id,
-            type: body.type,
+            type: DB_NOTIFICATION_TYPE[body.type],
             titre: body.titre,
             message: body.message,
             lien: body.lien || null,

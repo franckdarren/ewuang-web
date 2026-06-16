@@ -187,7 +187,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
                         await supabaseAdmin.from("notifications").insert({
                             user_id: livraison.livreur_id,
-                            type: "livraison",
+                            type: "Livraison",
                             titre,
                             message,
                             lien: "/livraisons",

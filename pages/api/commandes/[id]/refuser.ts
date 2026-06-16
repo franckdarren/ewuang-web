@@ -106,7 +106,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (commande.creee_par_boutique_id) {
       await supabaseAdmin.from("notifications").insert({
         user_id: commande.creee_par_boutique_id,
-        type: "commande",
+        type: "Commande",
         titre: "Commande refusée par le client",
         message: `Le client a refusé la commande ${commande.numero}.${body.motif ? ` Motif : ${body.motif}` : ""}`,
         lien: `/commandes/${commande.id}`,

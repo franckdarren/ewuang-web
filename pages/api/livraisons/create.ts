@@ -197,7 +197,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     await supabaseAdmin.from("notifications").insert(
                         livreurs.map((l: { id: string; fcm_token: string | null }) => ({
                             user_id: l.id,
-                            type: "livraison",
+                            type: "Livraison",
                             titre,
                             message,
                             lien: "/livreur/livraisons",

@@ -292,7 +292,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     if (clientId) {
                         notifications.push({
                             user_id: clientId,
-                            type: "livraison",
+                            type: "Livraison",
                             titre: titreLivraison,
                             message: messageClient,
                             lien: "/client/commandes",
@@ -303,7 +303,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     for (const bId of boutiqueIds) {
                         notifications.push({
                             user_id: bId,
-                            type: "livraison",
+                            type: "Livraison",
                             titre: titreLivraison,
                             message: messageBoutique,
                             lien: "/boutique/commandes",

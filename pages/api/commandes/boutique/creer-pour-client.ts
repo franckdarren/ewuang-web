@@ -336,7 +336,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // 7. Notification + chat thread (pour la confirmation d'adresse)
     await supabaseAdmin.from("notifications").insert({
       user_id: client.id,
-      type: "commande",
+      type: "Commande",
       titre: "Nouvelle commande à valider",
       message: `Une boutique a préparé une commande pour vous (${numero}). Vérifiez les articles et l'adresse, puis validez pour payer. Expire dans 48h.`,
       lien: `/commandes/${commande.id}/valider`,
