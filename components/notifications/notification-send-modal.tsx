@@ -181,7 +181,7 @@ export function NotificationSendModal({ open, onClose }: NotificationSendModalPr
             return [...selectedUserIds];
         }
         return allUsers
-            .filter(u => selectedRoles.has(u.role))
+            .filter(u => u.role != null && selectedRoles.has(u.role))
             .map(u => u.id);
     }, [tab, selectedUserIds, selectedRoles, allUsers]);
 
@@ -226,7 +226,7 @@ export function NotificationSendModal({ open, onClose }: NotificationSendModalPr
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="flex-1 overflow-y-auto">
+                <div className="flex-1 overflow-y-auto px-1 pr-3">
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
 
