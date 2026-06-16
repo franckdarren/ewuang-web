@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { z, ZodError } from "zod";
 import { supabaseAdmin } from "../../../app/lib/supabaseAdmin";
 import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
-import { getMessaging } from "../../../app/lib/firebaseAdmin";
+import { getMessagingSafe } from "../../../app/lib/firebaseAdmin";
 
 // Découpe un tableau en lots de taille fixe (limite FCM = 500 tokens / appel,
 // et limite raisonnable pour les filtres PostgREST `.in()`).
@@ -39,8 +39,12 @@ async function envoyerPush(
 
         if (tokens.length === 0) return 0;
 
+        // Firebase non configuré → on ignore le push (l'in-app est déjà persistée).
+        const messaging = getMessagingSafe();
+        if (!messaging) return 0;
+
         for (const batch of chunk(tokens, 500)) {
-            await getMessaging().sendEachForMulticast({
+            await messaging.sendEachForMulticast({
                 tokens: batch,
                 notification: { title: notif.titre, body: notif.message },
                 data: {
