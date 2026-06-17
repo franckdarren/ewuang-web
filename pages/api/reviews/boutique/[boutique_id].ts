@@ -74,20 +74,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(400).json({ error: "ID de boutique invalide" });
         }
 
-        // Phase 2 : autoriser le proprio ET les gérants de la boutique cible
-        // (même boutique_id résolu via membership), ainsi que les admins.
+        // Phase 2 : autoriser le proprio ET les gérants de la boutique cible.
+        // Un gérant peut passer son propre user.id OU l'id du propriétaire —
+        // on résout dans les deux cas l'id effectif de la boutique.
+        let effectiveBoutiqueId = boutique_id;
         if (profile.role !== "Administrateur") {
             const callerBoutiqueId = await resolveBoutiqueIdFor(profile.id, profile.role);
-            if (callerBoutiqueId !== boutique_id) {
+            if (!callerBoutiqueId) {
                 return res.status(403).json({ error: "Accès refusé : cette boutique ne vous appartient pas" });
             }
+            // Accepter : caller a passé l'id du proprio OU son propre id (gérant)
+            if (callerBoutiqueId !== boutique_id && profile.id !== boutique_id) {
+                return res.status(403).json({ error: "Accès refusé : cette boutique ne vous appartient pas" });
+            }
+            effectiveBoutiqueId = callerBoutiqueId;
         }
 
         // Vérifier l'existence de la boutique
         const { data: boutique, error: boutiqueError } = await supabaseAdmin
             .from("users")
             .select("id, name, role")
-            .eq("id", boutique_id)
+            .eq("id", effectiveBoutiqueId)
             .eq("role", "Boutique")
             .maybeSingle();
 
@@ -99,7 +106,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const { data: articles, error: articlesError } = await supabaseAdmin
             .from("articles")
             .select("id")
-            .eq("user_id", boutique_id);
+            .eq("user_id", effectiveBoutiqueId);
 
         if (articlesError) {
             console.error("Supabase error (articles):", articlesError);
