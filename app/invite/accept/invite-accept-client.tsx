@@ -336,7 +336,7 @@ function FormCard(props: {
 
           <Button
             type="submit"
-            className="w-full bg-[#0b2545] hover:bg-[#0b2545]/90"
+            className="w-full bg-[#0b2545] text-white hover:bg-[#0b2545]/90 dark:bg-white dark:text-[#0b2545] dark:hover:bg-white/90"
             disabled={submitting}
           >
             {submitting ? (
