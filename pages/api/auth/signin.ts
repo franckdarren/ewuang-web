@@ -119,13 +119,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(404).json({ error: "Profil utilisateur introuvable" });
         }
 
-        // 3️⃣ Retourner tout
+        // 3️⃣ Pour les comptes Boutique, résoudre le boutique_id effectif via
+        //    boutique_membres (gérant → id du proprio ; proprio → son propre id).
+        let boutiqueId: string | null = null;
+        if (profile.role === "Boutique") {
+            const { data: membership } = await supabaseAdmin
+                .from("boutique_membres")
+                .select("boutique_id")
+                .eq("user_id", profile.id)
+                .eq("statut", "active")
+                .maybeSingle();
+            boutiqueId = membership?.boutique_id ?? profile.id;
+        }
+
         return res.status(200).json({
             auth: {
                 user: authUser,
                 session: authData.session,
             },
-            profile, // infos de ta table public.users
+            profile: {
+                ...profile,
+                ...(boutiqueId !== null ? { boutique_id: boutiqueId } : {}),
+            },
         });
 
     } catch (err: unknown) {
