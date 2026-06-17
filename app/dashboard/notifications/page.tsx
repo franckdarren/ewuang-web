@@ -2,10 +2,11 @@
 'use client';
 
 import React from 'react';
-import { useNotificationsStore, type Notification, type NotificationType } from '@/stores/notificationsStore';
+import { useNotificationsStore, type Notification, type AdminNotification, type NotificationType } from '@/stores/notificationsStore';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -29,10 +30,14 @@ import {
     AlertTriangle,
     Star,
     Settings,
+    Globe,
 } from "lucide-react";
 import { NotificationsTable } from "@/components/notifications/notifications-table";
+import { AdminNotificationsTable } from "@/components/notifications/admin-notifications-table";
 import { NotificationSendModal } from "@/components/notifications/notification-send-modal";
+import { NotificationEditModal } from "@/components/notifications/notification-edit-modal";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 
 // ============================================
 // HELPERS
@@ -56,24 +61,34 @@ export default function NotificationsPage() {
     // ========== STORE ==========
     const {
         notifications,
+        adminNotifications,
+        adminPagination,
         isLoading,
         stats,
         fetchNotifications,
+        fetchAdminNotifications,
         markAsRead,
         markAllAsRead,
         deleteNotification,
+        resendNotification,
     } = useNotificationsStore();
 
     // ========== STATE LOCAL ==========
+    const [activeTab, setActiveTab] = React.useState<'inbox' | 'global'>('global');
     const [isSendModalOpen, setIsSendModalOpen] = React.useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
-    const [notificationToDelete, setNotificationToDelete] = React.useState<Notification | undefined>(undefined);
+    const [notificationToDelete, setNotificationToDelete] = React.useState<Notification | AdminNotification | undefined>(undefined);
+    const [notificationToEdit, setNotificationToEdit] = React.useState<AdminNotification | null>(null);
+    const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
     const [isInitialLoading, setIsInitialLoading] = React.useState(true);
 
     // ========== EFFECTS ==========
     React.useEffect(() => {
-        fetchNotifications().finally(() => setIsInitialLoading(false));
-    }, [fetchNotifications]);
+        Promise.all([
+            fetchNotifications(),
+            fetchAdminNotifications(),
+        ]).finally(() => setIsInitialLoading(false));
+    }, [fetchNotifications, fetchAdminNotifications]);
 
     // ========== HANDLERS ==========
 
@@ -87,7 +102,7 @@ export default function NotificationsPage() {
         await markAllAsRead();
     };
 
-    const handleDelete = (notification: Notification) => {
+    const handleDelete = (notification: Notification | AdminNotification) => {
         setNotificationToDelete(notification);
         setIsDeleteDialogOpen(true);
     };
@@ -95,6 +110,8 @@ export default function NotificationsPage() {
     const handleConfirmDelete = async () => {
         if (!notificationToDelete) return;
         await deleteNotification(notificationToDelete.id);
+        // Rafraîchir la vue globale si on supprime depuis celle-ci
+        await fetchAdminNotifications();
         setIsDeleteDialogOpen(false);
         setNotificationToDelete(undefined);
     };
@@ -102,6 +119,26 @@ export default function NotificationsPage() {
     const handleCancelDelete = () => {
         setIsDeleteDialogOpen(false);
         setNotificationToDelete(undefined);
+    };
+
+    const handleEdit = (notification: AdminNotification) => {
+        setNotificationToEdit(notification);
+        setIsEditModalOpen(true);
+    };
+
+    const handleResend = async (notification: AdminNotification) => {
+        try {
+            const result = await resendNotification(notification.id);
+            if (result.push_count > 0) {
+                toast.success('Push renvoyé', { description: result.message });
+            } else {
+                toast.info('Push non envoyé', { description: result.message });
+            }
+        } catch (error) {
+            toast.error("Erreur lors du renvoi", {
+                description: error instanceof Error ? error.message : 'Réessayez plus tard',
+            });
+        }
     };
 
     // ========== TOP TYPES ==========
@@ -115,7 +152,6 @@ export default function NotificationsPage() {
     if (isInitialLoading) {
         return (
             <div className="flex flex-col gap-6 p-6">
-                {/* Skeleton en-tête */}
                 <div className="flex items-center justify-between">
                     <div className="space-y-2">
                         <Skeleton className="h-9 w-48" />
@@ -126,8 +162,6 @@ export default function NotificationsPage() {
                         <Skeleton className="h-10 w-40" />
                     </div>
                 </div>
-
-                {/* Skeleton stats */}
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                     {Array.from({ length: 4 }).map((_, i) => (
                         <Card key={i}>
@@ -141,12 +175,9 @@ export default function NotificationsPage() {
                         </Card>
                     ))}
                 </div>
-
-                {/* Skeleton tableau */}
                 <Card>
                     <CardHeader>
                         <Skeleton className="h-6 w-40" />
-                        <Skeleton className="h-4 w-64 mt-1" />
                     </CardHeader>
                     <CardContent className="space-y-3">
                         <Skeleton className="h-10 w-full" />
@@ -185,12 +216,26 @@ export default function NotificationsPage() {
 
             {/* ========== STATISTIQUES PRINCIPALES ========== */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                {/* Total */}
+                <Card>
+                    <CardHeader className="pb-2">
+                        <CardDescription className="flex items-center gap-2">
+                            <Globe className="h-4 w-4" />
+                            Total envoyées
+                        </CardDescription>
+                        <CardTitle className="text-3xl font-bold">
+                            {adminPagination.total}
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-xs text-muted-foreground">Toutes les notifications du système</p>
+                    </CardContent>
+                </Card>
+
                 <Card>
                     <CardHeader className="pb-2">
                         <CardDescription className="flex items-center gap-2">
                             <Inbox className="h-4 w-4" />
-                            Total des notifications
+                            Mes notifications
                         </CardDescription>
                         <CardTitle className="text-3xl font-bold">
                             {stats.total}
@@ -198,53 +243,27 @@ export default function NotificationsPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <Badge variant="outline" className="text-xs">
-                                {stats.lues} lues
-                            </Badge>
-                            <Badge variant="outline" className="text-xs">
-                                {stats.non_lues} non lues
-                            </Badge>
+                            <Badge variant="outline" className="text-xs">{stats.lues} lues</Badge>
+                            <Badge variant="outline" className="text-xs">{stats.non_lues} non lues</Badge>
                         </div>
                     </CardContent>
                 </Card>
 
-                {/* Non lues */}
                 <Card>
                     <CardHeader className="pb-2">
                         <CardDescription className="flex items-center gap-2">
                             <Bell className="h-4 w-4 text-blue-600" />
-                            Non lues
+                            Non lues (inbox)
                         </CardDescription>
                         <CardTitle className="text-3xl font-bold text-blue-600">
                             {stats.non_lues}
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-xs text-muted-foreground">
-                            En attente de lecture
-                        </p>
+                        <p className="text-xs text-muted-foreground">En attente de lecture</p>
                     </CardContent>
                 </Card>
 
-                {/* Lues */}
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardDescription className="flex items-center gap-2">
-                            <BellOff className="h-4 w-4 text-green-600" />
-                            Lues
-                        </CardDescription>
-                        <CardTitle className="text-3xl font-bold text-green-600">
-                            {stats.lues}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-xs text-muted-foreground">
-                            Déjà consultées
-                        </p>
-                    </CardContent>
-                </Card>
-
-                {/* Top type */}
                 <Card>
                     <CardHeader className="pb-2">
                         <CardDescription className="flex items-center gap-2">
@@ -267,7 +286,7 @@ export default function NotificationsPage() {
                 </Card>
             </div>
 
-            {/* ========== APERÇU DES NOTIFICATIONS NON LUES ========== */}
+            {/* ========== APERÇU NON LUES ========== */}
             {stats.non_lues > 0 && (
                 <div>
                     <h2 className="text-xl font-semibold mb-4">Notifications non lues récentes</h2>
@@ -287,9 +306,7 @@ export default function NotificationsPage() {
                                                         {notification.titre}
                                                     </CardTitle>
                                                 </div>
-                                                <Badge variant="default" className="shrink-0 text-xs">
-                                                    Non lue
-                                                </Badge>
+                                                <Badge variant="default" className="shrink-0 text-xs">Non lue</Badge>
                                             </div>
                                         </CardHeader>
                                         <CardContent>
@@ -340,31 +357,72 @@ export default function NotificationsPage() {
                 </div>
             )}
 
-            {/* ========== TABLEAU DES NOTIFICATIONS ========== */}
+            {/* ========== ONGLETS NOTIFICATIONS ========== */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Toutes les notifications</CardTitle>
+                    <CardTitle>Notifications</CardTitle>
                     <CardDescription>
-                        Consultez et gérez toutes vos notifications
+                        Vue globale de toutes les notifications du système ou de votre boîte de réception.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <NotificationsTable
-                        notifications={notifications}
-                        isLoading={isLoading}
-                        onMarkAsRead={handleMarkAsRead}
-                        onDelete={handleDelete}
-                    />
+                    <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
+                        <TabsList className="mb-4">
+                            <TabsTrigger value="global" className="gap-2">
+                                <Globe className="h-4 w-4" />
+                                Vue globale
+                                <Badge variant="secondary" className="text-xs ml-1">
+                                    {adminPagination.total}
+                                </Badge>
+                            </TabsTrigger>
+                            <TabsTrigger value="inbox" className="gap-2">
+                                <Inbox className="h-4 w-4" />
+                                Mon inbox
+                                {stats.non_lues > 0 && (
+                                    <Badge variant="default" className="text-xs ml-1">
+                                        {stats.non_lues}
+                                    </Badge>
+                                )}
+                            </TabsTrigger>
+                        </TabsList>
+
+                        <TabsContent value="global">
+                            <AdminNotificationsTable
+                                notifications={adminNotifications}
+                                isLoading={isLoading}
+                                onEdit={handleEdit}
+                                onResend={handleResend}
+                                onDelete={handleDelete}
+                            />
+                        </TabsContent>
+
+                        <TabsContent value="inbox">
+                            <NotificationsTable
+                                notifications={notifications}
+                                isLoading={isLoading}
+                                onMarkAsRead={handleMarkAsRead}
+                                onDelete={handleDelete}
+                            />
+                        </TabsContent>
+                    </Tabs>
                 </CardContent>
             </Card>
 
-            {/* ========== MODAL D'ENVOI ========== */}
+            {/* ========== MODALS ========== */}
             <NotificationSendModal
                 open={isSendModalOpen}
                 onClose={() => setIsSendModalOpen(false)}
             />
 
-            {/* ========== DIALOG DE CONFIRMATION DE SUPPRESSION ========== */}
+            <NotificationEditModal
+                notification={notificationToEdit}
+                open={isEditModalOpen}
+                onClose={() => {
+                    setIsEditModalOpen(false);
+                    setNotificationToEdit(null);
+                }}
+            />
+
             <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
@@ -376,9 +434,7 @@ export default function NotificationsPage() {
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel onClick={handleCancelDelete}>
-                            Annuler
-                        </AlertDialogCancel>
+                        <AlertDialogCancel onClick={handleCancelDelete}>Annuler</AlertDialogCancel>
                         <AlertDialogAction
                             onClick={handleConfirmDelete}
                             className="bg-red-600 hover:bg-red-700"

@@ -26,6 +26,19 @@ export interface Notification {
     created_at: string;
 }
 
+export interface AdminNotification extends Notification {
+    user_name: string | null;
+    user_email: string | null;
+    user_role: string | null;
+}
+
+export interface UpdateNotificationInput {
+    type?: NotificationType;
+    titre?: string;
+    message?: string;
+    lien?: string | null;
+}
+
 export interface SendNotificationInput {
     user_ids: string[];
     type: NotificationType;
@@ -52,6 +65,13 @@ interface LoadingState {
 
 interface NotificationsState extends LoadingState {
     notifications: Notification[];
+    adminNotifications: AdminNotification[];
+    adminPagination: {
+        page: number;
+        limit: number;
+        total: number;
+        total_pages: number;
+    };
     stats: NotificationStats;
     pagination: {
         page: number;
@@ -62,7 +82,10 @@ interface NotificationsState extends LoadingState {
 
     // Actions
     fetchNotifications: (filters?: { type?: NotificationType; is_read?: boolean; page?: number }) => Promise<void>;
+    fetchAdminNotifications: (filters?: { type?: NotificationType; is_read?: boolean; search?: string; page?: number }) => Promise<void>;
     sendNotification: (data: SendNotificationInput) => Promise<void>;
+    updateNotification: (id: string, data: UpdateNotificationInput) => Promise<void>;
+    resendNotification: (id: string) => Promise<{ push_count: number; message: string }>;
     markAsRead: (id: string) => Promise<void>;
     markAllAsRead: () => Promise<void>;
     deleteNotification: (id: string) => Promise<void>;
@@ -125,10 +148,12 @@ const initialStats: NotificationStats = {
 
 export const useNotificationsStore = createWithEqualityFn<NotificationsState>((set, get) => ({
     notifications: [],
+    adminNotifications: [],
     stats: initialStats,
     isLoading: false,
     error: null,
     pagination: { page: 1, limit: 50, total: 0, total_pages: 0 },
+    adminPagination: { page: 1, limit: 50, total: 0, total_pages: 0 },
 
     fetchNotifications: async (filters) => {
         set({ isLoading: true, error: null });
@@ -166,6 +191,36 @@ export const useNotificationsStore = createWithEqualityFn<NotificationsState>((s
         }
     },
 
+    fetchAdminNotifications: async (filters) => {
+        set({ isLoading: true, error: null });
+        try {
+            const token = getAuthToken();
+            const params = new URLSearchParams();
+            params.set('limit', '50');
+            if (filters?.page) params.set('page', String(filters.page));
+            if (filters?.type) params.set('type', filters.type);
+            if (filters?.is_read !== undefined) params.set('is_read', String(filters.is_read));
+            if (filters?.search) params.set('search', filters.search);
+
+            const response = await fetch(`/api/notifications/admin/list?${params}`, {
+                headers: { 'Authorization': `Bearer ${token}` },
+            });
+
+            if (!response.ok) await handleApiError(response);
+
+            const data = await response.json();
+            set({
+                adminNotifications: data.notifications ?? [],
+                adminPagination: data.pagination ?? get().adminPagination,
+                isLoading: false,
+                error: null,
+            });
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Erreur de chargement';
+            set({ error: errorMessage, isLoading: false });
+        }
+    },
+
     sendNotification: async (data: SendNotificationInput) => {
         set({ isLoading: true, error: null });
         try {
@@ -178,11 +233,68 @@ export const useNotificationsStore = createWithEqualityFn<NotificationsState>((s
             if (!response.ok) await handleApiError(response);
 
             set({ isLoading: false, error: null });
-            await get().fetchNotifications();
+            await get().fetchAdminNotifications();
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Erreur envoi';
             set({ error: errorMessage, isLoading: false });
             throw error;
+        }
+    },
+
+    updateNotification: async (id: string, data: UpdateNotificationInput) => {
+        set({ isLoading: true, error: null });
+        try {
+            const response = await fetch(`/api/notifications/${id}/update`, {
+                method: 'PATCH',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(data),
+            });
+
+            if (!response.ok) await handleApiError(response);
+
+            const result = await response.json();
+            const updated = result.notification;
+
+            const mapType = (dbType: string): NotificationType => {
+                const map: Record<string, NotificationType> = {
+                    'Commande': 'commande', 'Livraison': 'livraison', 'Message': 'message',
+                    'Promotion': 'promotion', 'Alerte stock': 'alerte_stock', 'Avis': 'avis', 'Système': 'systeme',
+                };
+                return map[dbType] ?? dbType as NotificationType;
+            };
+
+            set(state => ({
+                notifications: state.notifications.map(n =>
+                    n.id === id ? { ...n, ...updated, type: mapType(updated.type) } : n
+                ),
+                adminNotifications: state.adminNotifications.map(n =>
+                    n.id === id ? { ...n, ...updated, type: mapType(updated.type) } : n
+                ),
+                isLoading: false,
+                error: null,
+            }));
+            get().calculateStats();
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Erreur de mise à jour';
+            set({ error: errorMessage, isLoading: false });
+            throw error;
+        }
+    },
+
+    resendNotification: async (id: string) => {
+        try {
+            const response = await fetch(`/api/notifications/${id}/resend`, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+            });
+
+            if (!response.ok) await handleApiError(response);
+
+            const result = await response.json();
+            return result as { push_count: number; message: string };
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Erreur renvoi push';
+            throw new Error(errorMessage);
         }
     },
 
