@@ -77,12 +77,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(500).json({ error: "Erreur lors de la récupération" });
         }
 
+        const DB_TYPE_MAP: Record<string, string> = {
+            'Commande': 'commande', 'Livraison': 'livraison', 'Message': 'message',
+            'Promotion': 'promotion', 'Alerte stock': 'alerte_stock', 'Avis': 'avis', 'Système': 'systeme',
+        };
+
         const notifications = (data ?? []).map((row: Record<string, unknown>) => {
             const user = row.users as Record<string, unknown> | null;
             return {
                 id: row.id,
                 user_id: row.user_id,
-                type: row.type,
+                type: DB_TYPE_MAP[row.type as string] ?? row.type,
                 titre: row.titre,
                 message: row.message,
                 lien: row.lien,
