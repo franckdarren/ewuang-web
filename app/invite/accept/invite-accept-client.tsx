@@ -119,7 +119,7 @@ export default function InviteAcceptClient() {
   }
 
   return (
-    <div className="flex min-h-svh items-center justify-center bg-gradient-to-br from-[#f7f8fa] via-white to-[#eef4ff] p-4">
+    <div className="flex min-h-svh items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
         {/* Header — logo Ewuang */}
         <div className="mb-6 flex flex-col items-center">
@@ -164,8 +164,8 @@ function VerifyingCard() {
   return (
     <Card className="border-0 shadow-lg">
       <CardContent className="flex flex-col items-center gap-4 py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-[#0b2545]" />
-        <p className="text-sm text-gray-600">Vérification de votre invitation…</p>
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">Vérification de votre invitation…</p>
       </CardContent>
     </Card>
   );
@@ -177,16 +177,16 @@ function ErrorCard({ message }: { message: string }) {
   return (
     <Card className="border-0 shadow-lg">
       <CardContent className="flex flex-col items-center gap-4 py-12 text-center">
-        <div className="rounded-full bg-red-50 p-3">
-          <AlertCircle className="h-7 w-7 text-red-500" />
+        <div className="rounded-full bg-destructive/10 p-3">
+          <AlertCircle className="h-7 w-7 text-destructive" />
         </div>
         <div>
-          <h2 className="mb-1 text-lg font-bold text-gray-900">
+          <h2 className="mb-1 text-lg font-bold text-foreground">
             Lien invalide
           </h2>
-          <p className="text-sm text-gray-600">{message}</p>
+          <p className="text-sm text-muted-foreground">{message}</p>
         </div>
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-muted-foreground">
           Demandez au propriétaire de vous renvoyer une nouvelle invitation.
         </p>
       </CardContent>
@@ -228,7 +228,7 @@ function FormCard(props: {
   return (
     <Card className="border-0 shadow-lg">
       <CardHeader className="space-y-4 pb-2">
-        <div className="flex items-center gap-3 rounded-xl bg-[#0b2545]/5 p-3">
+        <div className="flex items-center gap-3 rounded-xl bg-muted p-3">
           {invitation.boutique.url_logo ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -237,26 +237,26 @@ function FormCard(props: {
               className="h-11 w-11 rounded-lg object-cover"
             />
           ) : (
-            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#0b2545]">
-              <Store className="h-5 w-5 text-white" />
+            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary">
+              <Store className="h-5 w-5 text-primary-foreground" />
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Vous rejoignez
             </p>
-            <p className="truncate text-base font-bold text-[#0b2545]">
+            <p className="truncate text-base font-bold text-foreground">
               {invitation.boutique.name}
             </p>
           </div>
         </div>
         <div>
-          <h1 className="text-xl font-bold text-gray-900">
+          <h1 className="text-xl font-bold text-foreground">
             Créer votre compte gérant
           </h1>
-          <p className="mt-1 text-sm text-gray-600">
+          <p className="mt-1 text-sm text-muted-foreground">
             Invitation pour{" "}
-            <span className="font-semibold text-gray-900">
+            <span className="font-semibold text-foreground">
               {invitation.email}
             </span>
           </p>
@@ -267,7 +267,7 @@ function FormCard(props: {
           <div className="space-y-1.5">
             <Label htmlFor="owner_name">Votre nom complet</Label>
             <div className="relative">
-              <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 id="owner_name"
                 value={ownerName}
@@ -283,7 +283,7 @@ function FormCard(props: {
 
           <div className="space-y-1.5">
             <Label htmlFor="phone">
-              Téléphone <span className="text-gray-400">(facultatif)</span>
+              Téléphone <span className="text-muted-foreground">(facultatif)</span>
             </Label>
             <Input
               id="phone"
@@ -311,7 +311,7 @@ function FormCard(props: {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground"
                 tabIndex={-1}
               >
                 {showPassword ? (
@@ -321,14 +321,14 @@ function FormCard(props: {
                 )}
               </button>
             </div>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-muted-foreground">
               Vous utiliserez ce mot de passe pour vous connecter dans
               l&apos;application Ewuang.
             </p>
           </div>
 
           {errorMsg && (
-            <div className="flex items-start gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+            <div className="flex items-start gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
               <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
               <span>{errorMsg}</span>
             </div>
@@ -363,30 +363,30 @@ function SuccessCard({ invitation }: { invitation: VerifyResponse }) {
   return (
     <Card className="border-0 shadow-lg">
       <CardContent className="flex flex-col items-center gap-5 py-10 text-center">
-        <div className="rounded-full bg-green-50 p-3">
-          <CheckCircle2 className="h-9 w-9 text-green-600" />
+        <div className="rounded-full bg-green-50 p-3 dark:bg-green-950">
+          <CheckCircle2 className="h-9 w-9 text-green-600 dark:text-green-400" />
         </div>
         <div>
-          <h2 className="mb-1 text-xl font-bold text-gray-900">
+          <h2 className="mb-1 text-xl font-bold text-foreground">
             Compte créé !
           </h2>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-muted-foreground">
             Vous faites maintenant partie de{" "}
-            <span className="font-semibold text-gray-900">
+            <span className="font-semibold text-foreground">
               {invitation.boutique.name}
             </span>
             .
           </p>
         </div>
-        <div className="w-full rounded-xl border border-gray-200 bg-gray-50 p-4 text-left text-sm">
-          <p className="mb-2 font-semibold text-gray-900">
+        <div className="w-full rounded-xl border bg-muted p-4 text-left text-sm">
+          <p className="mb-2 font-semibold text-foreground">
             Prochaine étape :
           </p>
-          <p className="text-gray-700">
+          <p className="text-foreground">
             Ouvrez l&apos;application Ewuang sur votre téléphone et connectez-vous
             avec :
           </p>
-          <ul className="mt-2 space-y-1 text-gray-600">
+          <ul className="mt-2 space-y-1 text-muted-foreground">
             <li>
               <span className="font-medium">Email :</span> {invitation.email}
             </li>
@@ -398,7 +398,7 @@ function SuccessCard({ invitation }: { invitation: VerifyResponse }) {
         </div>
         <Link
           href="/"
-          className="text-xs text-gray-500 underline-offset-2 hover:underline"
+          className="text-xs text-muted-foreground underline-offset-2 hover:underline"
         >
           Retour à l&apos;accueil
         </Link>
