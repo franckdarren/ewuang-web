@@ -272,7 +272,7 @@ function FormCard(props: {
                 id="owner_name"
                 value={ownerName}
                 onChange={(e) => setOwnerName(e.target.value)}
-                placeholder="Amerlinda Mboumba"
+                placeholder="Anne Mboumba"
                 className="pl-9"
                 disabled={submitting}
                 autoFocus
