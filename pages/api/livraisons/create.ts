@@ -173,11 +173,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(500).json({ error: "Impossible de créer la livraison" });
         }
 
-        // Mettre à jour le statut de la commande si nécessaire
-        if (commande.statut === "En attente" || commande.statut === "en_preparation") {
+        // Mettre à jour le statut de la commande si nécessaire.
+        // Libellés FR canoniques (cf. enum update-status + filtre livraisons/disponibles).
+        if (commande.statut === "En attente" || commande.statut === "En préparation") {
             await supabaseAdmin
                 .from("commandes")
-                .update({ statut: "prete_pour_livraison" })
+                .update({ statut: "Prête pour livraison" })
                 .eq("id", body.commande_id);
         }
 

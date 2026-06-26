@@ -93,7 +93,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (livraison.commande_id) {
             await supabaseAdmin
                 .from("commandes")
-                .update({ statut: "en_preparation" })
+                .update({ statut: "En préparation" })
                 .eq("id", livraison.commande_id);
         }
 

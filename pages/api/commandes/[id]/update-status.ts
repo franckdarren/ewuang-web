@@ -112,9 +112,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const isAdmin = profile.role === "Administrateur";
         const isOwner = commande.user_id === profile.id;
         const boutiqueId = await resolveBoutiqueIdFor(profile.id, profile.role);
-        const isBoutiqueOwner = boutiqueId !== null && commande.commande_articles?.some(
-            (ca: any) => ca.articles?.user_id === boutiqueId
-        );
+        // Multi-boutiques : chaque sous-commande appartient à UNE boutique
+        // (vendeur_id) → une boutique ne peut piloter que SA sous-commande.
+        // Repli sur la propriété des articles pour les anciennes commandes
+        // créées avant la migration (vendeur_id encore null).
+        const isBoutiqueOwner =
+            boutiqueId !== null &&
+            (commande.vendeur_id === boutiqueId ||
+                (commande.vendeur_id == null &&
+                    commande.commande_articles?.some(
+                        (ca: any) => ca.articles?.user_id === boutiqueId
+                    )));
 
         if (!isAdmin && !isOwner && !isBoutiqueOwner) {
             return res.status(403).json({ error: "Accès refusé pour modifier cette commande" });

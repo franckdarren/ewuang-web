@@ -375,7 +375,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // -----------------------------------------------------------------------
-    // 4. Créer l'enregistrement paiement en premier (requis par la FK commandes.paiement_id)
+    // 4. Créer l'enregistrement paiement en premier (requis par les FK paiement_id)
     // -----------------------------------------------------------------------
     const paiementId = uuidv4();
     const numeroCommande = await generateOrderNumber();
@@ -391,6 +391,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       {} as Record<string, number>
     );
 
+    const paiementDetails = {
+      groupe_id: null as string | null, // renseigné après création du groupe
+      operateur: body.operateur,
+      telephone: body.telephone,
+      admin_id: admin?.id ?? null,
+      admin_frais: adminFrais,
+      boutique_benefices: boutiqueBenefices,
+      frais_livraison: fraisLivraison,
+      ville_livraison: villeLivraison,
+    };
+
     const { error: paiementError } = await supabaseAdmin.from("paiements").insert({
       id: paiementId,
       user_id: profile.id,
@@ -398,16 +409,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       methode: "mobile_money",
       statut: "En attente",
       reference,
-      details: {
-        commande_id: null, // mis à jour après création de la commande
-        operateur: body.operateur,
-        telephone: body.telephone,
-        admin_id: admin?.id ?? null,
-        admin_frais: adminFrais,
-        boutique_benefices: boutiqueBenefices,
-        frais_livraison: fraisLivraison,
-        ville_livraison: villeLivraison,
-      },
+      details: paiementDetails,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     });
@@ -418,72 +420,124 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // -----------------------------------------------------------------------
-    // 5. Créer la commande (En attente) — paiement_id existe maintenant
+    // 5. Créer le groupe parent (payé en une fois par le client), puis une
+    //    sous-commande par boutique (Option A multi-boutiques).
     // -----------------------------------------------------------------------
-    const { data: commande, error: commandeError } = await supabaseAdmin
-      .from("commandes")
+    const groupeId = uuidv4();
+    const { error: groupeError } = await supabaseAdmin
+      .from("commande_groupes")
       .insert({
+        id: groupeId,
         numero: numeroCommande,
         user_id: profile.id,
-        commentaire: body.commentaire,
-        statut: "En attente",
-        isLivrable: body.isLivrable,
-        prix: total,
+        paiement_id: paiementId,
+        prix_total: total,
+        frais_livraison: fraisLivraison,
+        ville_livraison: villeLivraison,
         adresse_livraison: body.adresse_livraison,
         telephone_livraison: body.telephone_livraison ?? null,
+        commentaire: body.commentaire,
         code_promo_id: codePromoId,
         remise_appliquee: remiseAppliquee,
-        paiement_id: paiementId,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
+      });
 
-    if (commandeError) {
-      console.error("[paiements/initiate] commande insert:", commandeError);
+    if (groupeError) {
+      console.error("[paiements/initiate] groupe insert:", groupeError);
       await supabaseAdmin.from("paiements").delete().eq("id", paiementId);
       return res.status(500).json({ error: "Impossible de créer la commande" });
     }
 
-    // Mettre à jour commande_id dans les détails du paiement
+    // Regrouper les articles par boutique (1 sous-commande = 1 boutique)
+    const articlesParBoutique = new Map<string, typeof commandeArticles>();
+    for (const ca of commandeArticles) {
+      const list = articlesParBoutique.get(ca.boutique_user_id) ?? [];
+      list.push(ca);
+      articlesParBoutique.set(ca.boutique_user_id, list);
+    }
+
+    // Rollback : supprime sous-commandes, groupe, puis paiement (ordre FK).
+    const sousCommandeIds: string[] = [];
+    const rollbackCommandes = async () => {
+      for (const scid of sousCommandeIds) {
+        await supabaseAdmin.from("commande_articles").delete().eq("commande_id", scid);
+        await supabaseAdmin.from("commandes").delete().eq("id", scid);
+      }
+      await supabaseAdmin.from("commande_groupes").delete().eq("id", groupeId);
+      await supabaseAdmin.from("paiements").delete().eq("id", paiementId);
+    };
+
+    let lettreIndex = 0;
+    for (const [boutiqueId, items] of articlesParBoutique) {
+      const lettre = String.fromCharCode(65 + lettreIndex); // A, B, C...
+      lettreIndex++;
+      const prixBoutique = items.reduce(
+        (sum, ca) => sum + ca.prix_unitaire * ca.quantite,
+        0
+      );
+
+      const { data: sousCommande, error: commandeError } = await supabaseAdmin
+        .from("commandes")
+        .insert({
+          numero: `${numeroCommande}-${lettre}`,
+          user_id: profile.id,
+          vendeur_id: boutiqueId,
+          groupe_id: groupeId,
+          commentaire: body.commentaire,
+          statut: "En attente",
+          isLivrable: body.isLivrable,
+          prix: prixBoutique,
+          adresse_livraison: body.adresse_livraison,
+          telephone_livraison: body.telephone_livraison ?? null,
+          // Promo portée au niveau du groupe (prix_total) ; on garde la
+          // référence pour la traçabilité sans rejouer la remise par boutique.
+          code_promo_id: codePromoId,
+          remise_appliquee: 0,
+          paiement_id: paiementId,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .select("id")
+        .single();
+
+      if (commandeError || !sousCommande) {
+        console.error("[paiements/initiate] sous-commande insert:", commandeError);
+        await rollbackCommandes();
+        return res.status(500).json({ error: "Impossible de créer la commande" });
+      }
+
+      sousCommandeIds.push(sousCommande.id);
+
+      const { error: articlesError } = await supabaseAdmin
+        .from("commande_articles")
+        .insert(
+          items.map((ca) => ({
+            commande_id: sousCommande.id,
+            article_id: ca.article_id,
+            variation_id: ca.variation_id,
+            quantite: ca.quantite,
+            prix_unitaire: ca.prix_unitaire,
+          }))
+        );
+
+      if (articlesError) {
+        console.error("[paiements/initiate] articles insert:", articlesError);
+        await rollbackCommandes();
+        return res.status(500).json({ error: "Impossible d'insérer les articles" });
+      }
+    }
+
+    // Mémoriser le groupe dans les détails du paiement (pour la finalisation)
+    paiementDetails.groupe_id = groupeId;
     await supabaseAdmin
       .from("paiements")
-      .update({
-        details: {
-          commande_id: commande.id,
-          operateur: body.operateur,
-          telephone: body.telephone,
-          admin_id: admin?.id ?? null,
-          admin_frais: adminFrais,
-          boutique_benefices: boutiqueBenefices,
-          frais_livraison: fraisLivraison,
-          ville_livraison: villeLivraison,
-        },
-      })
+      .update({ details: paiementDetails })
       .eq("id", paiementId);
 
     // -----------------------------------------------------------------------
-    // 6. Articles + réservation de stock
+    // 6. Réservation de stock
     // -----------------------------------------------------------------------
-    const { error: articlesError } = await supabaseAdmin
-      .from("commande_articles")
-      .insert(
-        commandeArticles.map((ca) => ({
-          commande_id: commande.id,
-          article_id: ca.article_id,
-          variation_id: ca.variation_id,
-          quantite: ca.quantite,
-          prix_unitaire: ca.prix_unitaire,
-        }))
-      );
-
-    if (articlesError) {
-      await supabaseAdmin.from("commandes").delete().eq("id", commande.id);
-      await supabaseAdmin.from("paiements").delete().eq("id", paiementId);
-      return res.status(500).json({ error: "Impossible d'insérer les articles" });
-    }
-
     for (const ca of commandeArticles) {
       if (ca.variation_to_update) {
         await supabaseAdmin.rpc("decrement_variation_stock", {
@@ -545,10 +599,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       }
 
-      // Supprimer commande_articles, commande, puis paiement (ordre FK)
-      await supabaseAdmin.from("commande_articles").delete().eq("commande_id", commande.id);
-      await supabaseAdmin.from("commandes").delete().eq("id", commande.id);
-      await supabaseAdmin.from("paiements").delete().eq("id", paiementId);
+      // Supprimer sous-commandes, groupe, puis paiement (ordre FK)
+      await rollbackCommandes();
 
       return res.status(502).json({
         error: "Le service de paiement est temporairement indisponible. Veuillez réessayer.",
@@ -569,7 +621,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     return res.status(200).json({
       message: "Paiement initié — en attente de confirmation",
-      commande_id: commande.id,
+      groupe_id: groupeId,
+      // Rétrocompat : 1re sous-commande (l'app Flutter polle par paiement_id).
+      commande_id: sousCommandeIds[0],
+      sous_commande_ids: sousCommandeIds,
       commande_numero: numeroCommande,
       paiement_id: paiementId,
       reference,

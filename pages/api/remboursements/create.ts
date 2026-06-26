@@ -74,7 +74,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // 1. La commande existe et appartient au client
     const { data: commande, error: commandeError } = await supabaseAdmin
       .from("commandes")
-      .select("id, numero, user_id, statut, prix, paiement_id")
+      .select("id, numero, user_id, statut, prix, paiement_id, vendeur_id")
       .eq("id", body.commande_id)
       .maybeSingle();
 
@@ -108,23 +108,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .json({ error: "Une demande de remboursement est déjà en cours pour cette commande" });
     }
 
-    // 3. Résoudre le vendeur (boutique propriétaire des articles de la commande)
-    const { data: articles } = await supabaseAdmin
-      .from("commande_articles")
-      .select("articles(user_id)")
-      .eq("commande_id", body.commande_id);
+    // 3. Résoudre le vendeur. Multi-boutiques : la sous-commande porte son
+    //    vendeur_id (une seule boutique). Repli sur la propriété des articles
+    //    pour les anciennes commandes (vendeur_id null).
+    let vendeurId: string | null = commande.vendeur_id ?? null;
+    if (!vendeurId) {
+      const { data: articles } = await supabaseAdmin
+        .from("commande_articles")
+        .select("articles(user_id)")
+        .eq("commande_id", body.commande_id);
 
-    const articleRows = (articles ?? []) as unknown as {
-      articles: { user_id: string } | null;
-    }[];
-    const vendeurIds = Array.from(
-      new Set(
-        articleRows
-          .map((a) => a.articles?.user_id)
-          .filter((id): id is string => Boolean(id)),
-      ),
-    );
-    const vendeurId = vendeurIds[0] ?? null;
+      const articleRows = (articles ?? []) as unknown as {
+        articles: { user_id: string } | null;
+      }[];
+      const vendeurIds = Array.from(
+        new Set(
+          articleRows
+            .map((a) => a.articles?.user_id)
+            .filter((id): id is string => Boolean(id)),
+        ),
+      );
+      vendeurId = vendeurIds[0] ?? null;
+    }
 
     // 4. Créer la demande
     const deadline = new Date(Date.now() + VENDEUR_DELAI_HEURES * 60 * 60 * 1000);
