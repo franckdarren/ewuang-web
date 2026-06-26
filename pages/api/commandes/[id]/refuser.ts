@@ -3,6 +3,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { z, ZodError } from "zod";
 import { supabaseAdmin } from "../../../../app/lib/supabaseAdmin";
 import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth";
+import { notifyBoutiqueMembres } from "../../../../app/lib/notifyBoutique";
 
 /**
  * @swagger
@@ -102,16 +103,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(500).json({ error: "Impossible de mettre à jour la commande" });
     }
 
-    // Notifier la boutique
+    // Notifier la boutique (fan-out gérants + push)
     if (commande.creee_par_boutique_id) {
-      await supabaseAdmin.from("notifications").insert({
-        user_id: commande.creee_par_boutique_id,
+      await notifyBoutiqueMembres(commande.creee_par_boutique_id, {
         type: "Commande",
         titre: "Commande refusée par le client",
         message: `Le client a refusé la commande ${commande.numero}.${body.motif ? ` Motif : ${body.motif}` : ""}`,
-        lien: `/commandes/${commande.id}`,
-        is_read: false,
-        created_at: new Date().toISOString(),
+        lien: "/boutique/commandes",
       });
     }
 

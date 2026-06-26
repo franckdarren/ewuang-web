@@ -34,6 +34,7 @@ import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
 
 const schema = z.object({
     fcm_token: z.string().min(1),
+    platform: z.enum(["android", "ios", "web"]).optional(),
 });
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -46,8 +47,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (!auth) return;
         const { profile } = auth;
 
-        const { fcm_token } = schema.parse(req.body);
+        const { fcm_token, platform } = schema.parse(req.body);
 
+        // 1. Repli legacy : on garde users.fcm_token à jour (rétrocompat).
         const { error } = await supabaseAdmin
             .from("users")
             .update({ fcm_token })
@@ -56,6 +58,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (error) {
             console.error("Erreur update fcm_token:", error);
             return res.status(500).json({ error: "Impossible de mettre à jour le token FCM" });
+        }
+
+        // 2. Multi-device : upsert dans device_tokens. ON CONFLICT (token) →
+        //    réattribue le token au user courant (cas déconnexion/reconnexion
+        //    sur le même appareil). Best-effort : si la table n'existe pas encore
+        //    (migration non appliquée), on n'échoue pas la requête.
+        try {
+            await supabaseAdmin
+                .from("device_tokens")
+                .upsert(
+                    {
+                        user_id: profile.id,
+                        token: fcm_token,
+                        platform: platform ?? null,
+                        updated_at: new Date().toISOString(),
+                    },
+                    { onConflict: "token" },
+                );
+        } catch (e) {
+            console.error("[update-fcm-token] device_tokens upsert ignoré:", e);
         }
 
         return res.status(200).json({ message: "Token FCM mis à jour" });

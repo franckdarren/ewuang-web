@@ -6,6 +6,7 @@ import { z, ZodError } from "zod";
 import { supabaseAdmin } from "../../../app/lib/supabaseAdmin";
 import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
 import { uploadReviewImage } from "../../../lib/upload";
+import { notifyBoutiqueMembres } from "../../../app/lib/notifyBoutique";
 
 /**
  * @swagger
@@ -114,10 +115,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             commentaire: firstValue(fields.commentaire),
         });
 
-        // Vérifier que l'article existe
+        // Vérifier que l'article existe (user_id = boutique propriétaire)
         const { data: article, error: articleError } = await supabaseAdmin
             .from("articles")
-            .select("id, nom")
+            .select("id, nom, user_id")
             .eq("id", body.article_id)
             .single();
 
@@ -214,6 +215,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (updateError) {
             console.error("Supabase update error:", updateError);
             return res.status(500).json({ error: "Avis créé mais impossible d'enregistrer les images" });
+        }
+
+        // Notifier la boutique propriétaire de l'article (in-app + push,
+        // fan-out aux gérants). Best-effort : ne bloque jamais la création.
+        if (article.user_id) {
+            await notifyBoutiqueMembres(article.user_id as string, {
+                type: "Avis",
+                titre: "Nouvel avis sur un de vos articles",
+                message: `${profile.name ?? "Un client"} a laissé un avis ${body.note}★ sur « ${article.nom} ».`,
+                lien: "/boutique/articles",
+            });
         }
 
         return res.status(201).json({

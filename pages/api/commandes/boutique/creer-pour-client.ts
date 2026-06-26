@@ -4,6 +4,7 @@ import { z, ZodError } from "zod";
 import { v4 as uuidv4 } from "uuid";
 import { supabaseAdmin } from "../../../../app/lib/supabaseAdmin";
 import { requireBoutiqueAccess } from "../../../../app/lib/middlewares/requireBoutiqueAccess";
+import { envoyerPushFCM } from "../../../../app/lib/sendPushFCM";
 
 /**
  * @swagger
@@ -334,15 +335,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // 7. Notification + chat thread (pour la confirmation d'adresse)
-    await supabaseAdmin.from("notifications").insert({
-      user_id: client.id,
+    const notifClient = {
       type: "Commande",
       titre: "Nouvelle commande à valider",
       message: `Une boutique a préparé une commande pour vous (${numero}). Vérifiez les articles et l'adresse, puis validez pour payer. Expire dans 48h.`,
       lien: `/commandes/${commande.id}/valider`,
+    };
+    await supabaseAdmin.from("notifications").insert({
+      user_id: client.id,
+      ...notifClient,
       is_read: false,
       created_at: new Date().toISOString(),
     });
+    await envoyerPushFCM([client.id], notifClient);
 
     // Création d'un thread chat lié à la commande pour confirmer l'adresse
     const [pa, pb] = [client.id, access.boutiqueId].sort();

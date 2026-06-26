@@ -11,6 +11,8 @@
 // (paiement initié avant la migration), on traite cette commande unique.
 
 import { supabaseAdmin } from "./supabaseAdmin";
+import { notifyBoutiqueMembres } from "./notifyBoutique";
+import { envoyerPushFCM } from "./sendPushFCM";
 
 export interface PaiementDetails {
   groupe_id?: string | null;
@@ -26,6 +28,7 @@ interface CommandeFinalisable {
   id: string;
   numero: string;
   user_id: string;
+  vendeur_id: string | null;
   statut: string;
   isLivrable: boolean;
   adresse_livraison: string | null;
@@ -33,7 +36,7 @@ interface CommandeFinalisable {
 }
 
 const COMMANDE_FIELDS =
-  "id, numero, user_id, statut, isLivrable, adresse_livraison, telephone_livraison";
+  "id, numero, user_id, vendeur_id, statut, isLivrable, adresse_livraison, telephone_livraison";
 
 /**
  * Résout la liste des (sous-)commandes concernées par un paiement, à partir
@@ -156,6 +159,56 @@ async function creerLivraisonPourCommande(c: CommandeFinalisable): Promise<void>
 }
 
 /**
+ * Notifie la boutique d'une sous-commande payée afin qu'elle démarre la
+ * préparation (in-app + push FCM, via le fan-out aux gérants).
+ *
+ * Résout la boutique destinataire :
+ *   1. `vendeur_id` de la sous-commande (renseigné par la refonte multi-boutiques) ;
+ *   2. repli legacy : si NULL, on dérive le propriétaire des articles de la
+ *      sous-commande (commande mono-boutique historique).
+ *
+ * Best-effort : ne lève jamais (n'interrompt pas la finalisation du paiement).
+ */
+async function notifierBoutiquePreparation(c: CommandeFinalisable): Promise<void> {
+  try {
+    // Lignes de la sous-commande : sert au repli vendeur et au comptage.
+    const { data: lignes } = await supabaseAdmin
+      .from("commande_articles")
+      .select("article_id, quantite, articles(user_id)")
+      .eq("commande_id", c.id);
+
+    let boutiqueId = c.vendeur_id;
+    if (!boutiqueId) {
+      // Repli : propriétaire des articles (mono-boutique historique).
+      const owners = new Set(
+        (lignes ?? [])
+          .map((l) => (l.articles as { user_id?: string } | null)?.user_id)
+          .filter((id): id is string => !!id),
+      );
+      // On ne notifie via ce repli que si la sous-commande est bien mono-boutique.
+      if (owners.size === 1) boutiqueId = [...owners][0];
+    }
+
+    if (!boutiqueId) return;
+
+    const nbArticles = (lignes ?? []).reduce(
+      (sum, l) => sum + (Number(l.quantite) || 0),
+      0,
+    );
+    const articlesLabel = `${nbArticles} article${nbArticles > 1 ? "s" : ""}`;
+
+    await notifyBoutiqueMembres(boutiqueId, {
+      type: "Commande",
+      titre: "Nouvelle commande payée",
+      message: `La commande ${c.numero} a été payée (${articlesLabel}). Vous pouvez commencer la préparation.`,
+      lien: "/boutique/commandes",
+    });
+  } catch (err) {
+    console.error("[notifierBoutiquePreparation] error:", err);
+  }
+}
+
+/**
  * Finalise un paiement Validé : passe chaque sous-commande du groupe en
  * "En préparation", crée automatiquement une livraison par sous-commande
  * livrable, crédite les boutiques et l'admin, notifie le client.
@@ -184,6 +237,10 @@ export async function finalizePaiementValide(
       .from("commandes")
       .update({ statut: "En préparation", updated_at: new Date().toISOString() })
       .eq("id", c.id);
+
+    // 🔔 Prévenir la boutique (proprio + gérants) qu'elle a une commande payée
+    // à préparer — une notif par sous-commande, donc une par boutique.
+    await notifierBoutiquePreparation(c);
   }
 
   // Créditer chaque boutique de sa part (map par boutique = par sous-commande).
@@ -208,13 +265,20 @@ export async function finalizePaiementValide(
 
   // Une seule notification client au niveau du groupe.
   const numeroClient = await resolveNumeroGroupe(details, aTraiter[0].numero);
+  const messageClient = `Votre commande ${numeroClient} a été payée avec succès. Elle est en cours de préparation.`;
   await supabaseAdmin.from("notifications").insert({
     user_id: aTraiter[0].user_id,
     type: "Commande",
     titre: "Paiement confirmé",
-    message: `Votre commande ${numeroClient} a été payée avec succès. Elle est en cours de préparation.`,
+    message: messageClient,
     is_read: false,
     created_at: new Date().toISOString(),
+  });
+  await envoyerPushFCM([aTraiter[0].user_id], {
+    type: "Commande",
+    titre: "Paiement confirmé",
+    message: messageClient,
+    lien: "/commandes",
   });
 }
 
@@ -243,13 +307,20 @@ export async function finalizePaiementEchoue(
   }
 
   const numeroClient = await resolveNumeroGroupe(details, aTraiter[0].numero);
+  const messageEchec = `Le paiement de votre commande ${numeroClient} a échoué. Veuillez réessayer.`;
   await supabaseAdmin.from("notifications").insert({
     user_id: aTraiter[0].user_id,
     type: "Commande",
     titre: "Paiement échoué",
-    message: `Le paiement de votre commande ${numeroClient} a échoué. Veuillez réessayer.`,
+    message: messageEchec,
     is_read: false,
     created_at: new Date().toISOString(),
+  });
+  await envoyerPushFCM([aTraiter[0].user_id], {
+    type: "Commande",
+    titre: "Paiement échoué",
+    message: messageEchec,
+    lien: "/commandes",
   });
 }
 

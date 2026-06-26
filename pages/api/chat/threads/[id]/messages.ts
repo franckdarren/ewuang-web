@@ -7,6 +7,7 @@ import { supabaseAdmin } from "../../../../../app/lib/supabaseAdmin";
 import { requireUserAuth } from "../../../../../app/lib/middlewares/requireUserAuth";
 import { resolveBoutiqueIdFor } from "../../../../../app/lib/middlewares/requireBoutiqueAccess";
 import { notifyBoutiqueMembres } from "../../../../../app/lib/notifyBoutique";
+import { envoyerPushFCM } from "../../../../../app/lib/sendPushFCM";
 import {
     uploadChatImage,
     getChatImageSignedUrl,
@@ -235,14 +236,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 lien: `${rolePrefix(other?.role ?? "Client")}/messages?thread=${threadId}`,
             };
             if (other?.role === "Boutique") {
+                // notifyBoutiqueMembres diffuse déjà in-app + push aux gérants.
                 await notifyBoutiqueMembres(otherId, notifPayload);
             } else {
+                // Client, Livreur, Admin : insert in-app + push FCM direct.
                 await supabaseAdmin.from("notifications").insert({
                     user_id: otherId,
                     ...notifPayload,
                     is_read: false,
                     created_at: new Date().toISOString(),
                 });
+                await envoyerPushFCM([otherId], notifPayload);
             }
 
             return res.status(201).json({

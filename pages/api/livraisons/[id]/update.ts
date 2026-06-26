@@ -3,7 +3,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { z, ZodError } from "zod";
 import { supabaseAdmin } from "../../../../app/lib/supabaseAdmin";
 import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth";
-import { getMessaging } from "../../../../app/lib/firebaseAdmin";
+import { envoyerPushFCM } from "../../../../app/lib/sendPushFCM";
 
 /**
  * @swagger
@@ -315,37 +315,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                         await supabaseAdmin.from("notifications").insert(notifications);
                     }
 
-                    // Récupérer les tokens FCM pour les notifications push
-                    const destinataireIds = [...(clientId ? [clientId] : []), ...boutiqueIds];
-                    if (destinataireIds.length > 0) {
-                        const { data: destinataires } = await supabaseAdmin
-                            .from("users")
-                            .select("id, fcm_token")
-                            .in("id", destinataireIds);
-
-                        if (destinataires) {
-                            const clientToken = destinataires.find((u: any) => u.id === clientId)?.fcm_token;
-                            const boutiqueTokens = destinataires
-                                .filter((u: any) => boutiqueIds.includes(u.id) && u.fcm_token)
-                                .map((u: any) => u.fcm_token as string);
-
-                            const fcmJobs: Array<{ tokens: string[]; body: string }> = [];
-                            if (clientToken) fcmJobs.push({ tokens: [clientToken], body: messageClient });
-                            if (boutiqueTokens.length > 0) fcmJobs.push({ tokens: boutiqueTokens, body: messageBoutique });
-
-                            for (const job of fcmJobs) {
-                                await getMessaging().sendEachForMulticast({
-                                    tokens: job.tokens,
-                                    notification: { title: titreLivraison, body: job.body },
-                                    data: { type: "livraison", route: "/commandes" },
-                                    android: {
-                                        priority: "high",
-                                        notification: { channelId: "commandes", sound: "default", priority: "max" },
-                                    },
-                                    apns: { payload: { aps: { sound: "default", badge: 1 } } },
-                                });
-                            }
-                        }
+                    // Push FCM (multi-device + purge tokens morts via le helper)
+                    if (clientId) {
+                        await envoyerPushFCM([clientId], {
+                            type: "Livraison", titre: titreLivraison, message: messageClient, lien: "/client/commandes",
+                        });
+                    }
+                    if (boutiqueIds.length > 0) {
+                        await envoyerPushFCM(boutiqueIds, {
+                            type: "Livraison", titre: titreLivraison, message: messageBoutique, lien: "/boutique/commandes",
+                        });
                     }
                 }
             } catch (notifError) {

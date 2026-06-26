@@ -2,6 +2,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "../../../../app/lib/supabaseAdmin";
 import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth";
+import { envoyerPushFCM } from "../../../../app/lib/sendPushFCM";
 
 /**
  * @swagger
@@ -86,17 +87,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       (uid): uid is string => Boolean(uid),
     );
     if (destinataires.length) {
+      const notif = {
+        type: "Commande",
+        titre: "Remboursement en traitement",
+        message: `L'administration traite la demande de remboursement de la commande ${numero}. Une conclusion vous sera communiquée.`,
+        lien: `/remboursements/${rb.id}`,
+      };
       await supabaseAdmin.from("notifications").insert(
         destinataires.map((uid) => ({
           user_id: uid,
-          type: "Commande" as const,
-          titre: "Remboursement en traitement",
-          message: `L'administration traite la demande de remboursement de la commande ${numero}. Une conclusion vous sera communiquée.`,
-          lien: `/remboursements/${rb.id}`,
+          ...notif,
           is_read: false,
           created_at: new Date().toISOString(),
         })),
       );
+      await envoyerPushFCM(destinataires, notif);
     }
 
     return res.status(200).json({ message: "Demande prise en charge", remboursement: updated });

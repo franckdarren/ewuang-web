@@ -3,6 +3,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { z, ZodError } from "zod";
 import { supabaseAdmin } from "../../../../app/lib/supabaseAdmin";
 import { requireBoutiqueAccess } from "../../../../app/lib/middlewares/requireBoutiqueAccess";
+import { envoyerPushFCM } from "../../../../app/lib/sendPushFCM";
 
 /**
  * @swagger
@@ -117,8 +118,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Notifier le client
-    await supabaseAdmin.from("notifications").insert({
-      user_id: rb.user_id,
+    const notifClient = {
       type: "Commande",
       titre: "Réponse du vendeur à votre remboursement",
       message:
@@ -126,9 +126,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           ? `Le vendeur a accepté votre demande de remboursement (commande ${numero}). En attente de validation par l'administration.`
           : `Le vendeur a refusé votre demande de remboursement (commande ${numero}). L'administration va trancher.`,
       lien: `/remboursements/${rb.id}`,
+    };
+    await supabaseAdmin.from("notifications").insert({
+      user_id: rb.user_id,
+      ...notifClient,
       is_read: false,
       created_at: new Date().toISOString(),
     });
+    await envoyerPushFCM([rb.user_id], notifClient);
 
     // Notifier les administrateurs
     const { data: admins } = await supabaseAdmin
@@ -137,17 +142,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .eq("role", "Administrateur");
 
     if (admins?.length) {
+      const notifAdmin = {
+        type: "Système",
+        titre: "Remboursement à arbitrer",
+        message: `Le vendeur a ${body.decision === "Acceptée" ? "accepté" : "refusé"} une demande de remboursement (commande ${numero}). À arbitrer.`,
+        lien: "/dashboard/remboursements",
+      };
       await supabaseAdmin.from("notifications").insert(
         admins.map((a) => ({
           user_id: a.id,
-          type: "Système" as const,
-          titre: "Remboursement à arbitrer",
-          message: `Le vendeur a ${body.decision === "Acceptée" ? "accepté" : "refusé"} une demande de remboursement (commande ${numero}). À arbitrer.`,
-          lien: "/dashboard/remboursements",
+          ...notifAdmin,
           is_read: false,
           created_at: new Date().toISOString(),
         })),
       );
+      // No-op si les admins n'ont pas d'app mobile (console web), mais utile
+      // pour ceux qui ont l'app installée.
+      await envoyerPushFCM(admins.map((a) => a.id), notifAdmin);
     }
 
     return res.status(200).json({ message: "Décision enregistrée", remboursement: updated });

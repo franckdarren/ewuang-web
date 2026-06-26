@@ -18,6 +18,7 @@
 
 import { supabaseAdmin } from "./supabaseAdmin";
 import type { PaiementDetails } from "./finalizePaiement";
+import { envoyerPushFCM } from "./sendPushFCM";
 
 export interface DeclencherRemboursementResult {
   ok: boolean;
@@ -109,15 +110,19 @@ export async function declencherRemboursement(
   //    await pvitPayout({ amount: rb.montant, customerAccountNumber, ... });
 
   // 7. Notifier le client
-  await supabaseAdmin.from("notifications").insert({
-    user_id: rb.user_id,
+  const notifClient = {
     type: "Commande",
     titre: "Remboursement validé",
     message: `Votre remboursement de ${rb.montant} FCFA pour la commande ${commande.numero} a été validé. Le versement vous parviendra sous peu.`,
     lien: `/remboursements/${rb.id}`,
+  };
+  await supabaseAdmin.from("notifications").insert({
+    user_id: rb.user_id,
+    ...notifClient,
     is_read: false,
     created_at: new Date().toISOString(),
   });
+  await envoyerPushFCM([rb.user_id], notifClient);
 
   return { ok: true };
 }

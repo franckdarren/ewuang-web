@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from "./supabaseSafeAdmin";
+import { envoyerPushFCM } from "./sendPushFCM";
 
 /**
  * Fan-out de notifications aux membres actifs d'une boutique.
@@ -13,8 +14,10 @@ import { getSupabaseAdmin } from "./supabaseSafeAdmin";
  * ligne `boutique_membres` (cas legacy avant backfill), on retombe sur
  * `[boutiqueId]` — la notif arrive au moins au proprio.
  *
- * Best-effort : une erreur d'insert ne casse pas le flux principal. Les
- * notifications sont une commodité, pas une garantie transactionnelle.
+ * Diffuse à la fois la notif in-app (table `notifications`, lue via Realtime)
+ * ET la push FCM (app fermée / arrière-plan), de façon best-effort : une erreur
+ * d'insert ou de push ne casse pas le flux principal. Les notifications sont une
+ * commodité, pas une garantie transactionnelle.
  */
 export async function notifyBoutiqueMembres(
     boutiqueId: string,
@@ -54,6 +57,9 @@ export async function notifyBoutiqueMembres(
                 created_at: now,
             })),
         );
+
+        // Push FCM (app fermée / arrière-plan) aux mêmes destinataires.
+        await envoyerPushFCM(targets, notif);
     } catch (err) {
         console.error("[notifyBoutiqueMembres] error:", err);
     }

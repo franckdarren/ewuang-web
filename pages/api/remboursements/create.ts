@@ -3,6 +3,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { z, ZodError } from "zod";
 import { supabaseAdmin } from "../../../app/lib/supabaseAdmin";
 import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
+import { envoyerPushFCM } from "../../../app/lib/sendPushFCM";
 
 /**
  * @swagger
@@ -158,15 +159,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // 5. Notifier le vendeur (s'il existe)
     if (vendeurId) {
-      await supabaseAdmin.from("notifications").insert({
-        user_id: vendeurId,
+      const notif = {
         type: "Commande",
         titre: "Nouvelle demande de remboursement",
         message: `Le client a demandé un remboursement pour la commande ${commande.numero}. Vous avez ${VENDEUR_DELAI_HEURES}h pour répondre.`,
         lien: `/remboursements/${remboursement.id}`,
+      };
+      await supabaseAdmin.from("notifications").insert({
+        user_id: vendeurId,
+        ...notif,
         is_read: false,
         created_at: new Date().toISOString(),
       });
+      await envoyerPushFCM([vendeurId], notif);
     }
 
     return res.status(201).json({

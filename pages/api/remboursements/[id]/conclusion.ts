@@ -4,6 +4,7 @@ import { z, ZodError } from "zod";
 import { supabaseAdmin } from "../../../../app/lib/supabaseAdmin";
 import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth";
 import { declencherRemboursement } from "../../../../app/lib/remboursement";
+import { envoyerPushFCM } from "../../../../app/lib/sendPushFCM";
 
 /**
  * @swagger
@@ -134,21 +135,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // declencherRemboursement notifie déjà le client.
     } else {
       // Rejet → notifier le client
-      await supabaseAdmin.from("notifications").insert({
-        user_id: rb.user_id,
+      const notifClient = {
         type: "Commande",
         titre: "Demande de remboursement rejetée",
         message: `Votre demande de remboursement pour la commande ${numero} a été rejetée. Motif : ${body.conclusion_admin}`,
         lien: `/remboursements/${rb.id}`,
+      };
+      await supabaseAdmin.from("notifications").insert({
+        user_id: rb.user_id,
+        ...notifClient,
         is_read: false,
         created_at: new Date().toISOString(),
       });
+      await envoyerPushFCM([rb.user_id], notifClient);
     }
 
     // Informer le vendeur de la conclusion
     if (rb.vendeur_id) {
-      await supabaseAdmin.from("notifications").insert({
-        user_id: rb.vendeur_id,
+      const notifVendeur = {
         type: "Commande",
         titre: "Conclusion du remboursement",
         message:
@@ -156,9 +160,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             ? `Le remboursement de la commande ${numero} a été validé par l'administration.`
             : `La demande de remboursement de la commande ${numero} a été rejetée par l'administration.`,
         lien: `/remboursements/${rb.id}`,
+      };
+      await supabaseAdmin.from("notifications").insert({
+        user_id: rb.vendeur_id,
+        ...notifVendeur,
         is_read: false,
         created_at: new Date().toISOString(),
       });
+      await envoyerPushFCM([rb.vendeur_id], notifVendeur);
     }
 
     return res.status(200).json({ message: "Conclusion enregistrée", remboursement: updated });
