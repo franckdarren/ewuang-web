@@ -99,6 +99,7 @@
 }
 
 :root {
+  color-scheme: light;
   --radius: 0.625rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -134,6 +135,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
@@ -237,4 +239,12 @@
   --border: oklch(1 0 0 / 12%);
   --input: oklch(0.25 0.06 252);
   --ring: oklch(0.61 0.12 219);
+}
+
+/* ─── Anti-gel du compositeur (dark mode / Windows + Chrome) ────────────────
+   Force le conteneur de scroll principal sur sa propre couche de compositing.
+   Évite que le compositeur GPU cesse de redessiner l'écran en thème sombre
+   (l'écran reste figé visuellement alors que le DOM/JS continue de répondre). */
+[data-slot="sidebar-inset"] {
+  transform: translateZ(0);
 }
