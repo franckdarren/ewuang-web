@@ -184,7 +184,7 @@ export function ReclamationViewModal({ open, onClose, reclamation }: Reclamation
                             Commande associée
                         </h3>
                         {reclamation.commandes ? (
-                            <div className="grid grid-cols-3 gap-3">
+                            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                                 <div className="rounded-lg bg-muted/50 p-3">
                                     <p className="text-xs text-muted-foreground mb-1">Numéro</p>
                                     <p className="text-sm font-mono font-semibold">#{reclamation.commandes.numero}</p>

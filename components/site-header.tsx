@@ -5,12 +5,10 @@ import { usePathname } from "next/navigation"
 import { MessageCircle } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
-import { NavUser } from "@/components/nav-user"
 import { ModeToggle } from "@/components/mode-toggle"
 import { useChatStore } from "@/stores/chatStore"
-import type { UserData } from "../lib/stores/user-store"
 
-export function SiteHeader({ user }: { user?: UserData }) {
+export function SiteHeader() {
   const pathname = usePathname() || "/dashboard"
   const unread = useChatStore((s) => s.unreadTotal)
 
@@ -45,7 +43,6 @@ export function SiteHeader({ user }: { user?: UserData }) {
             )}
           </Link>
           <ModeToggle />
-          {user && <NavUser user={user} />}
         </div>
       </div>
     </header>

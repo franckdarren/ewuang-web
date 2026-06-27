@@ -124,7 +124,7 @@ export function ArticleViewModal({
                                         <ImageIcon className="h-4 w-4" />
                                         Images supplémentaires ({article.image_articles.length})
                                     </div>
-                                    <div className="grid grid-cols-4 gap-2">
+                                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                                         {article.image_articles.slice(0, 4).map((img) => (
                                             <Avatar key={img.id} className="h-16 w-16 rounded-md">
                                                 <AvatarImage

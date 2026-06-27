@@ -246,7 +246,7 @@ export function LivraisonViewModal({ open, onClose, livraison }: LivraisonViewMo
                             Commande associée
                         </h3>
                         {livraison.commandes ? (
-                            <div className="grid grid-cols-3 gap-3">
+                            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                                 <div className="rounded-lg bg-muted/50 p-3">
                                     <p className="text-xs text-muted-foreground mb-1">Numéro</p>
                                     <p className="text-sm font-mono font-semibold">#{livraison.commandes.numero}</p>
@@ -345,7 +345,7 @@ export function LivraisonViewModal({ open, onClose, livraison }: LivraisonViewMo
                             <Calendar className="h-4 w-4" />
                             Dates
                         </h3>
-                        <div className="grid grid-cols-3 gap-3">
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                             <div className="rounded-lg bg-muted/50 p-3">
                                 <p className="text-xs text-muted-foreground mb-1">Date prévue</p>
                                 <p className="text-sm font-medium">{formatDate(livraison.date_livraison)}</p>

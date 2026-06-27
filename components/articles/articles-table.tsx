@@ -166,6 +166,7 @@ const createColumns = (
         {
             accessorKey: "categories",
             header: "Catégorie",
+            meta: { className: "hidden lg:table-cell" },
             cell: ({ row }) => {
                 const categorie = row.original.categories;
 
@@ -187,6 +188,7 @@ const createColumns = (
         {
             accessorKey: "users",
             header: "Vendeur",
+            meta: { className: "hidden xl:table-cell" },
             cell: ({ row }) => {
                 const user = row.original.users;
 
@@ -278,6 +280,7 @@ const createColumns = (
         {
             accessorKey: "badges",
             header: "Badges",
+            meta: { className: "hidden lg:table-cell" },
             cell: ({ row }) => {
                 const article = row.original;
 
@@ -324,6 +327,7 @@ const createColumns = (
         },
         {
             accessorKey: "created_at",
+            meta: { className: "hidden md:table-cell" },
             header: ({ column }) => {
                 return (
                     <Button
@@ -478,20 +482,20 @@ export function ArticlesTable({
     return (
         <div className="w-full">
             {/* Barre de recherche et filtres */}
-            <div className="flex items-center gap-4 py-4">
+            <div className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center">
                 <Input
                     placeholder="Rechercher un article..."
                     value={(table.getColumn("nom")?.getFilterValue() as string) ?? ""}
                     onChange={(event) =>
                         table.getColumn("nom")?.setFilterValue(event.target.value)
                     }
-                    className="max-w-sm"
+                    className="w-full sm:max-w-sm"
                 />
 
                 {/* Sélecteur de colonnes */}
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="outline" className="ml-auto">
+                        <Button variant="outline" className="w-full sm:ml-auto sm:w-auto">
                             Colonnes <ChevronDown className="ml-2 h-4 w-4" />
                         </Button>
                     </DropdownMenuTrigger>
@@ -525,7 +529,10 @@ export function ArticlesTable({
                             <TableRow key={headerGroup.id}>
                                 {headerGroup.headers.map((header) => {
                                     return (
-                                        <TableHead key={header.id}>
+                                        <TableHead
+                                            key={header.id}
+                                            className={(header.column.columnDef.meta as { className?: string } | undefined)?.className}
+                                        >
                                             {header.isPlaceholder
                                                 ? null
                                                 : flexRender(
@@ -557,7 +564,10 @@ export function ArticlesTable({
                                     data-state={row.getIsSelected() && "selected"}
                                 >
                                     {row.getVisibleCells().map((cell) => (
-                                        <TableCell key={cell.id}>
+                                        <TableCell
+                                            key={cell.id}
+                                            className={(cell.column.columnDef.meta as { className?: string } | undefined)?.className}
+                                        >
                                             {flexRender(
                                                 cell.column.columnDef.cell,
                                                 cell.getContext()

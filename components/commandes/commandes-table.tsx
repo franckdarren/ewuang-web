@@ -219,6 +219,7 @@ const createColumns = (
     },
     {
         id: "client",
+        meta: { className: "hidden sm:table-cell" },
         header: ({ column }) => (
             <Button
                 variant="ghost"
@@ -268,6 +269,7 @@ const createColumns = (
     {
         id: "articles",
         header: "Articles",
+        meta: { className: "hidden lg:table-cell" },
         cell: ({ row }) => {
             const articles = (row.original as any).commande_articles ?? [];
             const count = articles.length;
@@ -296,6 +298,7 @@ const createColumns = (
     {
         accessorKey: "isLivrable",
         header: "Livraison",
+        meta: { className: "hidden lg:table-cell" },
         cell: ({ row }) => {
             const isLivrable = row.getValue("isLivrable") as boolean;
             return (
@@ -312,6 +315,7 @@ const createColumns = (
     },
     {
         accessorKey: "created_at",
+        meta: { className: "hidden md:table-cell" },
         header: ({ column }) => (
             <Button
                 variant="ghost"
@@ -442,18 +446,18 @@ export function CommandesTable({
     return (
         <div className="w-full">
             {/* Barre de recherche et filtres */}
-            <div className="flex items-center gap-4 py-4">
+            <div className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center">
                 <Input
                     placeholder="Rechercher par n° de commande..."
                     value={(table.getColumn("numero")?.getFilterValue() as string) ?? ""}
                     onChange={(event) =>
                         table.getColumn("numero")?.setFilterValue(event.target.value)
                     }
-                    className="max-w-sm"
+                    className="w-full sm:max-w-sm"
                 />
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="outline" className="ml-auto">
+                        <Button variant="outline" className="w-full sm:ml-auto sm:w-auto">
                             Colonnes <ChevronDown className="ml-2 h-4 w-4" />
                         </Button>
                     </DropdownMenuTrigger>
@@ -482,7 +486,10 @@ export function CommandesTable({
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
                                 {headerGroup.headers.map((header) => (
-                                    <TableHead key={header.id}>
+                                    <TableHead
+                                        key={header.id}
+                                        className={(header.column.columnDef.meta as { className?: string } | undefined)?.className}
+                                    >
                                         {header.isPlaceholder
                                             ? null
                                             : flexRender(
@@ -514,6 +521,7 @@ export function CommandesTable({
                                     {row.getVisibleCells().map((cell) => (
                                         <TableCell
                                             key={cell.id}
+                                            className={(cell.column.columnDef.meta as { className?: string } | undefined)?.className}
                                             onClick={(e) => {
                                                 // Empêche le clic sur la ligne d'interférer avec les actions
                                                 if (cell.column.id === 'select' || cell.column.id === 'actions') {

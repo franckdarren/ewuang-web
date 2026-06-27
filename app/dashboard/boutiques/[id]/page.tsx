@@ -514,7 +514,7 @@ export default function BoutiqueDetailPage() {
             {loading ? (
               <div className="h-20 animate-pulse rounded bg-muted" />
             ) : (
-              <div className="grid grid-cols-3 gap-4 text-center">
+              <div className="grid grid-cols-1 gap-4 text-center sm:grid-cols-3">
                 <div>
                   <p className="text-2xl font-bold tabular-nums">{formatXAF(data!.finances.solde_actuel)}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">Solde actuel</p>

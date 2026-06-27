@@ -59,11 +59,12 @@ export function ContactButton({
                     {size !== "icon" && <span className="ml-2">{label}</span>}
                 </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-5xl p-0">
-                <DialogHeader className="border-b px-4 py-3">
+            <DialogContent className="flex h-[85dvh] max-w-5xl flex-col overflow-hidden p-0">
+                <DialogHeader className="shrink-0 border-b px-4 py-3">
                     <DialogTitle>Messagerie</DialogTitle>
                 </DialogHeader>
-                <div className="p-4 pt-0">
+                {/* Le panel remplit la hauteur disponible de la modale (sa hauteur fixe interne est neutralisée) */}
+                <div className="min-h-0 flex-1 p-4 pt-0 [&>div]:h-full">
                     {/* Ne monte le panel (et ses abonnements Realtime) que si ouvert */}
                     {open && (
                         <ChatPanel
