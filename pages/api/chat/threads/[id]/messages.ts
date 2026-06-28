@@ -7,6 +7,7 @@ import { supabaseAdmin } from "../../../../../app/lib/supabaseAdmin";
 import { requireUserAuth } from "../../../../../app/lib/middlewares/requireUserAuth";
 import { resolveBoutiqueIdFor } from "../../../../../app/lib/middlewares/requireBoutiqueAccess";
 import { notifyBoutiqueMembres } from "../../../../../app/lib/notifyBoutique";
+import { notifyAdmins } from "../../../../../app/lib/notifyAdmins";
 import { envoyerPushFCM } from "../../../../../app/lib/sendPushFCM";
 import {
     uploadChatImage,
@@ -18,6 +19,42 @@ import { participantSlot, rolePrefix } from "../../../../../lib/chat";
 export const config = { api: { bodyParser: false } };
 
 const MAX_LEN = 4000;
+
+// --- Anti-partage de coordonnées --------------------------------------------
+// Le chat doit garder les échanges sur la plateforme : on refuse les messages
+// qui contiennent un email ou un numéro de téléphone.
+const EMAIL_RE =
+    /[A-Za-z0-9._%+-]+\s*(?:@|\(at\)|\[at\])\s*[A-Za-z0-9.-]+\s*\.\s*[A-Za-z]{2,}/i;
+
+/**
+ * Détecte un email ou un numéro de téléphone gabonais dans un message.
+ *
+ * Numéro = une séquence de 8 à 12 chiffres (espaces, points, tirets,
+ * parenthèses, « + » ou « / » tolérés) commençant par un préfixe gabonais
+ * réel : indicatif « +241 » / « 241 », préfixe national « 0 », ou mobile
+ * « 6 » / « 7 ». Les autres suites de chiffres (n° de commande, prix, etc.)
+ * ne sont pas bloquées.
+ */
+function contientCoordonnees(texte: string): boolean {
+    if (!texte) return false;
+    if (EMAIL_RE.test(texte)) return true;
+    const sequences = texte.match(/\+?\d[\d\s.\-/()]{6,}\d/g);
+    if (sequences) {
+        for (const seq of sequences) {
+            const digits = seq.replace(/\D/g, ""); // « +241 6… » → « 2416… »
+            if (digits.length < 8 || digits.length > 12) continue;
+            if (
+                digits.startsWith("241") || // +241 ou 241…
+                digits.startsWith("0") || // format national 0X…
+                digits.startsWith("6") || // mobile 6X…
+                digits.startsWith("7") // mobile 7X…
+            ) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
 
 async function parseForm(req: NextApiRequest) {
     return new Promise<{ fields: formidable.Fields; files: formidable.Files }>(
@@ -154,6 +191,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 return res
                     .status(400)
                     .json({ error: `Message trop long (max ${MAX_LEN} caractères)` });
+            }
+            if (contientCoordonnees(contenu)) {
+                // Alerte de modération : on prévient les admins de la tentative
+                // (best-effort — n'interrompt pas le retour d'erreur au client).
+                await notifyAdmins({
+                    type: "Système",
+                    titre: "Tentative de partage de coordonnées",
+                    message:
+                        `${profile.name || profile.email || "Un utilisateur"} ` +
+                        `(${profile.role}) a tenté de partager un numéro ou un email ` +
+                        `dans la messagerie.`,
+                    lien: `${rolePrefix("Administrateur")}/messages?thread=${threadId}`,
+                });
+                return res.status(400).json({
+                    error:
+                        "Le partage de numéros de téléphone ou d'adresses email " +
+                        "n'est pas autorisé dans la messagerie. Merci de garder vos " +
+                        "échanges sur Ewuang.",
+                    code: "COORDONNEES_INTERDITES",
+                });
             }
 
             const messageId = uuidv4();
