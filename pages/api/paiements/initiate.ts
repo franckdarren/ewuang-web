@@ -537,19 +537,55 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // -----------------------------------------------------------------------
     // 6. Réservation de stock
+    //    Les RPC sont atomiques (UPDATE ... AND stock >= quantity + RAISE si 0),
+    //    donc en cas de concurrence (deux commandes sur le dernier article) le
+    //    décrément renvoie une erreur. On doit la détecter ET annuler tout ce
+    //    qui a déjà été réservé AVANT d'appeler PVIT, sinon le client serait
+    //    débité pour un article finalement en rupture.
     // -----------------------------------------------------------------------
+    const stockReserve: typeof commandeArticles = [];
+    const restaurerStockReserve = async () => {
+      for (const ca of stockReserve) {
+        if (ca.variation_to_update) {
+          await supabaseAdmin.rpc("increment_variation_stock", {
+            variation_id: ca.variation_to_update.id,
+            quantity: ca.variation_to_update.quantite,
+          });
+        } else if (ca.article_to_update) {
+          await supabaseAdmin.rpc("increment_article_stock", {
+            article_id: ca.article_to_update.id,
+            quantity: ca.article_to_update.quantite,
+          });
+        }
+      }
+    };
+
     for (const ca of commandeArticles) {
+      let stockError = null;
       if (ca.variation_to_update) {
-        await supabaseAdmin.rpc("decrement_variation_stock", {
+        ({ error: stockError } = await supabaseAdmin.rpc("decrement_variation_stock", {
           variation_id: ca.variation_to_update.id,
           quantity: ca.variation_to_update.quantite,
-        });
+        }));
       } else if (ca.article_to_update) {
-        await supabaseAdmin.rpc("decrement_article_stock", {
+        ({ error: stockError } = await supabaseAdmin.rpc("decrement_article_stock", {
           article_id: ca.article_to_update.id,
           quantity: ca.article_to_update.quantite,
+        }));
+      }
+
+      if (stockError) {
+        console.error("[paiements/initiate] réservation stock échouée, rollback:", stockError);
+        // Annuler le stock déjà réservé sur les lignes précédentes, puis purger
+        // commandes/groupe/paiement. PVIT n'a pas encore été appelé.
+        await restaurerStockReserve();
+        await rollbackCommandes();
+        return res.status(409).json({
+          error: "Stock insuffisant : un article de votre panier vient d'être épuisé. Veuillez réessayer.",
         });
       }
+
+      stockReserve.push(ca);
     }
 
     if (codePromoId) {

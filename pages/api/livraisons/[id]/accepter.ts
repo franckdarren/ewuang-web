@@ -70,6 +70,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 commandes (
                     id,
                     numero,
+                    statut,
                     user_id,
                     commande_articles (
                         articles (user_id)
@@ -89,6 +90,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         if (livraison.statut !== "En attente" && livraison.statut !== "Reportée") {
             return res.status(400).json({ error: "Seules les livraisons 'En attente' ou 'Reportée' peuvent être acceptées" });
+        }
+
+        // Garde métier : la boutique doit d'abord avoir préparé la commande et
+        // l'avoir passée en "Prête pour livraison". La livraison est créée dès le
+        // paiement (statut "En attente"), mais elle ne devient réellement
+        // acceptable qu'à partir de ce moment (cf. filtre livraisons/disponibles).
+        const commandeLiee = livraison.commandes as { statut?: string } | null;
+        if (commandeLiee?.statut !== "Prête pour livraison") {
+            return res.status(400).json({
+                error: "Cette commande n'est pas encore prête pour la livraison",
+            });
         }
 
         // Assigner le livreur et passer en cours
