@@ -301,6 +301,7 @@ model users {
   is_certified    Boolean  @default(false) // Boutique certifiée (label de confiance accordé par un admin)
   certified_at    DateTime? // Date de certification
   certified_by    String?  @db.Uuid // Admin ayant accordé la certification
+  admin_role_id   String?  @db.Uuid // Rôle admin (RBAC) — pertinent uniquement quand role = Administrateur
   created_at      DateTime @default(now())
   updated_at      DateTime @default(now())
 
@@ -340,10 +341,52 @@ model users {
   remboursements_vendeur      remboursements[]     @relation("RemboursementVendeur")
   remboursements_traites      remboursements[]     @relation("RemboursementTraitePar")
 
+  // RBAC : rôle admin du compte (cf. add_admin_rbac_tables.sql)
+  admin_role                  admin_roles?         @relation(fields: [admin_role_id], references: [id], onDelete: SetNull)
+
   @@index([email])
   @@index([role])
   @@index([is_active])
   @@index([is_certified])
+  @@index([admin_role_id])
+}
+
+// 🔐 RBAC admin — voir add_admin_rbac_tables.sql
+model admin_roles {
+  id          String   @id @default(uuid()) @db.Uuid
+  nom         String   @unique @db.VarChar(100)
+  description String?  @db.Text
+  is_system   Boolean  @default(false) // Super Admin : non modifiable / non supprimable
+  created_at  DateTime @default(now()) @db.Timestamptz
+  updated_at  DateTime @default(now()) @updatedAt @db.Timestamptz
+
+  // Relations
+  users            users[]
+  role_permissions role_permissions[]
+}
+
+model permissions {
+  cle     String @id @db.VarChar(100) // ex: 'articles.write'
+  module  String @db.VarChar(50)
+  action  String @db.VarChar(20) // read | write | delete | manage
+  libelle String @db.VarChar(150)
+
+  // Relations
+  role_permissions role_permissions[]
+
+  @@index([module])
+}
+
+model role_permissions {
+  role_id        String @db.Uuid
+  permission_cle String @db.VarChar(100)
+
+  // Relations
+  role       admin_roles @relation(fields: [role_id], references: [id], onDelete: Cascade)
+  permission permissions @relation(fields: [permission_cle], references: [cle], onDelete: Cascade)
+
+  @@id([role_id, permission_cle])
+  @@index([role_id])
 }
 
 model variations {

@@ -2,7 +2,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { z, ZodError } from "zod";
 import { supabaseAdmin } from "../../../../app/lib/supabaseAdmin";
-import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth";
+import { requirePermission } from "../../../../app/lib/permissions";
 
 /**
  * @swagger
@@ -69,14 +69,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
-        const auth = await requireUserAuth(req, res);
+        const auth = await requirePermission(req, res, "reclamations.write");
         if (!auth) return;
-        const { profile } = auth;
-
-        // Vérifier que l'utilisateur est admin
-        if (profile.role !== "Administrateur") {
-            return res.status(403).json({ error: "Accès refusé. Administrateur requis." });
-        }
 
         const { id } = req.query;
 

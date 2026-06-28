@@ -1,7 +1,7 @@
 // pages/api/remboursements/list.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "../../../app/lib/supabaseAdmin";
-import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
+import { requirePermission } from "../../../app/lib/permissions";
 
 /**
  * @swagger
@@ -36,13 +36,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const auth = await requireUserAuth(req, res);
+    const auth = await requirePermission(req, res, "remboursements.read");
     if (!auth) return;
-    const { profile } = auth;
-
-    if (profile.role !== "Administrateur") {
-      return res.status(403).json({ error: "Accès refusé. Administrateur requis." });
-    }
 
     let query = supabaseAdmin
       .from("remboursements")

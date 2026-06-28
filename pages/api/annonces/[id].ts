@@ -1,7 +1,7 @@
 // pages/api/annonces/[id].ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "../../../app/lib/supabaseAdmin";
-import { requireUserRole } from "../../../app/lib/middlewares/requireUserRole";
+import { requirePermission } from "../../../app/lib/permissions";
 
 /**
  * @swagger
@@ -34,7 +34,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (typeof id !== "string") return res.status(400).json({ error: "ID invalide" });
 
     try {
-        const auth = await requireUserRole(["Administrateur"])(req, res);
+        const auth = await requirePermission(req, res, "publicites.read");
         if (!auth) return;
 
         const { data, error } = await supabaseAdmin

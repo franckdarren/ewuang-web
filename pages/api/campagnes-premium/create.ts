@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { z, ZodError } from "zod";
 import { supabaseAdmin } from "../../../app/lib/supabaseAdmin";
-import { requireUserRole } from "../../../app/lib/middlewares/requireUserRole";
+import { requirePermission } from "../../../app/lib/permissions";
 
 const POSITIONS = ["banniere_accueil", "banniere_categorie", "banniere_boutique"] as const;
 
@@ -53,15 +53,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method !== "POST") return res.status(405).json({ error: "Méthode non autorisée" });
 
     try {
-        const auth = await requireUserRole(["Administrateur"])(req, res);
+        const auth = await requirePermission(req, res, "publicites_premium.write");
         if (!auth) return;
 
         const body = schema.parse(req.body);
 
-        const isAdmin = auth.user.role === "Administrateur";
+        const isAdmin = auth.profile.role === "Administrateur";
         const statut = isAdmin ? "approuve" : "en_attente";
         const approuveFields = isAdmin
-            ? { approuve_par: auth.user.id, approuve_le: new Date().toISOString() }
+            ? { approuve_par: auth.profile.id, approuve_le: new Date().toISOString() }
             : {};
 
         if (new Date(body.date_end) <= new Date(body.date_start)) {
@@ -76,7 +76,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(400).json({ error: "boutique_id requis pour la position banniere_boutique" });
         }
 
-        const boutiqueId = isAdmin && body.boutique_id ? body.boutique_id : auth.user.id;
+        const boutiqueId = isAdmin && body.boutique_id ? body.boutique_id : auth.profile.id;
 
         // Vérifier qu'aucune publicité approuvée n'occupe déjà cet emplacement sur ces dates
         const conflict = await findConflict(

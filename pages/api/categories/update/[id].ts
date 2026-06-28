@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "../../../../app/lib/supabaseAdmin";
-import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth";
+import { requirePermission } from "../../../../app/lib/permissions";
 
 /**
  * @swagger
@@ -21,15 +21,8 @@ export default async function handler(
         return res.status(405).json({ error: "Méthode non autorisée" });
     }
 
-    const auth = await requireUserAuth(req, res);
-    
+    const auth = await requirePermission(req, res, "categories.write");
     if (!auth) return;
-
-    const { profile } = auth;
-
-    if (profile.role !== "Administrateur") {
-        return res.status(403).json({ error: "Accès interdit" });
-    }
 
     const { id } = req.query;
 

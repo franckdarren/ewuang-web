@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { z, ZodError } from "zod";
 import { supabaseAdmin } from "../../../../app/lib/supabaseAdmin";
-import { requireUserRole } from "../../../../app/lib/middlewares/requireUserRole";
+import { requirePermission } from "../../../../app/lib/permissions";
 
 const POSITIONS = ["banniere_accueil", "banniere_categorie", "banniere_boutique"] as const;
 
@@ -22,7 +22,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method !== "PATCH") return res.status(405).json({ error: "Méthode non autorisée" });
 
     try {
-        const auth = await requireUserRole(["Administrateur"])(req, res);
+        const auth = await requirePermission(req, res, "publicites_premium.write");
         if (!auth) return;
 
         const { id } = req.query;

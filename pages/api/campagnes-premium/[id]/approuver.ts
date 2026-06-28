@@ -1,12 +1,12 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "../../../../app/lib/supabaseAdmin";
-import { requireUserRole } from "../../../../app/lib/middlewares/requireUserRole";
+import { requirePermission } from "../../../../app/lib/permissions";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== "PATCH") return res.status(405).json({ error: "Méthode non autorisée" });
 
     try {
-        const auth = await requireUserRole(["Administrateur"])(req, res);
+        const auth = await requirePermission(req, res, "publicites_premium.write");
         if (!auth) return;
 
         const { id } = req.query;
@@ -58,7 +58,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             .from("publicites_premium")
             .update({
                 statut: "approuve",
-                approuve_par: auth.user.id,
+                approuve_par: auth.profile.id,
                 approuve_le: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
             })

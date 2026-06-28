@@ -34,6 +34,7 @@ import {
   IconTransactionDollar,
   IconMoneybag,
   IconBuildingCommunity,
+  IconShieldLock,
 } from "@tabler/icons-react"
 
 import { useEffect } from "react"
@@ -53,7 +54,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { useAuthStore } from "@/stores/authStore"
+import { useAuthStore, permissionsInclude } from "@/stores/authStore"
 
 const data = {
   navMain: [
@@ -61,76 +62,97 @@ const data = {
       title: "Dashboard",
       url: "/dashboard",
       icon: IconDashboard,
+      permission: "stats.read",
     },
     {
       title: "Articles",
       url: "/dashboard/articles",
       icon: IconShoppingCart,
+      permission: "articles.read",
     },
     {
       title: "Utilisateurs",
       url: "/dashboard/users",
       icon: IconUsers,
+      permission: "users.read",
     },
     {
       title: "Commandes",
       url: "/dashboard/commandes",
       icon: IconLogs,
+      permission: "commandes.read",
     },
     {
       title: "Publicités",
       url: "/dashboard/publicites",
       icon: IconDeviceTv,
+      permission: "publicites.read",
     },
     {
       title: "Publicités Premium",
       url: "/dashboard/publicites-premium",
       icon: IconTarget,
+      permission: "publicites_premium.read",
     },
     {
       title: "Réclamations",
       url: "/dashboard/reclamations",
       icon: IconMessage,
+      permission: "reclamations.read",
     },
     {
       title: "Remboursements",
       url: "/dashboard/remboursements",
       icon: IconMoneybag,
+      permission: "remboursements.read",
     },
     {
       title: "Livraisons",
       url: "/dashboard/livraisons",
       icon: IconLocation,
+      permission: "livraisons.read",
     },
     {
       title: "Zones de livraison",
       url: "/dashboard/zones-livraison",
       icon: IconGps,
+      permission: "zones_livraison.read",
     },
     {
       title: "Transactions",
       url: "/dashboard/transactions",
       icon: IconMoneybag,
+      permission: "transactions.read",
     },
     {
       title: "Notifications",
       url: "/dashboard/notifications",
       icon: IconSocial,
+      permission: "notifications.read",
     },
     {
       title: "Messages",
       url: "/dashboard/messages",
       icon: IconMessageCircle,
+      permission: "messages.read",
     },
     {
       title: "Catégories",
       url: "/dashboard/categories",
       icon: IconTag,
+      permission: "categories.read",
     },
     {
       title: "Boutiques",
       url: "/dashboard/boutiques",
       icon: IconBuildingCommunity,
+      permission: "boutiques.read",
+    },
+    {
+      title: "Rôles & permissions",
+      url: "/dashboard/roles",
+      icon: IconShieldLock,
+      permission: "roles.read",
     },
 
   ],
@@ -172,6 +194,7 @@ const data = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const user = useAuthStore((state) => state.user);
+  const permissions = useAuthStore((state) => state.permissions);
   const chatUnread = useChatStore((s) => s.unreadTotal);
   const fetchUnread = useChatStore((s) => s.fetchUnread);
 
@@ -193,11 +216,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     };
   }, [user, fetchUnread]);
 
-  const navMain = data.navMain.map((item) =>
-    item.url === "/dashboard/messages"
-      ? { ...item, badge: chatUnread }
-      : item
-  );
+  // Filtrage RBAC : on n'affiche que les entrées dont la permission de lecture
+  // est accordée (un Super Admin a ['*'] → tout est visible).
+  const navMain = data.navMain
+    .filter((item) => !item.permission || permissionsInclude(permissions, item.permission))
+    .map((item) =>
+      item.url === "/dashboard/messages"
+        ? { ...item, badge: chatUnread }
+        : item
+    );
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>

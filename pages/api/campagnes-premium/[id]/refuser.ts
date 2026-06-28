@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { z, ZodError } from "zod";
 import { supabaseAdmin } from "../../../../app/lib/supabaseAdmin";
-import { requireUserRole } from "../../../../app/lib/middlewares/requireUserRole";
+import { requirePermission } from "../../../../app/lib/permissions";
 
 const schema = z.object({
     notes_admin: z.string().min(1, "Un motif de refus est requis"),
@@ -11,7 +11,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method !== "PATCH") return res.status(405).json({ error: "Méthode non autorisée" });
 
     try {
-        const auth = await requireUserRole(["Administrateur"])(req, res);
+        const auth = await requirePermission(req, res, "publicites_premium.write");
         if (!auth) return;
 
         const { id } = req.query;
@@ -36,7 +36,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             .update({
                 statut: "refuse",
                 notes_admin: body.notes_admin,
-                approuve_par: auth.user.id,
+                approuve_par: auth.profile.id,
                 approuve_le: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
             })

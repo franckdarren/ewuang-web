@@ -2,7 +2,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { z, ZodError } from "zod";
 import { supabaseAdmin } from "../../../app/lib/supabaseAdmin";
-import { requireUserRole } from "../../../app/lib/middlewares/requireUserRole";
+import { requirePermission } from "../../../app/lib/permissions";
 
 /**
  * @swagger
@@ -62,7 +62,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method !== "POST") return res.status(405).json({ error: "Méthode non autorisée" });
 
     try {
-        const auth = await requireUserRole(["Administrateur"])(req, res);
+        const auth = await requirePermission(req, res, "publicites.write");
         if (!auth) return;
 
         const body = schema.parse(req.body);
@@ -70,7 +70,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const { data, error } = await supabaseAdmin
             .from("publicites")
             .insert({
-                user_id: auth.user.id,
+                user_id: auth.profile.id,
                 titre: body.titre,
                 description: body.description,
                 url_image: body.url_image,

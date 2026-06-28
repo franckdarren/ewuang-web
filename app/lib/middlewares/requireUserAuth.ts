@@ -2,7 +2,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "../supabaseAdmin";
 import { v4 as uuidv4 } from "uuid";
 
-const PROFILE_SELECT = "id, auth_id, role, email, name, phone, solde";
+const PROFILE_SELECT = "id, auth_id, role, email, name, phone, solde, admin_role_id";
 
 export async function requireUserAuth(req: NextApiRequest, res: NextApiResponse) {
     const token = req.headers.authorization?.replace("Bearer ", "");

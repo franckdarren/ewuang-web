@@ -57,13 +57,23 @@ interface AuthState {
     isAuthenticated: boolean;
     isInitialized: boolean;  // Nouveau : indique si le store a été initialisé
 
+    /**
+     * Permissions RBAC de l'admin (clés `module.action`).
+     * Contient ['*'] pour un Super Admin (accès total).
+     * Vide pour les non-admins ou les admins sans rôle affecté.
+     */
+    permissions: string[];
+
+    /** Nom du rôle admin courant (ex: "Super Admin"), pour affichage. */
+    adminRoleName: string | null;
+
     // -------- ACTIONS --------
 
     /**
      * Initialise le store avec les données utilisateur du serveur
      * Appelé une seule fois au montage de l'application
      */
-    initializeAuth: (user: User, token: string) => void;
+    initializeAuth: (user: User, token: string, permissions?: string[], adminRoleName?: string | null) => void;
 
     /**
      * Met à jour uniquement l'utilisateur (sans toucher au token)
@@ -122,6 +132,8 @@ export const useAuthStore = create<AuthState>()(
             error: null,
             isAuthenticated: false,
             isInitialized: false,
+            permissions: [],
+            adminRoleName: null,
 
             // -------- ACTIONS --------
 
@@ -131,7 +143,7 @@ export const useAuthStore = create<AuthState>()(
              * Cette fonction est appelée UNE SEULE FOIS par le AuthProvider
              * quand l'application démarre et que le layout a récupéré les données
              */
-            initializeAuth: (user: User, token: string) => {
+            initializeAuth: (user: User, token: string, permissions: string[] = [], adminRoleName: string | null = null) => {
                 // console.log('🔐 Initialisation de l\'authentification:', user.email);
 
                 set({
@@ -140,6 +152,8 @@ export const useAuthStore = create<AuthState>()(
                     isAuthenticated: true,
                     isInitialized: true,
                     error: null,
+                    permissions,
+                    adminRoleName,
                 });
             },
 
@@ -183,6 +197,8 @@ export const useAuthStore = create<AuthState>()(
                         isInitialized: false,
                         isLoading: false,
                         error: null,
+                        permissions: [],
+                        adminRoleName: null,
                     });
 
                     console.log('✅ Déconnexion réussie');
@@ -373,6 +389,8 @@ export const useAuthStore = create<AuthState>()(
                     error: null,
                     isAuthenticated: false,
                     isInitialized: false,
+                    permissions: [],
+                    adminRoleName: null,
                 });
             },
         }),
@@ -397,6 +415,8 @@ export const useAuthStore = create<AuthState>()(
                 token: state.token,
                 isAuthenticated: state.isAuthenticated,
                 isInitialized: state.isInitialized,
+                permissions: state.permissions,
+                adminRoleName: state.adminRoleName,
             }),
         }
     )
@@ -475,3 +495,33 @@ export const useIsVerified = () => {
 export const useIsActive = () => {
     return useAuthStore((state) => state.user?.is_active || false);
 };
+
+// ============================================
+// PERMISSIONS RBAC (admins)
+// ============================================
+
+/** Le wildcard accordé au Super Admin. */
+const WILDCARD = '*';
+
+/** Vérifie une permission sur une liste (utilisable hors composant). */
+export function permissionsInclude(permissions: string[], cle: string): boolean {
+    return permissions.includes(WILDCARD) || permissions.includes(cle);
+}
+
+/**
+ * Hook : l'utilisateur courant possède-t-il la permission `cle` ?
+ * Renvoie true pour un Super Admin (permissions = ['*']).
+ */
+export const useHasPermission = (cle: string): boolean => {
+    return useAuthStore((state) => permissionsInclude(state.permissions, cle));
+};
+
+/** Hook : l'utilisateur est-il Super Admin (accès total) ? */
+export const useIsSuperAdmin = (): boolean => {
+    return useAuthStore((state) => state.permissions.includes(WILDCARD));
+};
+
+/** Vérifie une permission sur l'état courant du store (hors composant React). */
+export function checkPermission(cle: string): boolean {
+    return permissionsInclude(useAuthStore.getState().permissions, cle);
+}

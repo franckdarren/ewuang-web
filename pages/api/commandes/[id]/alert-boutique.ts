@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "../../../../app/lib/supabaseAdmin";
-import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth";
+import { requirePermission } from "../../../../app/lib/permissions";
 import { notifyBoutiqueMembres } from "../../../../app/lib/notifyBoutique";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -8,13 +8,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(405).json({ error: "Méthode non autorisée" });
 
     try {
-        const auth = await requireUserAuth(req, res);
+        const auth = await requirePermission(req, res, "commandes.write");
         if (!auth) return;
-        const { profile } = auth;
-
-        if (profile.role !== "Administrateur") {
-            return res.status(403).json({ error: "Accès refusé. Administrateur requis." });
-        }
 
         const { id } = req.query;
         if (!id || typeof id !== "string") {

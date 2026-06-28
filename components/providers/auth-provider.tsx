@@ -26,18 +26,22 @@ interface AuthProviderProps {
     children: React.ReactNode;
     initialUser: User;
     initialToken: string;
+    initialPermissions?: string[];
+    initialAdminRoleName?: string | null;
 }
 
 export function AuthProvider({
     children,
     initialUser,
-    initialToken
+    initialToken,
+    initialPermissions = [],
+    initialAdminRoleName = null,
 }: AuthProviderProps) {
     // Initialisation synchrone du store au premier rendu.
     // useState lazy init s'exécute une seule fois, avant le rendu des enfants
     // et avant tout useEffect — garantit que le bon token est toujours en place.
     useState(() => {
-        useAuthStore.getState().initializeAuth(initialUser, initialToken);
+        useAuthStore.getState().initializeAuth(initialUser, initialToken, initialPermissions, initialAdminRoleName);
     });
 
     // Rafraîchissement proactif du token : périodiquement et au retour sur

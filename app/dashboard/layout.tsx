@@ -11,6 +11,7 @@ import { AdminThemeSync } from "@/components/providers/admin-theme-sync";
 import { RealtimeNotificationsProvider } from "@/components/providers/realtime-notifications-provider";
 import { User } from "@/stores/authStore";
 import { supabaseAdmin } from "../lib/supabaseAdmin";
+import { getAdminContext, serializePermissions } from "../lib/permissions";
 
 /**
  * Layout Component - Server Component
@@ -108,6 +109,14 @@ export default async function DashboardLayout({
     const token = session.access_token;
 
     // ============================================
+    // ÉTAPE 3bis : RÉSOUDRE LES PERMISSIONS RBAC
+    // ============================================
+    // Charge le rôle admin et ses permissions (Super Admin → ['*']) pour seeder
+    // le authStore et permettre le filtrage de l'UI selon les droits.
+    const { role: adminRole, permissions } = await getAdminContext(profile);
+    const serializedPermissions = serializePermissions(permissions);
+
+    // ============================================
     // ÉTAPE 4 : VÉRIFIER LES PERMISSIONS
     // ============================================
 
@@ -152,7 +161,12 @@ export default async function DashboardLayout({
         <>
         <AdminThemeSync />
         <div data-admin="true" className="contents">
-        <AuthProvider initialUser={userData} initialToken={token}>
+        <AuthProvider
+            initialUser={userData}
+            initialToken={token}
+            initialPermissions={serializedPermissions}
+            initialAdminRoleName={adminRole?.nom ?? null}
+        >
             <RealtimeNotificationsProvider />
             <SidebarProvider
                 style={

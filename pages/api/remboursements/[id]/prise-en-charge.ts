@@ -1,7 +1,7 @@
 // pages/api/remboursements/[id]/prise-en-charge.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "../../../../app/lib/supabaseAdmin";
-import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth";
+import { requirePermission } from "../../../../app/lib/permissions";
 import { envoyerPushFCM } from "../../../../app/lib/sendPushFCM";
 
 /**
@@ -35,13 +35,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const auth = await requireUserAuth(req, res);
+    const auth = await requirePermission(req, res, "remboursements.write");
     if (!auth) return;
     const { profile } = auth;
-
-    if (profile.role !== "Administrateur") {
-      return res.status(403).json({ error: "Accès refusé. Administrateur requis." });
-    }
 
     const { id } = req.query;
     if (!id || typeof id !== "string") {

@@ -2,7 +2,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
 import { supabaseAdmin } from "../../../../app/lib/supabaseAdmin";
-import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth";
+import { requirePermission } from "../../../../app/lib/permissions";
 
 /**
  * @swagger
@@ -84,14 +84,8 @@ export default async function handler(
         });
     }
 
-    const auth = await requireUserAuth(req, res);
-            if (!auth) return;
-            const { profile } = auth;
-    
-            // Vérifier que l'utilisateur est admin
-            if (profile.role !== "Administrateur") {
-                return res.status(403).json({ error: "Accès interdit. Droits administrateur requis." });
-            }
+    const auth = await requirePermission(req, res, "users.write");
+    if (!auth) return;
 
     const { id } = req.query;
 

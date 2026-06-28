@@ -3,7 +3,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { z, ZodError } from "zod";
 import { v4 as uuidv4 } from "uuid";
 import { getSupabaseAdmin } from "../../../app/lib/supabaseSafeAdmin";
-import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
+import { requirePermission } from "../../../app/lib/permissions";
 
 /**
  * @swagger
@@ -73,15 +73,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
-        // Vérifier l'authentification
-        const auth = await requireUserAuth(req, res);
+        // Seul un admin avec la permission peut créer des utilisateurs
+        const auth = await requirePermission(req, res, "users.write");
         if (!auth) return;
-        const { profile } = auth;
-
-        // Seul un admin peut créer des utilisateurs
-        if (profile.role !== "Administrateur") {
-            return res.status(403).json({ error: "Accès refusé. Administrateur requis." });
-        }
 
         const body = createUserSchema.parse(req.body);
         const supabaseAdmin = getSupabaseAdmin();
