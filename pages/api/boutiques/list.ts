@@ -36,22 +36,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (hasBearer && !auth) return;
 
     try {
-<<<<<<< HEAD
-        const { data: users, error } = await supabaseAdmin
-            .from("users")
-            .select("*")
-            .eq("role", "Boutique");
-=======
-        // 1️⃣ Récupère les users de public.users avec role = 'Boutique'.
-        // On ne garde que les comptes "principaux" (boutique_id IS NULL) : un compte
-        // gérant (boutique_id renseigné, pointant vers le compte principal) ne doit
-        // pas apparaître comme une boutique distincte dans la liste publique.
-        const { data: users, error } = await supabaseAdmin
-            .from("users")
-            .select("*")
-            .eq("role", "Boutique")
-            .is("boutique_id", null);
->>>>>>> develop
+        // 1️⃣ Un compte gérant actif (boutique_membres.role_membre = 'gerant') a lui-même
+        // une ligne dans public.users avec role = 'Boutique' : sans ce filtre, il apparaît
+        // comme une boutique à part entière en plus de la boutique du propriétaire.
+        // On ne filtre que sur les gérants confirmés : les boutiques qui n'ont jamais utilisé
+        // la fonctionnalité "inviter un gérant" n'ont aucune ligne dans boutique_membres et
+        // doivent rester visibles.
+        const { data: gerantRows, error: gerantError } = await supabaseAdmin
+            .from("boutique_membres")
+            .select("user_id")
+            .eq("role_membre", "gerant")
+            .eq("statut", "active");
+
+        if (gerantError) return res.status(500).json({ error: gerantError.message });
+
+        const gerantIds = (gerantRows ?? [])
+            .map((r) => r.user_id)
+            .filter((id): id is string => !!id);
+
+        let usersQuery = supabaseAdmin.from("users").select("*").eq("role", "Boutique");
+        if (gerantIds.length > 0) {
+            usersQuery = usersQuery.not("id", "in", `(${gerantIds.join(",")})`);
+        }
+
+        const { data: users, error } = await usersQuery;
 
         if (error) return res.status(500).json({ error: error.message });
 
