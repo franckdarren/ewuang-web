@@ -304,8 +304,13 @@ model users {
   admin_role_id   String?  @db.Uuid // Rôle admin (RBAC) — pertinent uniquement quand role = Administrateur
   created_at      DateTime @default(now())
   updated_at      DateTime @default(now())
+  // Pour un compte gérant (role Boutique) : id du compte principal (propriétaire).
+  // NULL si le compte est lui-même le compte principal de la boutique.
+  boutique_id     String?  @db.Uuid
 
   // Relations
+  boutique_principale users?  @relation("BoutiqueGerants", fields: [boutique_id], references: [id], onDelete: SetNull)
+  gerants             users[] @relation("BoutiqueGerants")
   articles               articles[]
   commandes              commandes[]
   livraisons             livraisons[]
@@ -347,6 +352,7 @@ model users {
   @@index([email])
   @@index([role])
   @@index([is_active])
+<<<<<<< HEAD
   @@index([is_certified])
   @@index([admin_role_id])
 }
@@ -387,6 +393,9 @@ model role_permissions {
 
   @@id([role_id, permission_cle])
   @@index([role_id])
+=======
+  @@index([boutique_id])
+>>>>>>> develop
 }
 
 model variations {

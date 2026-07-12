@@ -36,10 +36,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (hasBearer && !auth) return;
 
     try {
+<<<<<<< HEAD
         const { data: users, error } = await supabaseAdmin
             .from("users")
             .select("*")
             .eq("role", "Boutique");
+=======
+        // 1️⃣ Récupère les users de public.users avec role = 'Boutique'.
+        // On ne garde que les comptes "principaux" (boutique_id IS NULL) : un compte
+        // gérant (boutique_id renseigné, pointant vers le compte principal) ne doit
+        // pas apparaître comme une boutique distincte dans la liste publique.
+        const { data: users, error } = await supabaseAdmin
+            .from("users")
+            .select("*")
+            .eq("role", "Boutique")
+            .is("boutique_id", null);
+>>>>>>> develop
 
         if (error) return res.status(500).json({ error: error.message });
 
