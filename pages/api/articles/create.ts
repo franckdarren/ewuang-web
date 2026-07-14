@@ -52,6 +52,9 @@ import { recomputeArticleStock } from "../../../app/lib/stockSync";
  *                 description: ID de la catégorie (doit exister dans la table categories)
  *               image_principale:
  *                 type: string
+ *               video_url:
+ *                 type: string
+ *                 description: URL de la vidéo promotionnelle (upload via /api/upload/article-video)
  *               variations:
  *                 type: array
  *                 items:
@@ -94,6 +97,7 @@ const createSchema = z.object({
     made_in_gabon: z.boolean().optional(),
     categorie_id: z.string().uuid("L'ID de catégorie doit être un UUID valide"),
     image_principale: z.string().url().optional(),
+    video_url: z.string().url().optional(),
     variations: z.array(
         z.object({
             couleur: z.string().optional(),
@@ -163,6 +167,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 user_id: access.boutiqueId,
                 categorie_id: body.categorie_id, // ✅ UUID vérifié
                 image_principale: body.image_principale ?? null,
+                video_url: body.video_url ?? null,
                 is_active: true, // ✅ Par défaut actif
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),

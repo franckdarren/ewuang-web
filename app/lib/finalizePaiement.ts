@@ -29,6 +29,7 @@ interface CommandeFinalisable {
   numero: string;
   user_id: string;
   vendeur_id: string | null;
+  groupe_id: string | null;
   statut: string;
   isLivrable: boolean;
   adresse_livraison: string | null;
@@ -36,7 +37,7 @@ interface CommandeFinalisable {
 }
 
 const COMMANDE_FIELDS =
-  "id, numero, user_id, vendeur_id, statut, isLivrable, adresse_livraison, telephone_livraison";
+  "id, numero, user_id, vendeur_id, groupe_id, statut, isLivrable, adresse_livraison, telephone_livraison";
 
 /**
  * Résout la liste des (sous-)commandes concernées par un paiement, à partir
@@ -145,6 +146,7 @@ async function creerLivraisonPourCommande(c: CommandeFinalisable): Promise<void>
 
   await supabaseAdmin.from("livraisons").insert({
     commande_id: c.id,
+    groupe_id: c.groupe_id,
     user_id: c.user_id,
     livreur_id: null,
     adresse,

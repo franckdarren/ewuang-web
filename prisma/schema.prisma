@@ -38,6 +38,7 @@ model articles {
   categorie_id          String?   @db.Uuid
   // categorie             String    @db.VarChar(255)
   image_principale      String?   @db.VarChar(255)
+  video_url             String?   @db.VarChar(500)
   is_active             Boolean   @default(true)
   created_at            DateTime? @default(now())
   updated_at            DateTime? @updatedAt

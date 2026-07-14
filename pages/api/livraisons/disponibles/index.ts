@@ -2,6 +2,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "../../../../app/lib/supabaseAdmin";
 import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth";
+import { attachGroupeInfo } from "../../../../app/lib/livraisonsGroupe";
 
 /**
  * @swagger
@@ -75,9 +76,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         const totalPages = count ? Math.ceil(count / limit) : 0;
+        const livraisonsEnrichies = await attachGroupeInfo(livraisons ?? []);
 
         return res.status(200).json({
-            livraisons,
+            livraisons: livraisonsEnrichies,
             pagination: {
                 page,
                 limit,

@@ -4,6 +4,7 @@ import { z, ZodError } from "zod";
 import { supabaseAdmin } from "../../../../app/lib/supabaseAdmin";
 import { requireBoutiqueAccess } from "../../../../app/lib/middlewares/requireBoutiqueAccess";
 import { recomputeArticleStock } from "../../../../app/lib/stockSync";
+import { deleteArticleVideo } from "../../../../lib/upload";
 
 /**
  * @swagger
@@ -54,6 +55,9 @@ import { recomputeArticleStock } from "../../../../app/lib/stockSync";
  *                 format: uuid
  *               image_principale:
  *                 type: string
+ *               video_url:
+ *                 type: string
+ *                 description: URL de la vidéo promotionnelle (upload via /api/upload/article-video)
  *     responses:
  *       200:
  *         description: Article mis à jour
@@ -78,6 +82,7 @@ const updateSchema = z.object({
     made_in_gabon: z.boolean().optional(),
     categorie_id: z.string().uuid("L'ID de catégorie doit être un UUID valide").optional(),
     image_principale: z.string().url("L'URL de l'image doit être valide").optional(),
+    video_url: z.string().url("L'URL de la vidéo doit être valide").optional(),
 });
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -164,6 +169,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             if (recomputed !== null) {
                 updated.stock = recomputed;
             }
+        }
+
+        // Nettoyage best-effort de l'ancienne vidéo si elle vient d'être remplacée
+        if (body.video_url && existing.video_url && body.video_url !== existing.video_url) {
+            deleteArticleVideo(existing.user_id, id).catch((err) =>
+                console.warn("Impossible de supprimer l'ancienne vidéo :", err)
+            );
         }
 
         // 4) ✅ Enrichir la réponse avec les infos de catégorie si modifiée

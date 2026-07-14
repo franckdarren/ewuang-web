@@ -37,6 +37,8 @@ const ALLOWED_TYPES = (process.env.ALLOWED_IMAGE_TYPES || 'image/jpeg,image/png,
 const IMAGE_QUALITY = parseInt(process.env.IMAGE_QUALITY || '80');
 const MAX_WIDTH = parseInt(process.env.MAX_WIDTH || '1920');
 const MAX_HEIGHT = parseInt(process.env.MAX_HEIGHT || '1920');
+const MAX_VIDEO_FILE_SIZE = parseInt(process.env.MAX_VIDEO_FILE_SIZE || '52428800'); // 50 MB
+const ALLOWED_VIDEO_TYPES = (process.env.ALLOWED_VIDEO_TYPES || 'video/mp4,video/quicktime').split(',');
 
 /**
  * Interface pour le résultat de l'upload
@@ -159,6 +161,129 @@ export async function uploadArticleImage(
         return {
             success: false,
             error: error.message || 'Erreur lors de l\'upload'
+        };
+    }
+}
+
+/**
+ * Valide un fichier vidéo
+ */
+export function validateVideoFile(file: File): { valid: boolean; error?: string } {
+    // Vérifier le type MIME
+    if (!ALLOWED_VIDEO_TYPES.includes(file.type)) {
+        return {
+            valid: false,
+            error: `Type de fichier vidéo non autorisé. Formats acceptés : ${ALLOWED_VIDEO_TYPES.join(', ')}`
+        };
+    }
+
+    // Vérifier la taille
+    if (file.size > MAX_VIDEO_FILE_SIZE) {
+        return {
+            valid: false,
+            error: `Vidéo trop volumineuse. Taille max : ${(MAX_VIDEO_FILE_SIZE / 1024 / 1024).toFixed(0)} MB`
+        };
+    }
+
+    return { valid: true };
+}
+
+/**
+ * Upload la vidéo promotionnelle d'un article (une seule par article, pas d'optimisation/transcodage)
+ */
+export async function uploadArticleVideo(
+    file: File,
+    userId: string,
+    articleId: string,
+    userToken?: string
+): Promise<UploadResult> {
+    try {
+        // Validation
+        const validation = validateVideoFile(file);
+        if (!validation.valid) {
+            return { success: false, error: validation.error };
+        }
+
+        // Convertir File en Buffer
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        // Conserver l'extension d'origine : pas de transcodage
+        const ext = file.type === 'video/quicktime' ? 'mov' : 'mp4';
+        const filePath = `${userId}/${articleId}/promo.${ext}`;
+
+        // Utiliser le client authentifié pour satisfaire le RLS
+        const storageClient = getStorageClient(userToken);
+
+        // Upload vers Supabase Storage
+        const { error } = await storageClient.storage
+            .from('articles-videos')
+            .upload(filePath, buffer, {
+                contentType: file.type,
+                upsert: true // Remplacer si existe déjà
+            });
+
+        if (error) {
+            console.error('Erreur upload Supabase:', error);
+            return { success: false, error: error.message };
+        }
+
+        // Générer l'URL publique
+        const { data: urlData } = supabase.storage
+            .from('articles-videos')
+            .getPublicUrl(filePath);
+
+        return {
+            success: true,
+            url: urlData.publicUrl,
+            path: filePath
+        };
+
+    } catch (error: any) {
+        console.error('Erreur upload article video:', error);
+        return {
+            success: false,
+            error: error.message || "Erreur lors de l'upload de la vidéo"
+        };
+    }
+}
+
+/**
+ * Supprime la vidéo promotionnelle d'un article
+ */
+export async function deleteArticleVideo(
+    userId: string,
+    articleId: string
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        const { data: files, error: listError } = await supabase.storage
+            .from('articles-videos')
+            .list(`${userId}/${articleId}`);
+
+        if (listError) {
+            return { success: false, error: listError.message };
+        }
+
+        if (!files || files.length === 0) {
+            return { success: true }; // Aucune vidéo à supprimer
+        }
+
+        const filePaths = files.map((file: { name: string }) => `${userId}/${articleId}/${file.name}`);
+
+        const { error: deleteError } = await supabase.storage
+            .from('articles-videos')
+            .remove(filePaths);
+
+        if (deleteError) {
+            return { success: false, error: deleteError.message };
+        }
+
+        return { success: true };
+
+    } catch (error: any) {
+        return {
+            success: false,
+            error: error.message || 'Erreur lors de la suppression de la vidéo'
         };
     }
 }

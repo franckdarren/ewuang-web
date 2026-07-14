@@ -72,6 +72,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     numero,
                     statut,
                     user_id,
+                    groupe_id,
                     commande_articles (
                         articles (user_id)
                     )
@@ -103,8 +104,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
         }
 
-        // Assigner le livreur et passer en cours
-        const { data: updated, error: updateError } = await supabaseAdmin
+        // Assigner le livreur et passer en cours.
+        // Verrou optimiste (.is("livreur_id", null)) : si un autre livreur a
+        // accepté entre-temps, la mise à jour ne touche aucune ligne.
+        const { data: updatedRows, error: updateError } = await supabaseAdmin
             .from("livraisons")
             .update({
                 livreur_id: profile.id,
@@ -112,17 +115,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 updated_at: new Date().toISOString(),
             })
             .eq("id", id)
+            .is("livreur_id", null)
             .select(`
                 *,
                 commandes (id, numero, statut),
                 users (id, name, email, phone)
-            `)
-            .single();
+            `);
 
         if (updateError) {
             console.error("Accepter livraison error:", updateError);
             return res.status(500).json({ error: "Impossible d'accepter la livraison" });
         }
+
+        if (!updatedRows || updatedRows.length === 0) {
+            return res.status(409).json({ error: "Cette livraison vient d'être acceptée par un autre livreur" });
+        }
+
+        const updated = updatedRows[0];
 
         // Synchroniser le statut de la commande
         await supabaseAdmin
@@ -130,27 +139,107 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             .update({ statut: "En cours de livraison", updated_at: new Date().toISOString() })
             .eq("id", livraison.commande_id);
 
-        // 🔔 Notifier la boutique et le client que la livraison est prise en charge
+        const commande = livraison.commandes as any;
+
+        // 🔗 Cascade : attribuer automatiquement les sous-commandes sœurs déjà
+        // prêtes (autres boutiques de la même commande groupée) au même livreur.
+        const boutiquesTraitees: { numero: string; boutiqueIds: string[] }[] = [
+            {
+                numero: commande?.numero ?? "",
+                boutiqueIds: [
+                    ...new Set<string>(
+                        (commande?.commande_articles ?? [])
+                            .map((ca: any) => ca.articles?.user_id)
+                            .filter(Boolean)
+                    ),
+                ],
+            },
+        ];
+
+        if (commande?.groupe_id) {
+            const { data: soeurs } = await supabaseAdmin
+                .from("commandes")
+                .select(`
+                    id,
+                    numero,
+                    statut,
+                    commande_articles ( articles (user_id) ),
+                    livraisons ( id, statut, livreur_id )
+                `)
+                .eq("groupe_id", commande.groupe_id)
+                .neq("id", livraison.commande_id)
+                .eq("statut", "Prête pour livraison");
+
+            for (const soeur of soeurs ?? []) {
+                const livraisonSoeur = (soeur as any).livraisons?.[0];
+                if (!livraisonSoeur) continue;
+                if (livraisonSoeur.livreur_id !== null) continue;
+                if (!["En attente", "Reportée"].includes(livraisonSoeur.statut)) continue;
+
+                const { data: cascadeRows } = await supabaseAdmin
+                    .from("livraisons")
+                    .update({
+                        livreur_id: profile.id,
+                        statut: "En cours de livraison",
+                        updated_at: new Date().toISOString(),
+                    })
+                    .eq("id", livraisonSoeur.id)
+                    .is("livreur_id", null)
+                    .select("id");
+
+                if (!cascadeRows || cascadeRows.length === 0) continue; // un autre livreur a été plus rapide
+
+                await supabaseAdmin
+                    .from("commandes")
+                    .update({ statut: "En cours de livraison", updated_at: new Date().toISOString() })
+                    .eq("id", soeur.id);
+
+                boutiquesTraitees.push({
+                    numero: (soeur as any).numero ?? "",
+                    boutiqueIds: [
+                        ...new Set<string>(
+                            ((soeur as any).commande_articles ?? [])
+                                .map((ca: any) => ca.articles?.user_id)
+                                .filter(Boolean)
+                        ),
+                    ],
+                });
+            }
+        }
+
+        // 🔔 Notifier les boutiques traitées et le client (une seule notif client
+        // globale, même si plusieurs sous-commandes ont été cascadées).
         try {
-            const commande = livraison.commandes as any;
-            const commandeNumero = commande?.numero ?? "";
-
-            const boutiqueIds: string[] = [
-                ...new Set<string>(
-                    (commande?.commande_articles ?? [])
-                        .map((ca: any) => ca.articles?.user_id)
-                        .filter(Boolean)
-                ),
-            ];
             const clientId: string | null = commande?.user_id ?? null;
-
-            const titre = "Livraison en cours";
-            const messageClient = `Votre commande #${commandeNumero} est en cours de livraison.`;
-            const messageBoutique = `La commande #${commandeNumero} est en cours de livraison.`;
             const now = new Date().toISOString();
+            const titre = "Livraison en cours";
 
             const notifications: object[] = [];
+            for (const { numero, boutiqueIds } of boutiquesTraitees) {
+                const messageBoutique = `La commande #${numero} est en cours de livraison.`;
+                for (const bId of boutiqueIds) {
+                    notifications.push({
+                        user_id: bId,
+                        type: "Livraison",
+                        titre,
+                        message: messageBoutique,
+                        lien: "/boutique/commandes",
+                        is_read: false,
+                        created_at: now,
+                    });
+                }
+                if (boutiqueIds.length > 0) {
+                    await envoyerPushFCM(boutiqueIds, {
+                        type: "Livraison", titre, message: messageBoutique, lien: "/boutique/commandes",
+                    });
+                }
+            }
+
             if (clientId) {
+                const messageClient = boutiquesTraitees.length > 1
+                    ? `Votre commande #${boutiquesTraitees[0].numero} (${boutiquesTraitees.length} boutiques) est en cours de livraison.`
+                    : `Votre commande #${boutiquesTraitees[0].numero} est en cours de livraison.`;
+
                 notifications.push({
                     user_id: clientId,
                     type: "Livraison",
@@ -160,32 +249,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     is_read: false,
                     created_at: now,
                 });
-            }
-            for (const bId of boutiqueIds) {
-                notifications.push({
-                    user_id: bId,
-                    type: "Livraison",
-                    titre,
-                    message: messageBoutique,
-                    lien: "/boutique/commandes",
-                    is_read: false,
-                    created_at: now,
-                });
-            }
-            if (notifications.length > 0) {
-                await supabaseAdmin.from("notifications").insert(notifications);
-            }
 
-            // Push FCM (multi-device + purge tokens morts via le helper)
-            if (clientId) {
                 await envoyerPushFCM([clientId], {
                     type: "Livraison", titre, message: messageClient, lien: "/client/commandes",
                 });
             }
-            if (boutiqueIds.length > 0) {
-                await envoyerPushFCM(boutiqueIds, {
-                    type: "Livraison", titre, message: messageBoutique, lien: "/boutique/commandes",
-                });
+
+            if (notifications.length > 0) {
+                await supabaseAdmin.from("notifications").insert(notifications);
             }
         } catch (notifError) {
             console.error("Erreur notifications accepter livraison:", notifError);
@@ -194,6 +265,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(200).json({
             message: "Livraison acceptée avec succès",
             livraison: updated,
+            livraisons_cascadees: boutiquesTraitees.length - 1,
         });
     } catch (err) {
         console.error("Error /api/livraisons/[id]/accepter:", err);

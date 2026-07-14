@@ -2,6 +2,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "../../../../app/lib/supabaseAdmin";
 import { requireBoutiqueAccess } from "../../../../app/lib/middlewares/requireBoutiqueAccess";
+import { deleteArticleVideo } from "../../../../lib/upload";
 
 /**
  * @swagger
@@ -29,6 +30,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // delete variations -> image_articles (cascade if cascade in DB would be automatic)
         await supabaseAdmin.from("image_articles").delete().eq("article_id", id);
         await supabaseAdmin.from("variations").delete().eq("article_id", id);
+
+        // Nettoyage best-effort de la vidéo promotionnelle associée
+        if (article.video_url) {
+            await deleteArticleVideo(article.user_id, id).catch((err) =>
+                console.warn("Impossible de supprimer la vidéo de l'article :", err)
+            );
+        }
+
         const { error: delErr } = await supabaseAdmin.from("articles").delete().eq("id", id);
         if (delErr) {
             console.error("Erreur deletion article:", delErr);

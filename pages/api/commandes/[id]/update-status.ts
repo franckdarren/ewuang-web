@@ -5,6 +5,7 @@ import { supabaseAdmin } from "../../../../app/lib/supabaseAdmin";
 import { requireUserAuth } from "../../../../app/lib/middlewares/requireUserAuth";
 import { resolveBoutiqueIdFor } from "../../../../app/lib/middlewares/requireBoutiqueAccess";
 import { envoyerPushFCM } from "../../../../app/lib/sendPushFCM";
+import { findLivreurDuGroupe } from "../../../../app/lib/livraisonsGroupe";
 
 /**
  * @swagger
@@ -211,8 +212,63 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             }
         }
 
-        // Notifier tous les livreurs quand la commande est prête à être récupérée
+        // Commande prête à être récupérée : soit auto-attribution au livreur qui
+        // tient déjà une autre boutique de la même commande groupée, soit
+        // broadcast classique à toute la flotte si personne n'a encore réclamé.
         if (body.statut === "Prête pour livraison") {
+            const { data: livraisonActuelle } = await supabaseAdmin
+                .from("livraisons")
+                .select("id, statut, livreur_id")
+                .eq("commande_id", id)
+                .maybeSingle();
+
+            // Idempotence : déjà assignée (cascade précédente ou acceptation
+            // directe), rien à refaire.
+            const dejaAssignee = !!livraisonActuelle?.livreur_id;
+
+            let livreurDuGroupe: string | null = null;
+            if (!dejaAssignee && updatedCommande.groupe_id && livraisonActuelle) {
+                livreurDuGroupe = await findLivreurDuGroupe(updatedCommande.groupe_id, id);
+            }
+
+            if (!dejaAssignee && livreurDuGroupe && livraisonActuelle) {
+                // 🔗 Auto-attribution : une autre boutique de cette commande a déjà
+                // été acceptée par ce livreur. Pas de mise en pool, notif ciblée.
+                await supabaseAdmin
+                    .from("livraisons")
+                    .update({
+                        livreur_id: livreurDuGroupe,
+                        statut: "En cours de livraison",
+                        updated_at: new Date().toISOString(),
+                    })
+                    .eq("id", livraisonActuelle.id)
+                    .is("livreur_id", null);
+
+                await supabaseAdmin
+                    .from("commandes")
+                    .update({ statut: "En cours de livraison", updated_at: new Date().toISOString() })
+                    .eq("id", id);
+
+                const notif = {
+                    type: "Livraison",
+                    titre: "Nouvelle boutique prête",
+                    message: `Une autre boutique de la commande #${updatedCommande.numero} est prête à être récupérée.`,
+                    lien: "/livraisons",
+                };
+                await supabaseAdmin.from("notifications").insert({
+                    user_id: livreurDuGroupe,
+                    ...notif,
+                    is_read: false,
+                    created_at: new Date().toISOString(),
+                });
+                await envoyerPushFCM([livreurDuGroupe], notif, { channelId: "livraisons" });
+
+                return res.status(200).json({
+                    message: "Statut mis à jour avec succès",
+                    commande: { ...updatedCommande, statut: "En cours de livraison" },
+                });
+            }
+
             const { data: livreurs } = await supabaseAdmin
                 .from("users")
                 .select("id")
