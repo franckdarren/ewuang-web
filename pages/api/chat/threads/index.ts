@@ -160,7 +160,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             );
 
             if (match) {
-                return res.status(200).json({ thread: match, created: false });
+                const slot = participantSlot(match, chatIdentity);
+                return res.status(200).json({
+                    thread: {
+                        ...match,
+                        interlocuteur: target,
+                        unread: slot === "a" ? match.unread_count_a : match.unread_count_b,
+                    },
+                    created: false,
+                });
             }
 
             const { data: created, error: insertErr } = await supabaseAdmin
@@ -183,7 +191,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 return res.status(500).json({ error: "Impossible de créer la discussion" });
             }
 
-            return res.status(201).json({ thread: created, created: true });
+            return res.status(201).json({
+                thread: { ...created, interlocuteur: target, unread: 0 },
+                created: true,
+            });
         } catch (err) {
             if (err instanceof ZodError) {
                 return res.status(400).json({
