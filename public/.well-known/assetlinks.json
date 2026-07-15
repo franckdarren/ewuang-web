@@ -4,7 +4,9 @@
     "target": {
       "namespace": "android_app",
       "package_name": "com.santegab.ewuang",
-      "sha256_cert_fingerprints": ["TODO_SHA256_CERT_FINGERPRINT"]
+      "sha256_cert_fingerprints": [
+        "62:DE:95:87:47:A2:76:30:81:95:54:0F:10:59:67:33:42:8B:7C:5F:76:20:F0:62:6C:E7:3F:C5:EB:E4:0E:57"
+      ]
     }
   }
 ]
