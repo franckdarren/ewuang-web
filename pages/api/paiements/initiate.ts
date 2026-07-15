@@ -7,6 +7,9 @@ import { supabaseAdmin } from "../../../app/lib/supabaseAdmin";
 import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
 import { pvitInitiatePaiement, toOperateurCode } from "../../../app/lib/pvit";
 
+// Taux de commission de la plateforme, prélevé sur le bénéfice de la boutique.
+const TAUX_COMMISSION = 0.04; // 4%
+
 /**
  * @swagger
  * /api/paiements/initiate:
@@ -293,11 +296,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const sousTotal = prixUnitaire * item.quantite;
       total += sousTotal;
 
-      let frais = 0;
-      if (prixUnitaire < 15000) frais = 300 * item.quantite;
-      else if (prixUnitaire < 50000) frais = 500 * item.quantite;
-      else frais = 1000 * item.quantite;
-
+      // Commission plateforme : 4% du sous-total de la ligne, supportée par la boutique.
+      const frais = Math.round(sousTotal * TAUX_COMMISSION);
       adminFrais += frais;
 
       commandeArticles.push({

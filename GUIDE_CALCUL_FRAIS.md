@@ -5,13 +5,17 @@ Ce document décrit comment le montant total d'une commande est calculé côté 
 ## Formule générale
 
 ```
-total = Σ (prix_unitaire × quantité)        ← prix des articles
-      + Σ frais_admin_par_article           ← commission plateforme
+total = Σ (prix_unitaire × quantité)        ← prix des articles (payé par le client)
       − remise_code_promo                   ← si code promo valide
       + frais_livraison                     ← uniquement si isLivrable = true
 ```
 
 Le `total` ainsi calculé est ce qui est envoyé à PVIT comme `amount` à débiter.
+
+> ⚠️ **La commission plateforme n'est PAS ajoutée au total client.** Elle est
+> **supportée par la boutique** : elle est retranchée du bénéfice reversé à la
+> boutique (voir §2 et §3), et versée à l'administrateur. Le client paie uniquement
+> le prix des articles (moins la remise, plus la livraison).
 
 ---
 
@@ -33,26 +37,26 @@ Le total des sous-totaux donne la base de la commande, avant frais et remises.
 
 ## 2. Frais admin (commission plateforme)
 
-Les frais admin reviennent à l'administrateur (`role = "Administrateur"`). Ils sont calculés **par article**, selon le **prix unitaire** (et non le sous-total), puis multipliés par la quantité.
+Les frais admin reviennent à l'administrateur (`role = "Administrateur"`). Ils sont calculés **par ligne d'article** comme **4 % du sous-total de la ligne** (`prix_unitaire × quantité`), arrondi à l'entier le plus proche (`Math.round`).
 
-### Barème
+### Taux
 
-| Prix unitaire de l'article | Frais admin par unité |
-|----------------------------|----------------------|
-| < 15 000 FCFA              | **300 FCFA**         |
-| 15 000 → 49 999 FCFA       | **500 FCFA**         |
-| ≥ 50 000 FCFA              | **1 000 FCFA**       |
+```
+frais_admin_ligne = round(prix_unitaire × quantité × 0.04)
+```
+
+Le taux est défini par la constante `TAUX_COMMISSION` dans [pages/api/paiements/initiate.ts](pages/api/paiements/initiate.ts).
 
 ### Exemples
 
-| Panier                                      | Calcul        | Frais admin |
-|---------------------------------------------|---------------|-------------|
-| 1 article à 600 FCFA                        | 300 × 1       | **300**     |
-| 2 articles à 600 FCFA                       | 300 × 2       | **600**     |
-| 1 article à 20 000 FCFA, quantité 3         | 500 × 3       | **1 500**   |
-| 1 article à 8 000 + 1 article à 60 000      | 300 + 1 000   | **1 300**   |
+| Panier                                      | Calcul                          | Frais admin |
+|---------------------------------------------|---------------------------------|-------------|
+| 1 article à 600 FCFA                        | round(600 × 0.04)               | **24**      |
+| 2 articles à 600 FCFA                       | round(1 200 × 0.04)             | **48**      |
+| 1 article à 20 000 FCFA, quantité 3         | round(60 000 × 0.04)            | **2 400**   |
+| 1 article à 8 000 + 1 article à 60 000      | round(320) + round(2 400)       | **2 720**   |
 
-Ces frais sont versés au solde admin **uniquement** quand le paiement passe avec succès (webhook PVIT `SUCCESS`).
+Ces frais sont **supportés par la boutique** (retranchés de son bénéfice, voir §3) et versés au solde admin **uniquement** quand le paiement passe avec succès (webhook PVIT `SUCCESS`).
 
 ---
 
@@ -139,17 +143,26 @@ frais_livraison = min(base × nombre_de_boutiques, 8000)
 
 ```
 sous_total       = 12 000 + 2 × 800           = 13 600
-frais_admin      = 300 + 2 × 300              = 900
-total            = 13 600 + 900               = 14 500
 
 remise_10%       = round(13 600 × 0.10)       = 1 360
-total            = 14 500 − 1 360             = 13 140
+total            = 13 600 − 1 360             = 12 240
 
 frais_livraison  = min(2 500 × 2 boutiques, 8 000) = 5 000
-total final      = 13 140 + 5 000             = 18 140 FCFA
+total final      = 12 240 + 5 000             = 17 240 FCFA
 ```
 
-C'est le `total` envoyé à PVIT (`amount: 18140`).
+C'est le `total` envoyé à PVIT (`amount: 17240`) — la commission n'y figure pas.
+
+**Répartition de la commission (supportée par les boutiques, créditée à l'admin au succès) :**
+
+```
+frais_admin boutique A = round(12 000 × 0.04)   = 480
+frais_admin boutique B = round(1 600 × 0.04)    = 64
+admin_frais total                                = 544
+
+bénéfice boutique A     = 12 000 − 480          = 11 520
+bénéfice boutique B     = 1 600 − 64            = 1 536
+```
 
 ---
 
@@ -162,12 +175,12 @@ PVIT en mode test **ne se base pas sur le numéro de téléphone** pour simuler 
 | < 1 000 XAF        | `SUCCESS`           |
 | ≥ 1 000 XAF        | `FAILED`            |
 
-Pour valider le chemin succès en sandbox, monter un panier dont le **total final** est strictement inférieur à 1 000 XAF. Le plus simple :
+Pour valider le chemin succès en sandbox, monter un panier dont le **total final** est strictement inférieur à 1 000 XAF. Rappel : la commission (4 %) n'entre pas dans le total client, elle est prélevée sur la boutique. Le plus simple :
 
 - 1 article à **600 FCFA**
 - `isLivrable = false`
 - Pas de code promo
-- → 600 + 300 (frais admin) = **900 XAF** ✓
+- → total client = **600 XAF** ✓ (la commission de 24 XAF est déduite du bénéfice boutique, hors total)
 
 Pour valider le chemin échec, n'importe quel total ≥ 1 000 XAF déclenche `FAILED`.
 
@@ -177,11 +190,11 @@ PVIT exige au minimum **2 simulations SUCCESS et 2 simulations FAILED** avant le
 
 ## 8. Où modifier les frais
 
-| Type de frais       | Fichier                                                                                     | Lignes      |
-|---------------------|---------------------------------------------------------------------------------------------|-------------|
-| Barème frais admin  | [pages/api/paiements/initiate.ts](pages/api/paiements/initiate.ts)                          | ~242-245    |
-| Tarif livraison     | [pages/api/paiements/initiate.ts](pages/api/paiements/initiate.ts)                          | ~310-318    |
-| Plafond livraison   | [pages/api/paiements/initiate.ts](pages/api/paiements/initiate.ts)                          | `Math.min(..., 8000)` |
-| Logique code promo  | [pages/api/paiements/initiate.ts](pages/api/paiements/initiate.ts) + table `codes_promo`    | ~270-305    |
+| Type de frais           | Fichier                                                                                  | Repère                        |
+|-------------------------|------------------------------------------------------------------------------------------|-------------------------------|
+| Taux de commission (4%) | [pages/api/paiements/initiate.ts](pages/api/paiements/initiate.ts)                        | constante `TAUX_COMMISSION`   |
+| Calcul de la commission | [pages/api/paiements/initiate.ts](pages/api/paiements/initiate.ts)                        | `round(sousTotal × TAUX_COMMISSION)` |
+| Tarif livraison         | table `zones_livraison` (colonne `tarif`) + [initiate.ts](pages/api/paiements/initiate.ts) `resolveFraisLivraison` |            |
+| Logique code promo      | [pages/api/paiements/initiate.ts](pages/api/paiements/initiate.ts) + table `codes_promo`  | section « 2. Code promo »     |
 
-Les valeurs sont actuellement codées en dur. Pour passer à une configuration dynamique (table `parametres_frais` admin-éditable), il faudrait extraire ces constantes vers une RPC Supabase ou un endpoint `/api/parametres`.
+Le taux de commission est codé en dur dans la constante `TAUX_COMMISSION`. Pour passer à une configuration dynamique (table `parametres_frais` admin-éditable), il faudrait extraire cette constante vers une RPC Supabase ou un endpoint `/api/parametres`.
