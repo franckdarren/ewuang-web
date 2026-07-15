@@ -5,6 +5,7 @@ import { getSupabaseClient } from "../../../app/lib/supabaseSafeClient";
 import { supabase } from "../../../app/lib/supabaseClient";
 import { z, ZodError } from "zod";
 import { v4 as uuidv4 } from "uuid";
+import { generateUniqueBoutiqueSlug } from "../../../app/utils/generateUniqueBoutiqueSlug";
 
 // Schéma Zod
 const signupSchema = z.object({
@@ -133,7 +134,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         if (authError) return res.status(400).json({ error: authError.message });
 
-        // 2️⃣ Insert utilisateur dans la table users via service_role
+        // 2️⃣ Génère un slug public unique pour les comptes Boutique (utilisé par le lien de partage)
+        const slug = role === "Boutique"
+            ? await generateUniqueBoutiqueSlug(name || owner_name || "boutique")
+            : null;
+
+        // 3️⃣ Insert utilisateur dans la table users via service_role
         const { data: userData, error: dbError } = await supabaseAdmin
             .from("users")
             .insert({
@@ -144,6 +150,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 owner_name: role === "Boutique" ? (owner_name || null) : null,
                 phone: phone || null,
                 role: role || "Client",
+                slug,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
             })

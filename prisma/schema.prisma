@@ -290,6 +290,7 @@ model users {
   owner_name      String?  @db.VarChar(255) // Nom du propriétaire / gérant pour les comptes Boutique (NULL pour les autres rôles)
   role            String   @db.VarChar(255)
   email           String   @unique @db.VarChar(255)
+  slug            String?  @unique @db.VarChar(255) // Slug public pour le lien de partage (boutiques uniquement)
   url_logo        String?  @db.VarChar(255)
   phone           String?  @db.VarChar(255)
   heure_ouverture String?
