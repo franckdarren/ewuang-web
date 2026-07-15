@@ -61,7 +61,7 @@ export default function BoutiqueLandingClient({ slug }: { slug: string }) {
       <div className="w-full max-w-md">
         <div className="mb-6 flex flex-col items-center">
           <Image
-            src="/images/logo2.png"
+            src="/images/logo1.png"
             alt="Ewuang"
             width={64}
             height={64}
