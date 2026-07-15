@@ -31,5 +31,6 @@ alter table commandes add column if not exists groupe_id uuid references command
 create index if not exists idx_commandes_groupe_id on commandes(groupe_id);
 
 -- 3. Lever l'unicité de paiement_id : N sous-commandes partagent 1 paiement.
---    (Le nom de contrainte par défaut généré par Prisma est commandes_paiement_id_key.)
-alter table commandes drop constraint if exists commandes_paiement_id_key;
+--    (Le @unique de Prisma crée un INDEX unique nommé commandes_paiement_id_key,
+--     pas une contrainte — il faut donc DROP INDEX, pas DROP CONSTRAINT.)
+drop index if exists commandes_paiement_id_key;
