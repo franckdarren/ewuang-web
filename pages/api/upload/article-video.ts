@@ -4,6 +4,7 @@ import formidable, { File as FormidableFile } from 'formidable';
 import fs from 'fs';
 import { createClient } from '@supabase/supabase-js';
 import { uploadArticleVideo, UploadResult } from '../../../lib/upload';
+import { resolveStorageOwnerId } from '../../../app/lib/middlewares/requireBoutiqueAccess';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -110,10 +111,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             type: formidableFile.mimetype || 'video/mp4',
         });
 
+        // Chemin de storage basé sur la boutique (propriétaire), voir
+        // resolveStorageOwnerId pour le détail.
+        const storageOwnerId = await resolveStorageOwnerId(user.id);
+
         // Upload vidéo vers Supabase (avec le token utilisateur pour le RLS)
         const uploadResult: UploadResult = await uploadArticleVideo(
             videoFile,
-            user.id,
+            storageOwnerId,
             articleId,
             token
         );

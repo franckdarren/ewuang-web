@@ -25,6 +25,36 @@ export async function resolveBoutiqueIdFor(userId: string, role: string): Promis
 }
 
 /**
+ * Résout l'ID à utiliser comme préfixe de chemin dans le storage (buckets
+ * articles-images / articles-videos / variations-images) à partir de l'ID
+ * Supabase Auth de l'appelant (`auth.uid()`, tel que renvoyé par
+ * `supabase.auth.getUser(token)` dans les routes d'upload).
+ *
+ * Sans cette résolution, un gérant qui uploade une image pour un article
+ * appartenant à la boutique (dont le propriétaire est `access.boutiqueId`)
+ * la stockerait sous son propre auth id au lieu de celui du propriétaire :
+ * le nettoyage ultérieur (`deleteArticleImages`, appelé avec l'id du
+ * propriétaire) ne retrouverait jamais ces fichiers, qui resteraient
+ * orphelins sur le storage indéfiniment.
+ *
+ * Fallback sur `authUserId` si le profil est introuvable, pour ne jamais
+ * bloquer un upload sur un échec de résolution.
+ */
+export async function resolveStorageOwnerId(authUserId: string): Promise<string> {
+    const supabaseAdmin = getSupabaseAdmin();
+    const { data: profile } = await supabaseAdmin
+        .from("users")
+        .select("id, role")
+        .eq("auth_id", authUserId)
+        .maybeSingle();
+
+    if (!profile) return authUserId;
+
+    const boutiqueId = await resolveBoutiqueIdFor(profile.id, profile.role);
+    return boutiqueId ?? authUserId;
+}
+
+/**
  * Résolution d'accès Boutique (Phase 2 — multi-profil).
  *
  * Vérifie que l'appelant est authentifié, qu'il a un rôle Boutique, et résout

@@ -181,6 +181,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         // 2) Insert variations
+        let insertedVariations: Record<string, unknown>[] = [];
         if (body.variations?.length) {
             const variationsToInsert = body.variations.map(v => ({
                 article_id: article.id,
@@ -191,13 +192,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 updated_at: new Date().toISOString(),
             }));
 
-            const { error: varErr } = await supabaseAdmin
+            // .select() est indispensable : le client renvoie ensuite l'image
+            // de chaque variation (uploadée séparément une fois l'article créé)
+            // via PATCH /variations/update/{id}, il a donc besoin des ID générés.
+            const { data: varData, error: varErr } = await supabaseAdmin
                 .from("variations")
-                .insert(variationsToInsert);
+                .insert(variationsToInsert)
+                .select();
 
             if (varErr) {
                 console.warn("Impossible d'ajouter des variations :", varErr);
             } else {
+                insertedVariations = varData ?? [];
                 // Resynchroniser stock article = somme(variations.stock) au cas où
                 // l'insertion partielle aurait modifié le total réel.
                 await recomputeArticleStock(article.id);
@@ -220,14 +226,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             if (imgErr) console.warn("Impossible d'ajouter des images :", imgErr);
         }
 
-        // ✅ Retourner l'article avec les infos de catégorie
+        // ✅ Retourner l'article avec les infos de catégorie et les variations
+        // créées (avec leur ID réel, nécessaire au client pour y attacher
+        // une image après upload).
         return res.status(201).json({
             article: {
                 ...article,
                 categorie: {
                     id: categorie.id,
                     nom: categorie.nom
-                }
+                },
+                variations: insertedVariations,
             }
         });
     } catch (err) {

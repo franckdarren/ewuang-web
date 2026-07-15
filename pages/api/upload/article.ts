@@ -4,6 +4,7 @@ import formidable, { File as FormidableFile } from 'formidable';
 import fs from 'fs';
 import { createClient } from '@supabase/supabase-js';
 import { uploadArticleImage, UploadResult } from '../../../lib/upload';
+import { resolveStorageOwnerId } from '../../../app/lib/middlewares/requireBoutiqueAccess';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -117,10 +118,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             type: formidableFile.mimetype || 'image/jpeg',
         });
 
+        // Chemin de storage basé sur la boutique (propriétaire), pas sur
+        // l'auth id brut de l'uploadeur : nécessaire pour qu'un gérant
+        // (compte membre, pas propriétaire) uploade au même endroit que le
+        // propriétaire, sans quoi le nettoyage ultérieur ne retrouve jamais
+        // ses fichiers.
+        const storageOwnerId = await resolveStorageOwnerId(user.id);
+
         // Upload image vers Supabase (avec le token utilisateur pour le RLS)
         const uploadResult: UploadResult = await uploadArticleImage(
             imageFile,
-            user.id,
+            storageOwnerId,
             articleId,
             type as 'principale' | 'gallery',
             index,

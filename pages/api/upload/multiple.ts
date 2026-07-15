@@ -7,6 +7,7 @@ import formidable, { File as FormidableFile } from "formidable";
 import fs from "fs";
 import { createClient } from "@supabase/supabase-js";
 import { uploadArticleImage } from "../../../lib/upload";
+import { resolveStorageOwnerId } from "../../../app/lib/middlewares/requireBoutiqueAccess";
 
 /**
  * @swagger
@@ -114,6 +115,10 @@ export default async function handler(
 
         const uploadedUrls: string[] = [];
 
+        // Chemin de storage basé sur la boutique (propriétaire), voir
+        // resolveStorageOwnerId pour le détail.
+        const storageOwnerId = await resolveStorageOwnerId(user.id);
+
         for (let i = 0; i < fileArray.length; i++) {
             const file = fileArray[i] as FormidableFile;
 
@@ -130,7 +135,7 @@ export default async function handler(
             // Upload vers Supabase (avec le token utilisateur pour le RLS)
             const result = await uploadArticleImage(
                 imageFile,
-                user.id, // userId Supabase
+                storageOwnerId,
                 articleId,
                 "gallery",
                 i + 1,
