@@ -10,6 +10,12 @@ import { pvitInitiatePaiement, toOperateurCode } from "../../../app/lib/pvit";
 // Taux de commission de la plateforme, prélevé sur le bénéfice de la boutique.
 const TAUX_COMMISSION = 0.04; // 4%
 
+// Plafond des frais de livraison. Une commande peut regrouper plusieurs
+// boutiques éclatées dans la ville : le livreur multiplie les déplacements,
+// donc le tarif de zone est multiplié par le nombre de boutiques distinctes,
+// mais le montant total facturé au client ne dépasse jamais ce plafond.
+const PLAFOND_LIVRAISON = 5000; // FCFA
+
 /**
  * @swagger
  * /api/paiements/initiate:
@@ -360,7 +366,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // -----------------------------------------------------------------------
     // 3. Frais de livraison (uniquement si livraison demandée)
-    //    Tarif unique par commande, lu dans la table zones_livraison.
+    //    Tarif de zone lu dans la table zones_livraison, multiplié par le
+    //    nombre de boutiques distinctes (déplacements du livreur), plafonné
+    //    à PLAFOND_LIVRAISON.
     // -----------------------------------------------------------------------
     let fraisLivraison = 0;
     let villeLivraison: string | null = null;
@@ -369,7 +377,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         body.zone_livraison_id,
         body.adresse_livraison
       );
-      fraisLivraison = zone.tarif;
+      const nbBoutiques = new Set(boutiqueIds).size;
+      fraisLivraison = Math.min(zone.tarif * nbBoutiques, PLAFOND_LIVRAISON);
       villeLivraison = zone.ville;
       total += fraisLivraison;
     }

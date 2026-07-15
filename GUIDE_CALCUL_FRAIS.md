@@ -101,21 +101,21 @@ Ajoutés **uniquement si `body.isLivrable = true`** (case "Livraison" cochée c�
 
 ### Tarif de base par zone
 
-L'adresse est passée en minuscules ; le premier mot-clé qui matche détermine le tarif :
+Le tarif de base **n'est pas codé en dur** : il est lu dans la table `zones_livraison` (colonne `tarif`) via `resolveFraisLivraison`. La résolution se fait dans cet ordre :
 
-| Adresse contient | Base livraison |
-|------------------|----------------|
-| `libreville`     | 2 500 FCFA     |
-| `akanda`         | 2 000 FCFA     |
-| `owendo`         | 3 000 FCFA     |
-| autre (défaut)   | 3 000 FCFA     |
+1. Si `zone_livraison_id` est fourni (zone choisie dans la dropdown) → on prend son `tarif`.
+2. Sinon, on cherche une zone active dont le nom (`ville`) est contenu dans l'adresse.
+3. Sinon, on prend la zone marquée `is_default`.
+4. Filet de sécurité si la table est vide : 3 000 FCFA.
+
+Les tarifs sont donc administrables depuis le dashboard `zones-livraison`. À titre indicatif (valeurs de seed) : Libreville 2 500, Akanda 2 000, Owendo 3 000, défaut 3 000 FCFA.
 
 ### Multi-boutiques
 
-Si la commande contient des articles de **plusieurs boutiques distinctes**, le tarif de base est multiplié par le nombre de boutiques, **plafonné à 8 000 FCFA** :
+Si la commande contient des articles de **plusieurs boutiques distinctes**, le livreur multiplie les déplacements dans la ville. Le tarif de zone est donc multiplié par le nombre de boutiques distinctes, **plafonné à 5 000 FCFA** (constante `PLAFOND_LIVRAISON`) :
 
 ```
-frais_livraison = min(base × nombre_de_boutiques, 8000)
+frais_livraison = min(tarif_zone × nombre_de_boutiques, 5000)
 ```
 
 ### Exemples
@@ -124,7 +124,7 @@ frais_livraison = min(base × nombre_de_boutiques, 8000)
 |-------------------------|--------------|-----------------------|-----------------|
 | Libreville, Louis       | 1            | 2 500 × 1             | **2 500**       |
 | Akanda                  | 2            | 2 000 × 2             | **4 000**       |
-| Libreville              | 4            | min(2 500 × 4, 8 000) | **8 000**       |
+| Libreville              | 4            | min(2 500 × 4, 5 000) | **5 000**       |
 | Lambaréné (hors zone)   | 1            | 3 000 × 1             | **3 000**       |
 
 ---
