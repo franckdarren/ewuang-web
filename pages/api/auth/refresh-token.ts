@@ -1,7 +1,7 @@
 // pages/api/auth/refresh-token.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { z, ZodError } from "zod";
-import { supabaseAdmin } from "../../../app/lib/supabaseAdmin";
+import { createSupabaseAuthClient } from "../../../app/lib/supabaseAuthClient";
 
 /**
  * @swagger
@@ -58,7 +58,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const body = refreshTokenSchema.parse(req.body);
 
         // Rafraîchir le token
-        const { data, error } = await supabaseAdmin.auth.refreshSession({
+        const { data, error } = await createSupabaseAuthClient().auth.refreshSession({
             refresh_token: body.refresh_token,
         });
 

@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { v4 as uuidv4 } from "uuid";
 import { z, ZodError } from "zod";
 import { getSupabaseAdmin } from "../../../../app/lib/supabaseSafeAdmin";
+import { createSupabaseAuthClient } from "../../../../app/lib/supabaseAuthClient";
 
 const joinSchema = z.object({
     token: z.string().min(32).max(64),
@@ -169,7 +170,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // 6️⃣ Connecte l'invité : signInWithPassword côté serveur retourne une session
         //     que le client utilisera comme s'il s'était connecté normalement.
         const { data: signinData, error: signinError } =
-            await supabaseAdmin.auth.signInWithPassword({
+            await createSupabaseAuthClient().auth.signInWithPassword({
                 email: invitation.email,
                 password,
             });
