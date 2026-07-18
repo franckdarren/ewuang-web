@@ -43,6 +43,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         users!user_id(id, name, url_logo, is_certified),
         categories!categorie_id(id, nom)
         `)
+            .eq("is_active", true) // exclut les articles archivés (supprimés mais liés à des commandes)
             .order("created_at", { ascending: false })
             .range(offset, offset + perPage - 1);
 

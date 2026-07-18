@@ -17,6 +17,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             .from("articles")
             .select("*, variations(*), image_articles(*)")
             .eq("is_promotion", true)
+            .eq("is_active", true) // exclut les articles archivés
             .not("prix_promotion", "is", null)
             .order("created_at", { ascending: false });
 

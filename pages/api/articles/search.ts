@@ -37,6 +37,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             .from("articles")
             .select("*, variations(*), image_articles(*)")
             .or(`nom.ilike.%${q}%,description.ilike.%${q}%`)
+            .eq("is_active", true) // exclut les articles archivés
             .range(from, to)
             .order("created_at", { ascending: false });
 

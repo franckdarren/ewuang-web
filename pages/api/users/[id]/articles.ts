@@ -50,7 +50,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 commande_articles(*),
                 variations(*)
             `)
-            .eq("user_id", access.boutiqueId);
+            .eq("user_id", access.boutiqueId)
+            .eq("is_active", true); // exclut les articles archivés
 
         if (error) {
             console.error("Erreur Supabase :", error);

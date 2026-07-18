@@ -34,6 +34,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             .from("articles")
             .select("*, variations(*), image_articles(*)")
             .gte("created_at", since)
+            .eq("is_active", true) // exclut les articles archivés
             .order("created_at", { ascending: false })
             .limit(lim);
 
