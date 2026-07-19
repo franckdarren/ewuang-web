@@ -121,10 +121,16 @@ export async function uploadArticleImage(
         // Optimiser l'image
         const optimizedBuffer = await optimizeImage(buffer);
 
-        // Générer le nom de fichier
+        // Générer le nom de fichier.
+        //
+        // Les images de galerie doivent avoir un nom UNIQUE : `index` est
+        // fourni par uploadMultipleImages et repart de 1 à chaque appel, donc
+        // un nom basé dessus (`gallery-1.webp`) écrasait — upsert: true —
+        // l'image d'une variation existante dès qu'on en ajoutait une
+        // nouvelle, les deux variations finissant sur la même URL.
         const fileName = type === 'principale'
             ? 'principale.webp'
-            : `gallery-${index || Date.now()}.webp`;
+            : `gallery-${Date.now()}-${index ?? 0}-${Math.random().toString(36).substring(2, 8)}.webp`;
 
         // Chemin dans le bucket
         const filePath = `${userId}/${articleId}/${fileName}`;
