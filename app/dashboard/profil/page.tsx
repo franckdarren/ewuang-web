@@ -1,8 +1,5 @@
 import React from 'react'
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Plus, TrendingUp } from "lucide-react"
+import { ChangePasswordForm } from "@/components/profil/change-password-form"
 
 export default function ProfilPage() {
     return (
@@ -15,15 +12,11 @@ export default function ProfilPage() {
                         Mes informations.
                     </p>
                 </div>
-                {/* <Button>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Créer un article
-                </Button> */}
             </div>
 
             {/* Contenu */}
             <div className="grid gap-4 md:grid-cols-2">
-
+                <ChangePasswordForm />
             </div>
         </div>
     )
