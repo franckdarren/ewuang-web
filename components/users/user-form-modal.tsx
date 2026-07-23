@@ -315,7 +315,11 @@ export function UserFormModal({
                                             <SelectItem value="Client">Client</SelectItem>
                                             <SelectItem value="Boutique">Boutique</SelectItem>
                                             <SelectItem value="Livreur">Livreur</SelectItem>
-                                            <SelectItem value="Administrateur">Administrateur</SelectItem>
+                                            {/* Les administrateurs se créent depuis Rôles & permissions › Affectations.
+                                                On garde l'option en édition pour afficher le rôle d'un admin existant. */}
+                                            {isEditing && (
+                                                <SelectItem value="Administrateur">Administrateur</SelectItem>
+                                            )}
                                         </SelectContent>
                                     </Select>
                                     <FormMessage />
