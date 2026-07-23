@@ -172,6 +172,75 @@ export async function uploadArticleImage(
 }
 
 /**
+ * Optimise une image d'avatar : recadrage carré (cover) puis WebP.
+ */
+async function optimizeAvatar(buffer: Buffer): Promise<Buffer> {
+    return sharp(buffer)
+        .resize(512, 512, { fit: 'cover', position: 'centre' })
+        .webp({ quality: IMAGE_QUALITY })
+        .toBuffer();
+}
+
+// Garde-fou : ne crée le bucket avatars qu'une fois par process.
+let avatarsBucketReady = false;
+async function ensureAvatarsBucket(): Promise<void> {
+    if (avatarsBucketReady) return;
+    // createBucket est idempotent côté usage : on ignore l'erreur « déjà existant ».
+    const { error } = await supabase.storage.createBucket('avatars', {
+        public: true,
+        fileSizeLimit: MAX_FILE_SIZE,
+        allowedMimeTypes: ALLOWED_TYPES,
+    });
+    if (error && !/exist/i.test(error.message)) {
+        console.error('Erreur création bucket avatars:', error);
+    }
+    avatarsBucketReady = true;
+}
+
+/**
+ * Upload la photo de profil d'un utilisateur (une seule par compte).
+ * Chemin fixe `{authId}/avatar.webp` (upsert) — la nouvelle photo remplace
+ * l'ancienne, pas de fichiers orphelins. Le cache est busté via `?t=` à l'appel.
+ */
+export async function uploadAvatarImage(
+    file: File,
+    authId: string
+): Promise<UploadResult> {
+    try {
+        const validation = validateImageFile(file);
+        if (!validation.valid) {
+            return { success: false, error: validation.error };
+        }
+
+        await ensureAvatarsBucket();
+
+        const arrayBuffer = await file.arrayBuffer();
+        const optimizedBuffer = await optimizeAvatar(Buffer.from(arrayBuffer));
+
+        const filePath = `${authId}/avatar.webp`;
+
+        const { error } = await supabase.storage
+            .from('avatars')
+            .upload(filePath, optimizedBuffer, {
+                contentType: 'image/webp',
+                upsert: true,
+            });
+
+        if (error) {
+            console.error('Erreur upload avatar Supabase:', error);
+            return { success: false, error: error.message };
+        }
+
+        const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
+
+        return { success: true, url: urlData.publicUrl, path: filePath };
+    } catch (error: any) {
+        console.error('Erreur upload avatar:', error);
+        return { success: false, error: error.message || "Erreur lors de l'upload" };
+    }
+}
+
+/**
  * Valide un fichier vidéo
  */
 export function validateVideoFile(file: File): { valid: boolean; error?: string } {

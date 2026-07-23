@@ -35,6 +35,19 @@ VALUES (
 )
 ON CONFLICT (id) DO NOTHING;
 
+-- 2ter) Créer le bucket 'avatars' (photo de profil, une par utilisateur)
+-- NB : l'API /api/upload/avatar le crée aussi automatiquement au 1er upload
+-- (client service-role). Ce bloc sert de référence / setup manuel.
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+    'avatars',
+    'avatars',
+    true, -- Bucket public (URLs d'avatar accessibles partout)
+    5242880, -- 5 MB max
+    ARRAY['image/jpeg', 'image/png', 'image/webp']
+)
+ON CONFLICT (id) DO NOTHING;
+
 -- ============================================
 -- Politiques RLS pour 'articles-images'
 -- ============================================
