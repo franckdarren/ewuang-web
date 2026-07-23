@@ -1,6 +1,5 @@
 import React from 'react'
-import { ProfileInfoForm } from "@/components/profil/profile-info-form"
-import { ChangePasswordForm } from "@/components/profil/change-password-form"
+import { ProfilContent } from "@/components/profil/profil-content"
 
 export default function ProfilPage() {
     return (
@@ -16,10 +15,7 @@ export default function ProfilPage() {
             </div>
 
             {/* Contenu */}
-            <div className="grid gap-4 lg:grid-cols-2">
-                <ProfileInfoForm />
-                <ChangePasswordForm />
-            </div>
+            <ProfilContent />
         </div>
     )
 }
