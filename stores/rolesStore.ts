@@ -44,6 +44,13 @@ export interface RolePayload {
     permissions: string[];
 }
 
+export interface CreateAdminPayload {
+    name: string;
+    email: string;
+    password: string;
+    admin_role_id: string | null;
+}
+
 interface RolesStore {
     roles: AdminRole[];
     permissions: Permission[];   // catalogue
@@ -57,6 +64,7 @@ interface RolesStore {
     updateRole: (id: string, payload: Partial<RolePayload>) => Promise<boolean>;
     deleteRole: (id: string) => Promise<boolean>;
     assignRole: (userId: string, adminRoleId: string | null) => Promise<boolean>;
+    createAdmin: (payload: CreateAdminPayload) => Promise<boolean>;
     reset: () => void;
 }
 
@@ -213,6 +221,34 @@ export const useRolesStore = create<RolesStore>((set, get) => ({
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Erreur inconnue';
             toast.error('Affectation impossible', { description: message });
+            return false;
+        }
+    },
+
+    createAdmin: async (payload) => {
+        try {
+            const res = await apiFetch('/api/users/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: payload.name,
+                    email: payload.email,
+                    password: payload.password,
+                    role: 'Administrateur',
+                    admin_role_id: payload.admin_role_id,
+                }),
+            });
+            if (!res.ok) {
+                toast.error('Création impossible', { description: await readError(res) });
+                return false;
+            }
+            // Recharge admins + compteurs de rôles
+            await get().fetchAll();
+            toast.success('Administrateur créé');
+            return true;
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'Erreur inconnue';
+            toast.error('Création impossible', { description: message });
             return false;
         }
     },

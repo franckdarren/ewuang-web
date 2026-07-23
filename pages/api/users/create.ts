@@ -3,7 +3,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { z, ZodError } from "zod";
 import { v4 as uuidv4 } from "uuid";
 import { getSupabaseAdmin } from "../../../app/lib/supabaseSafeAdmin";
-import { requirePermission } from "../../../app/lib/permissions";
+import { requirePermission, hasPermission } from "../../../app/lib/permissions";
 
 /**
  * @swagger
@@ -45,6 +45,13 @@ import { requirePermission } from "../../../app/lib/permissions";
  *                 type: string
  *               address:
  *                 type: string
+ *               admin_role_id:
+ *                 type: string
+ *                 format: uuid
+ *                 nullable: true
+ *                 description: >
+ *                   Rôle RBAC à affecter (uniquement si role = Administrateur).
+ *                   Nécessite la permission roles.manage.
  *     responses:
  *       201:
  *         description: Utilisateur créé avec succès
@@ -65,6 +72,7 @@ const createUserSchema = z.object({
     role: z.enum(["Client", "Boutique", "Livreur", "Administrateur"]),
     phone: z.string().optional(),
     address: z.string().optional(),
+    admin_role_id: z.string().uuid().nullable().optional(),
 });
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -79,6 +87,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const body = createUserSchema.parse(req.body);
         const supabaseAdmin = getSupabaseAdmin();
+
+        // Rôle RBAC : réservé aux administrateurs et à la permission roles.manage.
+        let adminRoleId: string | null = null;
+        if (body.admin_role_id) {
+            if (body.role !== "Administrateur") {
+                return res.status(400).json({
+                    error: "Un rôle admin ne peut être affecté qu'à un compte Administrateur",
+                });
+            }
+            if (!hasPermission(auth.permissions, "roles.manage")) {
+                return res.status(403).json({
+                    error: "Permission insuffisante pour affecter un rôle admin (roles.manage requise)",
+                });
+            }
+            const { data: role } = await supabaseAdmin
+                .from("admin_roles")
+                .select("id")
+                .eq("id", body.admin_role_id)
+                .maybeSingle();
+            if (!role) {
+                return res.status(404).json({ error: "Rôle admin introuvable" });
+            }
+            adminRoleId = body.admin_role_id;
+        }
 
         // 1. Créer l'utilisateur dans Supabase Auth (sans email de vérification)
         const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
@@ -100,6 +132,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 email: body.email,
                 name: body.name,
                 role: body.role,
+                admin_role_id: adminRoleId,
                 phone: body.phone || null,
                 address: body.address || null,
                 is_verified: true,

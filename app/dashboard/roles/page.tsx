@@ -236,6 +236,136 @@ function RoleDialog({
 }
 
 // ============================================
+// Dialog création d'un administrateur (+ rôle)
+// ============================================
+function CreateAdminDialog({
+    open,
+    onOpenChange,
+    roles,
+}: {
+    open: boolean;
+    onOpenChange: (v: boolean) => void;
+    roles: AdminRole[];
+}) {
+    const createAdmin = useRolesStore((s) => s.createAdmin);
+
+    const [name, setName] = useState('');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [roleId, setRoleId] = useState<string>(NONE);
+    const [submitting, setSubmitting] = useState(false);
+
+    useEffect(() => {
+        if (open) {
+            setName('');
+            setEmail('');
+            setPassword('');
+            setRoleId(NONE);
+        }
+    }, [open]);
+
+    const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+    const canSubmit =
+        name.trim().length >= 2 && emailValid && password.length >= 6 && !submitting;
+
+    const handleSubmit = async () => {
+        if (!canSubmit) return;
+        setSubmitting(true);
+        const ok = await createAdmin({
+            name: name.trim(),
+            email: email.trim(),
+            password,
+            admin_role_id: roleId === NONE ? null : roleId,
+        });
+        setSubmitting(false);
+        if (ok) onOpenChange(false);
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Nouvel administrateur</DialogTitle>
+                    <DialogDescription>
+                        Créez un compte administrateur et affectez-lui un rôle.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div className="grid gap-4 py-2">
+                    <div className="grid gap-2">
+                        <Label htmlFor="admin-name">Nom</Label>
+                        <Input
+                            id="admin-name"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            placeholder="Ex : Awa Ndong"
+                            autoFocus
+                        />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="admin-email">Email</Label>
+                        <Input
+                            id="admin-email"
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="admin@ewuang.com"
+                        />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="admin-password">Mot de passe</Label>
+                        <Input
+                            id="admin-password"
+                            type="password"
+                            autoComplete="new-password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="6 caractères minimum"
+                        />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label>Rôle</Label>
+                        <Select value={roleId} onValueChange={setRoleId}>
+                            <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Aucun rôle" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value={NONE}>Aucun rôle</SelectItem>
+                                {roles.map((r) => (
+                                    <SelectItem key={r.id} value={r.id}>
+                                        {r.nom}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">
+                            Sans rôle, l&apos;administrateur n&apos;aura aucun accès tant qu&apos;un rôle
+                            ne lui est pas affecté.
+                        </p>
+                    </div>
+                </div>
+
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
+                        Annuler
+                    </Button>
+                    <Button onClick={handleSubmit} disabled={!canSubmit}>
+                        {submitting ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Création…
+                            </>
+                        ) : (
+                            "Créer l'administrateur"
+                        )}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+// ============================================
 // Page
 // ============================================
 function RolesContent() {
@@ -248,9 +378,12 @@ function RolesContent() {
     const assignRole = useRolesStore((s) => s.assignRole);
 
     const canManage = useHasPermission('roles.manage');
+    const canCreateUser = useHasPermission('users.write');
+    const canCreateAdmin = canManage && canCreateUser;
 
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingRole, setEditingRole] = useState<AdminRole | null>(null);
+    const [createAdminOpen, setCreateAdminOpen] = useState(false);
     const [initialLoading, setInitialLoading] = useState(true);
 
     useEffect(() => {
@@ -376,6 +509,14 @@ function RolesContent() {
 
                 {/* ----- Onglet Affectations ----- */}
                 <TabsContent value="affectations" className="mt-4">
+                    {canCreateAdmin && (
+                        <div className="mb-3 flex justify-end">
+                            <Button onClick={() => setCreateAdminOpen(true)}>
+                                <Plus className="mr-2 h-4 w-4" />
+                                Nouvel administrateur
+                            </Button>
+                        </div>
+                    )}
                     <Card>
                         <CardContent className="pt-4">
                             <Table>
@@ -450,6 +591,14 @@ function RolesContent() {
                     onOpenChange={setDialogOpen}
                     editingRole={editingRole}
                     permissions={permissions}
+                />
+            )}
+
+            {canCreateAdmin && (
+                <CreateAdminDialog
+                    open={createAdminOpen}
+                    onOpenChange={setCreateAdminOpen}
+                    roles={roles}
                 />
             )}
         </div>
