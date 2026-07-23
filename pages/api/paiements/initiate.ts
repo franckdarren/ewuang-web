@@ -6,6 +6,7 @@ import { randomBytes } from "crypto";
 import { supabaseAdmin } from "../../../app/lib/supabaseAdmin";
 import { requireUserAuth } from "../../../app/lib/middlewares/requireUserAuth";
 import { pvitInitiatePaiement, toOperateurCode } from "../../../app/lib/pvit";
+import { resolveSoldeAdminId } from "../../../app/lib/soldeAdmin";
 
 // Taux de commission de la plateforme, prélevé sur le bénéfice de la boutique.
 const TAUX_COMMISSION = 0.04; // 4%
@@ -262,11 +263,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       article_to_update: { id: string; quantite: number } | null;
     }[] = [];
 
-    const { data: admin } = await supabaseAdmin
-      .from("users")
-      .select("id")
-      .eq("role", "Administrateur")
-      .single();
+    // Admin porteur du solde = admin opérationnel (non Super Admin). Voir
+    // app/lib/soldeAdmin.ts : le Super Admin ne perçoit aucun frais.
+    const adminSoldeId = await resolveSoldeAdminId();
 
     for (const item of body.articles) {
       const { data: article, error: articleError } = await supabaseAdmin
@@ -404,7 +403,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       groupe_id: null as string | null, // renseigné après création du groupe
       operateur: body.operateur,
       telephone: body.telephone,
-      admin_id: admin?.id ?? null,
+      admin_id: adminSoldeId,
       admin_frais: adminFrais,
       boutique_benefices: boutiqueBenefices,
       frais_livraison: fraisLivraison,
